@@ -112,7 +112,7 @@ export function useAudioEngine() {
     if (!entry) return;
 
     const velocity = getMidiVelocity(velocityLevel, velMode) || 80;
-    if (!isFinite(velocity)) return;
+    if (!isFinite(velocity) || !isFinite(time)) return;
     const { instrument, type } = entry;
 
     if (type === 'drumMachine') {

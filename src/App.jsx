@@ -10,6 +10,7 @@ import Transport from './components/Transport.jsx';
 import PageTabs from './components/PageTabs.jsx';
 import Library from './components/Library.jsx';
 import ShareModal from './components/ShareModal.jsx';
+import NotationView from './components/NotationView.jsx';
 import { presetToState } from './state/presets.js';
 import { loadFromUrl, isEmbedMode } from './state/shareCodec.js';
 
@@ -20,6 +21,8 @@ function Drumlet() {
   const [previewMode, setPreviewMode] = useState(true);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [notationView, setNotationView] = useState(false);
+  const [activePreset, setActivePreset] = useState(null); // { name, credit, creditUrl, cover, links }
   const [embed] = useState(() => isEmbedMode());
   const customBuffersRef = useRef(new Map()); // trackId → AudioBuffer
 
@@ -164,6 +167,16 @@ function Drumlet() {
   const handleLoadPreset = useCallback((preset) => {
     stop();
     dispatch({ type: 'LOAD_STATE', state: presetToState(preset) });
+    setActivePreset({
+      name: preset.name,
+      credit: preset.credit,
+      creditUrl: preset.creditUrl,
+      cover: preset.cover,
+      links: preset.links,
+      bpm: preset.bpm,
+      body: preset.body || null,
+      notes: preset.notes || null,
+    });
     setLibraryOpen(false);
   }, [dispatch, stop]);
 
@@ -301,8 +314,90 @@ function Drumlet() {
         />
       </div>
 
+      {/* Preset header + notation toggle */}
+      {(activePreset || notationView) && (
+        <div className="preset-header flex items-center gap-4 mb-4">
+          {activePreset && (
+            <div className="preset-info flex items-center gap-3 flex-1 min-w-0">
+              {activePreset.cover && (
+                <img
+                  src={activePreset.cover}
+                  alt={activePreset.name}
+                  className="preset-info-cover w-12 h-12 rounded-xl object-cover shrink-0"
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-base lg:text-lg font-display font-bold text-text truncate">
+                    {activePreset.name}
+                  </span>
+                  {activePreset.links?.wikipedia && (
+                    <a href={activePreset.links.wikipedia} target="_blank" rel="noopener noreferrer" className="opacity-40 hover:opacity-100 transition-opacity" title="Wikipedia">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-muted"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zM4.6 5h1.2l1.5 3.8L8.8 5H10l-2.5 6H6.3L4.6 5z"/></svg>
+                    </a>
+                  )}
+                  {activePreset.links?.spotify && (
+                    <a href={activePreset.links.spotify} target="_blank" rel="noopener noreferrer" className="opacity-40 hover:opacity-100 transition-opacity" title="Spotify">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="#1DB954"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.67 11.56a.5.5 0 01-.68.16c-1.87-1.14-4.22-1.4-6.99-.77a.5.5 0 01-.22-.97c3.03-.69 5.63-.39 7.73.9a.5.5 0 01.16.68zm.98-2.18a.62.62 0 01-.85.2c-2.14-1.31-5.4-1.69-7.93-.93a.62.62 0 01-.36-1.18c2.9-.88 6.5-.45 8.94 1.06a.62.62 0 01.2.85zm.08-2.27C10.5 5.6 6.1 5.46 3.56 6.25a.74.74 0 11-.43-1.42C6.02 3.9 10.9 4.06 13.4 5.82a.74.74 0 01-.77 1.29z"/></svg>
+                    </a>
+                  )}
+                  {activePreset.links?.youtube && (
+                    <a href={activePreset.links.youtube} target="_blank" rel="noopener noreferrer" className="opacity-40 hover:opacity-100 transition-opacity" title="YouTube">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="#FF0000"><path d="M14.6 4.3a1.9 1.9 0 00-1.3-1.3C12.2 2.7 8 2.7 8 2.7s-4.2 0-5.3.3A1.9 1.9 0 001.4 4.3 19.6 19.6 0 001 8c0 1.3.1 2.5.4 3.7a1.9 1.9 0 001.3 1.3c1.1.3 5.3.3 5.3.3s4.2 0 5.3-.3a1.9 1.9 0 001.3-1.3c.3-1.2.4-2.4.4-3.7s-.1-2.5-.4-3.7zM6.5 10.2V5.8L10.4 8l-3.9 2.2z"/></svg>
+                    </a>
+                  )}
+                </div>
+                {activePreset.credit && (
+                  <span className="text-xs lg:text-sm text-muted">
+                    {activePreset.creditUrl ? (
+                      <a href={activePreset.creditUrl} target="_blank" rel="noopener noreferrer" className="hover:text-sky transition-colors">
+                        {activePreset.credit}
+                      </a>
+                    ) : activePreset.credit}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Notation toggle */}
+          <button
+            className={`notation-toggle-btn px-3 py-1.5 rounded-xl text-xs lg:text-sm font-semibold cursor-pointer transition-all flex items-center gap-1.5 shrink-0
+              ${notationView
+                ? 'bg-text text-white'
+                : 'bg-gray-100 text-muted hover:bg-gray-200 hover:text-text'
+              }`}
+            onClick={() => setNotationView((v) => !v)}
+            title={notationView ? 'Switch to grid view' : 'Switch to notation view'}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <line x1="2" y1="4" x2="14" y2="4" /><line x1="2" y1="6.5" x2="14" y2="6.5" />
+              <line x1="2" y1="9" x2="14" y2="9" /><line x1="2" y1="11.5" x2="14" y2="11.5" />
+              <line x1="2" y1="14" x2="14" y2="14" />
+              <circle cx="6" cy="6.5" r="1.8" fill="currentColor" stroke="none" />
+              <line x1="7.8" y1="6.5" x2="7.8" y2="2" strokeWidth="1.5" />
+              <circle cx="10" cy="11.5" r="1.8" fill="currentColor" stroke="none" />
+              <line x1="11.8" y1="11.5" x2="11.8" y2="7" strokeWidth="1.5" />
+            </svg>
+            {notationView ? 'Grid' : 'Notation'}
+          </button>
+        </div>
+      )}
+
+      {/* Notation view */}
+      {notationView && currentPage && (
+        <div className="mb-4">
+          <NotationView
+            tracks={currentPage.tracks}
+            stepsPerPage={state.stepsPerPage}
+            currentStep={currentStep}
+          />
+        </div>
+      )}
+
       {/* Grid */}
-      {currentPage && (
+      {!notationView && currentPage && (
         <Grid
           tracks={currentPage.tracks}
           currentStep={currentStep}
@@ -316,6 +411,16 @@ function Drumlet() {
           onPreview={(track) => audioEngine.previewSound(track)}
           onDrop={handleDrop}
         />
+      )}
+
+      {/* Preset description */}
+      {activePreset?.body && (
+        <div className="preset-body mt-4 bg-card rounded-2xl shadow-sm border border-border px-5 py-4">
+          <p className="text-sm lg:text-base text-text/80 leading-relaxed">{activePreset.body}</p>
+          {activePreset?.notes && (
+            <p className="text-xs lg:text-sm text-muted mt-2 pt-2 border-t border-border italic">{activePreset.notes}</p>
+          )}
+        </div>
       )}
 
       {/* Loading overlay */}

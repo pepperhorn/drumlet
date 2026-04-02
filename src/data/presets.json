@@ -40,7 +40,9 @@
             }
           ],
           "creditUrl": "https://en.wikipedia.org/wiki/Clyde_Stubblefield",
-          "cover": "/images/presets/funky-drummer.jpg"
+          "cover": "/images/presets/funky-drummer.jpg",
+          "body": "The most sampled drum break in history. Clyde Stubblefield's iconic groove from James Brown's 1970 track defined the sound of hip-hop, becoming the backbone of countless records from Public Enemy to Dr. Dre.",
+          "notes": "Focus on the ghost notes in the snare and hi-hat. The groove lives in the space between the strong beats — the softer hits create the pocket that makes this pattern feel so funky."
         },
         {
           "name": "Cold Sweat",
@@ -190,7 +192,9 @@
             }
           ],
           "creditUrl": "https://en.wikipedia.org/wiki/Bernard_Purdie",
-          "cover": "/images/presets/synthetic-substitution.jpg"
+          "cover": "/images/presets/synthetic-substitution.jpg",
+          "body": "Bernard Purdie's drum break from this 1973 track became one of the most sampled beats in hip-hop history, second only to the Funky Drummer. Its sparse, heavy-hitting pattern defined the boom-bap sound.",
+          "notes": "This is all about the kick pattern — the syncopated hits create a rolling, bouncing feel. Keep the snare simple on 2 and 4 and let the kick do the talking."
         },
         {
           "name": "Rock Steady",
@@ -446,7 +450,9 @@
             }
           ],
           "creditUrl": "https://en.wikipedia.org/wiki/Zigaboo_Modeliste",
-          "cover": "/images/presets/cissy-strut.jpg"
+          "cover": "/images/presets/cissy-strut.jpg",
+          "body": "Zigaboo Modeliste's signature groove for The Meters. This New Orleans funk classic showcases the second-line rhythmic tradition with a deep, syncopated pocket.",
+          "notes": "Notice the kick drum's syncopation — it pushes against the backbeat. The hi-hat pattern is sparse compared to the busy kick and snare, leaving space for the rest of the band."
         },
         {
           "name": "Chug Chug Chug-A-Lug",
@@ -560,7 +566,9 @@
             }
           ],
           "creditUrl": "https://en.wikipedia.org/wiki/James_Gadson",
-          "cover": "/images/presets/express-yourself.jpg"
+          "cover": "/images/presets/express-yourself.jpg",
+          "body": "James Gadson's groove for Charles Wright & the Watts 103rd Street Rhythm Band. Later famously sampled by N.W.A., this pattern exemplifies the tight, funky West Coast sound.",
+          "notes": "The hi-hat pattern has a lot of dynamic variation — accents and ghost notes throughout. The kick and snare interplay is busy but never cluttered."
         },
         {
           "name": "Use Me",
@@ -819,7 +827,9 @@
             }
           ],
           "creditUrl": "https://en.wikipedia.org/wiki/Stevie_Wonder",
-          "cover": "/images/presets/superstition.jpg"
+          "cover": "/images/presets/superstition.jpg",
+          "body": "Stevie Wonder played the drums himself on this 1972 classic, laying down one of the most recognizable grooves in popular music. The pattern is deceptively simple but sits deep in the pocket.",
+          "notes": "The hi-hat carries the feel. Pay attention to the dynamic variation — it's not a flat pattern. The kick is steady four-on-the-floor with subtle ghost notes that give it life."
         },
         {
           "name": "Knocks Me Off My Feet",

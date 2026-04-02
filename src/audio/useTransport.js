@@ -25,7 +25,8 @@ export function useTransport(stateRef, audioEngine) {
       if (!page) break;
 
       const step = currentStepRef.current;
-      const stepDuration = 60 / state.bpm / 4; // 16th notes
+      const bpm = state.bpm || 120;
+      const stepDuration = 60 / bpm / 4; // 16th notes
 
       // Swing: delay every odd-indexed 16th note (the offbeats).
       // At swing=0: straight 16ths (no delay).

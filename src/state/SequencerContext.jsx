@@ -3,7 +3,7 @@ import { sequencerReducer, createInitialState } from './sequencerReducer.js';
 
 const SequencerContext = createContext(null);
 
-const STORAGE_KEY = 'drumlet-state';
+const STORAGE_KEY = 'drumlet-state-v2';
 
 function loadSavedState() {
   try {
@@ -11,22 +11,23 @@ function loadSavedState() {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed.pages && parsed.stepsPerPage) {
-        // Migrate: add fields that may not exist in older saved states
-        if (parsed.swing == null) parsed.swing = 0;
-        if (parsed.humanize == null) parsed.humanize = 0;
+        // Migrate top-level fields
+        if (!parsed.bpm || !isFinite(parsed.bpm)) parsed.bpm = 120;
+        if (parsed.swing == null || !isFinite(parsed.swing)) parsed.swing = 0;
+        if (parsed.humanize == null || !isFinite(parsed.humanize)) parsed.humanize = 0;
+
         // Migrate global velocityLevels → per-track velMode
-        if (parsed.velocityLevels != null) {
-          for (const page of parsed.pages) {
-            for (const track of page.tracks) {
-              if (track.velMode == null) track.velMode = parsed.velocityLevels;
-            }
-          }
-          delete parsed.velocityLevels;
-        } else {
-          for (const page of parsed.pages) {
-            for (const track of page.tracks) {
-              if (track.velMode == null) track.velMode = 3;
-            }
+        const globalVel = parsed.velocityLevels;
+        delete parsed.velocityLevels;
+
+        for (const page of parsed.pages) {
+          for (const track of page.tracks) {
+            if (track.velMode == null) track.velMode = globalVel || 3;
+            if (track.volume == null || !isFinite(track.volume)) track.volume = 80;
+            if (track.reverb == null || !isFinite(track.reverb)) track.reverb = 20;
+            if (!track.sourceType) track.sourceType = 'drumMachine';
+            if (!track.instrument && track.sourceType === 'drumMachine') track.instrument = 'TR-808';
+            if (!track.group && track.sourceType === 'drumMachine') track.group = 'kick';
           }
         }
         return parsed;
