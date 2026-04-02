@@ -98,7 +98,7 @@ function NotationView({ tracks, stepsPerPage, currentStep, noteValue }) {
       const beatStartStep = beat * stepsPerBeat;
       for (let j = 0; j < labels.length; j++) {
         const stepFloat = beatStartStep + (j / labels.length) * stepsPerBeat;
-        const x = interpolateX(beatInfo.noteXPositions, stepFloat);
+        const x = interpolateX(beatInfo.noteXPositions, stepFloat) + fontSize * 0.4;
         const isBeatNum = j === 0;
         countLabels.push({ text: labels[j], x, isBeatNum });
       }

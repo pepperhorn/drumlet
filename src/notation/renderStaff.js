@@ -148,7 +148,7 @@ export function renderDrumStaff(container, { tracks, stepsPerPage, noteValueKey,
   const staveWidth = stepsPerPage * stepWidth;
   const svgWidth = leftMargin + staveWidth + rightMargin;
   const staveY = 20;
-  const svgHeight = staveY + 65;
+  const svgHeight = staveY + 90;
 
   const renderer = new Renderer(container, Renderer.Backends.SVG);
   renderer.resize(svgWidth, svgHeight);
