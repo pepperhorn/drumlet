@@ -71,8 +71,8 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-/* Mobile: simplified track controls */
-@media (max-width: 639px) {
+/* Mobile: simplified track controls (below md breakpoint 768px) */
+@media (max-width: 767px) {
   .track-controls {
     min-width: 100px !important;
   }

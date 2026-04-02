@@ -13,6 +13,7 @@ function loadSavedState() {
       if (parsed.pages && parsed.stepsPerPage) {
         // Migrate top-level fields
         if (!parsed.bpm || !isFinite(parsed.bpm)) parsed.bpm = 120;
+        if (!parsed.noteValue) parsed.noteValue = '1/4';
         if (parsed.swing == null || !isFinite(parsed.swing)) parsed.swing = 0;
         if (parsed.humanize == null || !isFinite(parsed.humanize)) parsed.humanize = 0;
 

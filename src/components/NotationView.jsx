@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { getVelocityOpacity } from '../audio/velocityConfig.js';
+import { NOTE_VALUES } from '../state/sequencerReducer.js';
 
 /**
  * Standard drum notation staff positions (from bottom line = 0).
@@ -130,7 +131,11 @@ function NoteHead({ x, y, head, color, opacity }) {
   return <circle cx={x} cy={y} r={NOTE_R} fill={color} opacity={o} />;
 }
 
-function NotationView({ tracks, stepsPerPage, currentStep }) {
+function NotationView({ tracks, stepsPerPage, currentStep, noteValue }) {
+  const nv = NOTE_VALUES.find((n) => n.key === noteValue) || NOTE_VALUES[3];
+  // How many steps make one quarter-note beat
+  const stepsPerBeat = Math.round(1 / nv.beatsPerStep) || 1;
+
   const stepWidth = 28;
   const leftMargin = 40;
   const svgWidth = leftMargin + stepsPerPage * stepWidth + 20;
@@ -162,9 +167,9 @@ function NotationView({ tracks, stepsPerPage, currentStep }) {
           />
         ))}
 
-        {/* Beat group lines (every 4 steps) */}
-        {Array.from({ length: Math.ceil(stepsPerPage / 4) + 1 }, (_, i) => {
-          const step = i * 4;
+        {/* Beat group lines */}
+        {Array.from({ length: Math.ceil(stepsPerPage / stepsPerBeat) + 1 }, (_, i) => {
+          const step = i * stepsPerBeat;
           if (step > stepsPerPage) return null;
           const x = leftMargin + step * stepWidth;
           return (
@@ -181,10 +186,10 @@ function NotationView({ tracks, stepsPerPage, currentStep }) {
         })}
 
         {/* Beat numbers */}
-        {Array.from({ length: Math.ceil(stepsPerPage / 4) }, (_, i) => (
+        {Array.from({ length: Math.ceil(stepsPerPage / stepsPerBeat) }, (_, i) => (
           <text
             key={`beat-${i}`}
-            x={leftMargin + i * 4 * stepWidth + 2 * stepWidth}
+            x={leftMargin + i * stepsPerBeat * stepWidth + (stepsPerBeat / 2) * stepWidth}
             y={svgHeight - 4}
             textAnchor="middle"
             fontSize={9}

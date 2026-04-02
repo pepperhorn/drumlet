@@ -11,6 +11,7 @@ function PageTabs({
   onSetStepsPerPage,
   onToggleChainMode,
   onClearPage,
+  actions,
 }) {
   return (
     <div className="page-tabs flex items-center gap-3 bg-card rounded-2xl shadow-sm border border-border px-4 py-2.5">
@@ -87,6 +88,8 @@ function PageTabs({
       >
         Clear
       </button>
+
+      {actions && <div className="page-tabs-actions ml-auto flex items-center gap-2">{actions}</div>}
     </div>
   );
 }

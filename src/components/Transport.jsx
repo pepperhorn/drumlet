@@ -1,4 +1,5 @@
-import { memo, useRef, useCallback } from 'react';
+import { memo, useRef, useCallback, useState } from 'react';
+import { NOTE_VALUES } from '../state/sequencerReducer.js';
 
 function Dial({ label, value = 0, onChange, color = 'sky' }) {
   const safeValue = Number(value) || 0;
@@ -48,8 +49,9 @@ function Dial({ label, value = 0, onChange, color = 'sky' }) {
   );
 }
 
-function Transport({ bpm, swing, humanize, isPlaying, previewMode, onTogglePlay, onSetBpm, onSetSwing, onSetHumanize, onTogglePreview }) {
+function Transport({ bpm, noteValue, swing, humanize, isPlaying, previewMode, onTogglePlay, onSetBpm, onSetNoteValue, onSetSwing, onSetHumanize, onTogglePreview }) {
   const tapTimesRef = useRef([]);
+  const [bpmText, setBpmText] = useState(null); // null = not editing
 
   const handleTap = useCallback(() => {
     const now = performance.now();
@@ -106,10 +108,18 @@ function Transport({ bpm, swing, humanize, isPlaying, previewMode, onTogglePlay,
         <input
           type="number"
           className="transport-bpm-input w-16 h-8 lg:w-20 lg:h-9 px-2 rounded-lg bg-bg border border-border text-center font-mono font-semibold text-sm lg:text-base outline-none focus:border-sky transition-colors"
-          value={bpm}
-          min={20}
-          max={300}
-          onChange={(e) => onSetBpm(Number(e.target.value))}
+          value={bpmText !== null ? bpmText : bpm}
+          onFocus={() => setBpmText(String(bpm))}
+          onBlur={() => {
+            const v = parseInt(bpmText, 10);
+            setBpmText(null);
+            onSetBpm(isNaN(v) ? bpm : v);
+          }}
+          onChange={(e) => {
+            setBpmText(e.target.value);
+            const v = parseInt(e.target.value, 10);
+            if (!isNaN(v)) onSetBpm(v);
+          }}
         />
         <input
           type="range"
@@ -129,32 +139,52 @@ function Transport({ bpm, swing, humanize, isPlaying, previewMode, onTogglePlay,
         TAP
       </button>
 
-      {/* Preview / Audition toggle */}
-      <button
-        className={`transport-preview-btn w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95
-          ${previewMode
-            ? 'bg-sky/15 text-sky border border-sky/30'
-            : 'bg-gray-100 text-muted hover:bg-gray-200 hover:text-text border border-transparent'
-          }`}
-        onClick={onTogglePreview}
-        title={previewMode ? 'Preview on: hear sounds when clicking cells' : 'Preview off'}
-      >
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 8 A6 6 0 0 1 16 8" />
-          <rect x="3" y="8" width="3.5" height="5.5" rx="1" />
-          <rect x="13.5" y="8" width="3.5" height="5.5" rx="1" />
-          <line x1="10" y1="2" x2="10" y2="5" />
-        </svg>
-      </button>
-
       {/* Divider */}
       <div className="w-px h-8 bg-border" />
 
-      {/* Swing dial */}
-      <Dial label="Swing" value={swing} onChange={onSetSwing} color="amber" />
+      {/* Labeled controls — aligned tops */}
+      <div className="transport-controls flex items-start gap-4">
+        {/* Note value (step divisor) */}
+        <div className="transport-divisor flex flex-col items-center gap-1">
+          <span className="text-[9px] lg:text-[11px] text-muted font-semibold uppercase tracking-wide">Tick</span>
+          <select
+            className="transport-note-value-select h-10 lg:h-12 px-2 rounded-lg bg-gray-100 text-xs lg:text-sm font-semibold text-muted hover:bg-gray-200 hover:text-text transition-colors cursor-pointer border-none outline-none"
+            value={noteValue}
+            onChange={(e) => onSetNoteValue(e.target.value)}
+          >
+            {NOTE_VALUES.map((nv) => (
+              <option key={nv.key} value={nv.key}>{nv.label}</option>
+            ))}
+          </select>
+        </div>
 
-      {/* Humanize dial */}
-      <Dial label="Human" value={humanize} onChange={onSetHumanize} color="lavender" />
+        {/* Preview / Audition toggle */}
+        <div className="transport-preview flex flex-col items-center gap-1">
+          <span className="text-[9px] lg:text-[11px] text-muted font-semibold uppercase tracking-wide">Preview</span>
+          <button
+            className={`transport-preview-btn w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95
+              ${previewMode
+                ? 'bg-sky/15 text-sky border border-sky/30'
+                : 'bg-gray-100 text-muted hover:bg-gray-200 hover:text-text border border-transparent'
+              }`}
+            onClick={onTogglePreview}
+            title={previewMode ? 'Preview on: hear sounds when clicking cells' : 'Preview off'}
+          >
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 8 A6 6 0 0 1 16 8" />
+              <rect x="3" y="8" width="3.5" height="5.5" rx="1" />
+              <rect x="13.5" y="8" width="3.5" height="5.5" rx="1" />
+              <line x1="10" y1="2" x2="10" y2="5" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Swing dial */}
+        <Dial label="Swing" value={swing} onChange={onSetSwing} color="amber" />
+
+        {/* Humanize dial */}
+        <Dial label="Human" value={humanize} onChange={onSetHumanize} color="lavender" />
+      </div>
 
       {/* Playing indicator */}
       {isPlaying && (

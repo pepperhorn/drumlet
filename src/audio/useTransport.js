@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
+import { NOTE_VALUES } from '../state/sequencerReducer.js';
 
 const LOOKAHEAD = 0.1; // seconds
 const SCHEDULE_INTERVAL = 25; // ms
@@ -13,7 +14,7 @@ export function useTransport(stateRef, audioEngine) {
   const schedulerIdRef = useRef(null);
   const rafIdRef = useRef(null);
 
-  const { getContext, triggerNote } = audioEngine;
+  const { getContext, ensureRunning, triggerNote } = audioEngine;
 
   const scheduleNotes = useCallback(() => {
     const ctx = getContext();
@@ -26,7 +27,8 @@ export function useTransport(stateRef, audioEngine) {
 
       const step = currentStepRef.current;
       const bpm = state.bpm || 120;
-      const stepDuration = 60 / bpm / 4; // 16th notes
+      const nv = NOTE_VALUES.find((n) => n.key === state.noteValue) || NOTE_VALUES[3]; // default 1/4
+      const stepDuration = (60 / bpm) * nv.beatsPerStep;
 
       // Swing: delay every odd-indexed 16th note (the offbeats).
       // At swing=0: straight 16ths (no delay).
@@ -59,6 +61,7 @@ export function useTransport(stateRef, audioEngine) {
             noteTime = Math.max(ctx.currentTime, noteTime + jitter);
           }
 
+          if (step === 0) console.log('[transport] step 0: triggering', track.name, 'vel:', vel, 'time:', noteTime.toFixed(3));
           triggerNote(track, vel, noteTime, track.velMode || 3);
         }
       }
@@ -87,16 +90,17 @@ export function useTransport(stateRef, audioEngine) {
     rafIdRef.current = requestAnimationFrame(updateVisual);
   }, [stateRef]);
 
-  const play = useCallback(() => {
-    const ctx = getContext();
+  const play = useCallback(async () => {
+    // Resume AudioContext from user gesture — must complete before scheduling
+    const ctx = await ensureRunning();
     isPlayingRef.current = true;
     setIsPlaying(true);
     currentStepRef.current = 0;
-    nextStepTimeRef.current = ctx.currentTime + 0.05;
+    nextStepTimeRef.current = ctx.currentTime + 0.1; // slightly longer delay for safety
 
     schedulerIdRef.current = setInterval(scheduleNotes, SCHEDULE_INTERVAL);
     rafIdRef.current = requestAnimationFrame(updateVisual);
-  }, [getContext, scheduleNotes, updateVisual]);
+  }, [ensureRunning, scheduleNotes, updateVisual]);
 
   const stop = useCallback(() => {
     isPlayingRef.current = false;

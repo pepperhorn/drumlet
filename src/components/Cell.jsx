@@ -22,8 +22,8 @@ function Cell({ velocity, velMode, color, isPlayhead, isBeatStart, onClick, onRi
 
   return (
     <button
-      className={`step-cell cell-hit relative w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
-        flex items-center justify-center text-[10px] sm:text-xs lg:text-sm font-mono font-semibold select-none overflow-hidden
+      className={`step-cell cell-hit relative w-9 h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
+        flex items-center justify-center text-[10px] md:text-xs lg:text-sm font-mono font-semibold select-none overflow-hidden
         ${velocity === 0 ? 'bg-white border-border hover:bg-gray-50' : 'border-transparent'}
         ${isPlayhead ? 'playhead-active ring-2 ring-sky/50' : ''}
         ${isBeatStart ? 'ml-1.5' : 'ml-0.5'}

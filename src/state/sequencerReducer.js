@@ -1,6 +1,16 @@
 import { v4 as uuid } from 'uuid';
 import { maxLevel, convertStep } from '../audio/velocityConfig.js';
 
+// Note value options — each step represents this many quarter-note beats
+export const NOTE_VALUES = [
+  { key: '1/32', label: '1/32', beatsPerStep: 1 / 8 },
+  { key: '1/16', label: '1/16', beatsPerStep: 1 / 4 },
+  { key: '1/8',  label: '1/8',  beatsPerStep: 1 / 2 },
+  { key: '1/4',  label: '1/4',  beatsPerStep: 1 },
+  { key: 'd1/4', label: '♩.',   beatsPerStep: 3 / 2 },
+  { key: '1/2',  label: '1/2',  beatsPerStep: 2 },
+];
+
 export const TRACK_COLORS = [
   '#FF6B6B', '#FFB347', '#A8E06C', '#5BC0EB',
   '#B39DDB', '#FFAB91', '#66D9A0', '#F48FB1',
@@ -44,6 +54,7 @@ export function createInitialState() {
     currentPageIndex: 0,
     stepsPerPage,
     bpm: 120,
+    noteValue: '1/4',   // key from NOTE_VALUES — what one grid step represents
     swing: 0,           // 0-100, 0=straight, 50=triplet feel, 100=hard swing
     humanize: 0,        // 0-100, random timing variation in ms
     chainMode: false,
@@ -131,6 +142,9 @@ export function sequencerReducer(state, action) {
 
     case 'SET_BPM':
       return { ...state, bpm: Math.max(20, Math.min(300, action.bpm)) };
+
+    case 'SET_NOTE_VALUE':
+      return { ...state, noteValue: action.noteValue };
 
     case 'SET_SWING':
       return { ...state, swing: Math.max(0, Math.min(100, action.swing)) };

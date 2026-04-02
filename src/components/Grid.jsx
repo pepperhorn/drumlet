@@ -24,7 +24,7 @@ function Grid({
           {Array.from({ length: stepsPerPage }, (_, i) => (
             <div
               key={i}
-              className={`step-number w-9 sm:w-10 lg:w-11 text-center text-[9px] lg:text-[11px] font-mono text-muted select-none
+              className={`step-number w-9 md:w-10 lg:w-11 text-center text-[9px] lg:text-[11px] font-mono text-muted select-none
                 ${i > 0 && i % 4 === 0 ? 'ml-1.5' : 'ml-0.5'}
                 ${currentStep === i ? 'text-sky font-bold' : ''}
               `}
@@ -72,15 +72,17 @@ function Grid({
       ))}
 
       {/* Add track button */}
-      <div className="add-track flex items-center mt-2">
-        <div className="min-w-[180px] lg:min-w-[220px] shrink-0" />
-        <button
-          className="add-track-btn px-4 py-1.5 rounded-lg bg-gray-50 text-muted text-sm hover:bg-gray-100 hover:text-text transition-colors cursor-pointer border border-dashed border-border"
-          onClick={onAddTrack}
-        >
-          + Add Track
-        </button>
-      </div>
+      {onAddTrack && (
+        <div className="add-track flex items-center mt-2">
+          <div className="min-w-[180px] lg:min-w-[220px] shrink-0" />
+          <button
+            className="add-track-btn px-4 py-1.5 rounded-lg bg-gray-50 text-muted text-sm hover:bg-gray-100 hover:text-text transition-colors cursor-pointer border border-dashed border-border"
+            onClick={onAddTrack}
+          >
+            + Add Track
+          </button>
+        </div>
+      )}
     </div>
   );
 }
