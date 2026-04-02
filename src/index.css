@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Fredoka", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-bg: #FAFBFC;
+  --color-card: #FFFFFF;
+  --color-text: #1A1A2E;
+  --color-muted: #94A3B8;
+  --color-border: #E2E8F0;
+
+  --color-coral: #FF6B6B;
+  --color-amber: #FFB347;
+  --color-lime: #A8E06C;
+  --color-sky: #5BC0EB;
+  --color-lavender: #B39DDB;
+  --color-peach: #FFAB91;
+  --color-mint: #66D9A0;
+  --color-rose: #F48FB1;
+
+  --color-play: #22C55E;
+  --color-stop: #EF4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cell velocity animation */
+.cell-hit {
+  transition: background-color 0.12s ease, transform 0.1s ease, box-shadow 0.12s ease;
+}
+
+/* Slot-machine spin — old label exits upward, new label enters from below */
+@keyframes spin-out {
+  0% { transform: translateY(0) rotateX(0); opacity: 1; }
+  100% { transform: translateY(-110%) rotateX(60deg); opacity: 0; }
+}
+@keyframes spin-in {
+  0% { transform: translateY(110%) rotateX(-60deg); opacity: 0; }
+  100% { transform: translateY(0) rotateX(0); opacity: 1; }
+}
+.cell-spin-out {
+  animation: spin-out 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.cell-spin-in {
+  animation: spin-in 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.cell-hit:active {
+  transform: scale(1.15);
+}
+
+/* Playhead glow */
+.playhead-active {
+  box-shadow: 0 0 8px 2px rgba(91, 192, 235, 0.35);
+}
+
+/* Track row drop target */
+.drop-target {
+  outline: 2px dashed var(--color-sky);
+  outline-offset: -2px;
+  background: rgba(91, 192, 235, 0.08) !important;
+}
+
+/* Smooth scrollbar */
+.grid-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.grid-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.grid-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+/* Transport pulse animation */
+@keyframes pulse-play {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.pulse-play {
+  animation: pulse-play 1s ease-in-out infinite;
+}
+
+/* Loading shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--color-border) 25%, var(--color-bg) 50%, var(--color-border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}

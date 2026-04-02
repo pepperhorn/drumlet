@@ -1,0 +1,1341 @@
+{
+  "_format": "drumlet-presets-v1",
+  "_note": "Steps are Funklet 32-step strings (0-4 velocity). The app downsamples to 16 and remaps at load time. kit: {type,id} specifies the default sound source. velMode per track (1/3/7).",
+  "categories": [
+    {
+      "name": "Clyde Stubblefield",
+      "presets": [
+        {
+          "name": "Funky Drummer",
+          "credit": "Clyde Stubblefield, 1970",
+          "bpm": 101,
+          "swing": 8,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Funky_Drummer",
+            "spotify": "https://open.spotify.com/track/1bSHYLBRnPYQnCYDKMTXDg",
+            "youtube": "https://www.youtube.com/watch?v=dNP8tbDKEOQ"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "32323131313232323232323232323232"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "00004002020340030000400202034003"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "20300000002002002030000000200100"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Clyde_Stubblefield",
+          "cover": "/images/presets/funky-drummer.jpg"
+        },
+        {
+          "name": "Cold Sweat",
+          "credit": "Clyde Stubblefield, 1967",
+          "bpm": 112,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Cold_Sweat_(James_Brown_song)",
+            "spotify": "https://open.spotify.com/track/3sMHDcB2YIvWodGMSzAinV",
+            "youtube": "https://www.youtube.com/watch?v=mYoEpOAzKWQ"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "30303030303030303030303030303030"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "00004003000000400300400302004000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "40000000304000000030000030400030"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Clyde_Stubblefield",
+          "cover": "/images/presets/cold-sweat.jpg"
+        },
+        {
+          "name": "I Got the Feelin'",
+          "credit": "Clyde Stubblefield, 1968",
+          "bpm": 128,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/I_Got_the_Feelin%27",
+            "youtube": "https://www.youtube.com/watch?v=B1JlcAseMgI"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "20202020202020202020202020202020"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "00000040020000400200420302120121"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "30400000004000000040000030003030"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Clyde_Stubblefield",
+          "cover": "/images/presets/i-got-the-feelin.jpg"
+        },
+        {
+          "name": "Mother Popcorn",
+          "credit": "Clyde Stubblefield, 1969",
+          "bpm": 117,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Mother_Popcorn",
+            "youtube": "https://www.youtube.com/watch?v=MXlCJfv4_OU"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "40004000400040004000400040004000"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "00004002010000400201320104013202"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "30300000003000000030003000300030"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Clyde_Stubblefield",
+          "cover": "/images/presets/mother-popcorn.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Bernard Purdie",
+      "presets": [
+        {
+          "name": "Synthetic Substitution",
+          "credit": "Bernard Purdie, 1973",
+          "bpm": 93,
+          "swing": 8,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Synthetic_Substitution",
+            "youtube": "https://www.youtube.com/watch?v=hd-bJEFqbO8"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "40403040403030403040304040303040"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "00004000000040000000400000004000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "30400004034400034040000403440002"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Bernard_Purdie",
+          "cover": "/images/presets/synthetic-substitution.jpg"
+        },
+        {
+          "name": "Rock Steady",
+          "credit": "Bernard Purdie, 1971",
+          "bpm": 103,
+          "swing": 8,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Rock_Steady_(Aretha_Franklin_song)",
+            "spotify": "https://open.spotify.com/track/5lCmlZlkZqFNpNGl86MFAZ",
+            "youtube": "https://www.youtube.com/watch?v=tBGXmKvGrqM"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "30303031303030313030303230303031"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "02004202020042010200420202004201"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "00303003003030000030300300303000"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Bernard_Purdie",
+          "cover": "/images/presets/rock-steady.jpg"
+        },
+        {
+          "name": "The Fez",
+          "credit": "Bernard Purdie, 1976",
+          "bpm": 99,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/The_Royal_Scam",
+            "youtube": "https://www.youtube.com/watch?v=AVuQACjxj8s"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "00300030003000300030003000300030"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "01014201020142010101420104014201"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "40000000400000004000000040040040"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Bernard_Purdie",
+          "cover": "/images/presets/the-fez.jpg"
+        },
+        {
+          "name": "Use Me",
+          "credit": "Bernard Purdie, 1972",
+          "bpm": 82,
+          "swing": 17,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "spotify": "https://open.spotify.com/track/1PzLoaHxUO4lUx8IRBY1U4",
+            "youtube": "https://www.youtube.com/watch?v=NKeU1TWQjkA"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "30203132322032323220323232203232"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "00303033023030330230303302303033"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "30003000000030000000300300303000"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Bernard_Purdie",
+          "cover": "/images/presets/use-me.jpg"
+        },
+        {
+          "name": "Hot Sweat",
+          "credit": "Bernard Purdie, 1996",
+          "bpm": 114,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {},
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "30404010402020202021204040212020"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "00004002110020410101420101014100"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "40000000004000000034000000340040"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Bernard_Purdie",
+          "cover": "/images/presets/hot-sweat.jpg"
+        },
+        {
+          "name": "Haitian Divorce",
+          "credit": "Bernard Purdie, 1976",
+          "bpm": 74,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/The_Royal_Scam",
+            "youtube": "https://www.youtube.com/watch?v=USbxCHJhBpE"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "32303232323032323230323232303232"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "02004022010040220100402202004022"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "00303000003030000030300000303000"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Bernard_Purdie",
+          "cover": "/images/presets/haitian-divorce.jpg"
+        },
+        {
+          "name": "O-o-h Child",
+          "credit": "Bernard Purdie, 1970",
+          "bpm": 89,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "spotify": "https://open.spotify.com/track/2M9ro2krNb7nr7HSprkEgo",
+            "youtube": "https://www.youtube.com/watch?v=dguz0IsCGKk"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "43404240434042404340434042404240"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "03024202030142010201420204004040"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "40400000403400004034000040340000"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Bernard_Purdie",
+          "cover": "/images/presets/o-o-h-child.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Zigaboo Modeliste",
+      "presets": [
+        {
+          "name": "Cissy Strut",
+          "credit": "Zigaboo Modeliste, 1969",
+          "bpm": 87,
+          "swing": 8,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Cissy_Strut",
+            "spotify": "https://open.spotify.com/track/1KqIN7H3bGguEqwRhOJOYL",
+            "youtube": "https://www.youtube.com/watch?v=4_iC0MyIykM"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "24104014034040401430401404304040"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "00004000000040400000400000004040"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "40040400340404004004040034040400"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Zigaboo_Modeliste",
+          "cover": "/images/presets/cissy-strut.jpg"
+        },
+        {
+          "name": "Chug Chug Chug-A-Lug",
+          "credit": "Zigaboo Modeliste, 1972",
+          "bpm": 89,
+          "swing": 8,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "youtube": "https://www.youtube.com/watch?v=j3Dh2RNpkf8"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "40404330433040404040433043304040"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "02304004022040000230400402204000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "40040404040400404004040404040040"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Zigaboo_Modeliste",
+          "cover": "/images/presets/chug-chug-chug-a-lug.jpg"
+        },
+        {
+          "name": "Look-Ka Py Py",
+          "credit": "Zigaboo Modeliste, 1969",
+          "bpm": 88,
+          "swing": 8,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Look-Ka_Py_Py_(song)",
+            "spotify": "https://open.spotify.com/track/0iPgrBEaKwLdmh1ji7HhcR",
+            "youtube": "https://www.youtube.com/watch?v=jMaGaIZHqj8"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "30303030304030303030303030403030"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "04004003404000400400430240400040"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "30030300004002303003030230400330"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Zigaboo_Modeliste",
+          "cover": "/images/presets/look-ka-py-py.jpg"
+        }
+      ]
+    },
+    {
+      "name": "James Gadson",
+      "presets": [
+        {
+          "name": "Express Yourself",
+          "credit": "James Gadson, 1970",
+          "bpm": 94,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Express_Yourself_(Charles_Wright_%26_the_Watts_103rd_Street_Rhythm_Band_song)",
+            "spotify": "https://open.spotify.com/track/6iDBFkmnzFqSm0beMaiFKJ",
+            "youtube": "https://www.youtube.com/watch?v=JmcA9Ld2_Wk"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "32423132313231323131313131313130"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "00004002040404020000400204024000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "40040000400400404004000040040040"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/James_Gadson",
+          "cover": "/images/presets/express-yourself.jpg"
+        },
+        {
+          "name": "Use Me",
+          "credit": "James Gadson, 1972",
+          "bpm": 78,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "spotify": "https://open.spotify.com/track/7CHi4DWpEiCxFzpPGstDAx",
+            "youtube": "https://www.youtube.com/watch?v=NKeU1TWQjkA"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "32323232323232323232323222030303"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "00004004040040040000400400000004"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "20300302303303023030030023030301"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/James_Gadson",
+          "cover": "/images/presets/use-me.jpg"
+        },
+        {
+          "name": "Kissing My Love",
+          "credit": "James Gadson, 1972",
+          "bpm": 94,
+          "swing": 8,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "spotify": "https://open.spotify.com/track/0nYHqkpZ6UDqh5v0LIjgMx",
+            "youtube": "https://www.youtube.com/watch?v=kqu1M5OZyYA"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "32323232323232203232323232323230"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "00004000010040000000400101004000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "30020000000300303000000000030300"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/James_Gadson",
+          "cover": "/images/presets/kissing-my-love.jpg"
+        },
+        {
+          "name": "Books Of Moses",
+          "credit": "James Gadson, 2010",
+          "bpm": 91,
+          "swing": 25,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {},
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "30403040304030403040304030403040"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "00004000000040000000400000004000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "40004000400400004000400040000000"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/James_Gadson",
+          "cover": "/images/presets/books-of-moses.jpg"
+        },
+        {
+          "name": "Let a Woman Be a Woman",
+          "credit": "James Gadson, 1969",
+          "bpm": 112,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "youtube": "https://www.youtube.com/watch?v=5Fx9xBHj7nA"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "30304030403040403030403040304040"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "00004002012013000000400402014000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "00300000301301300030000000300030"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/James_Gadson",
+          "cover": "/images/presets/let-a-woman-be-a-woman.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Tony Allen",
+      "presets": [
+        {
+          "name": "Expensive Shit",
+          "credit": "Tony Allen, 1975",
+          "bpm": 126,
+          "swing": 8,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Expensive_Shit",
+            "spotify": "https://open.spotify.com/track/05lLr7N3oaPy2T84XGYkrp",
+            "youtube": "https://www.youtube.com/watch?v=SeFrCDC9nrQ"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "10122021302130122021301130224021"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "32020200310032003202010032002100"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "00020010000000200002002000000020"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Tony_Allen_(musician)",
+          "cover": "/images/presets/expensive-shit.jpg"
+        },
+        {
+          "name": "The Same Blood",
+          "credit": "Tony Allen, 1999",
+          "bpm": 120,
+          "swing": 8,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "youtube": "https://www.youtube.com/watch?v=bCJ-RTZK02g"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "20302042103220322040204210321031"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "00030230000032100003023000003230"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "32000000320000003200000032000000"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Tony_Allen_(musician)",
+          "cover": "/images/presets/the-same-blood.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Stevie Wonder",
+      "presets": [
+        {
+          "name": "Superstition",
+          "credit": "Stevie Wonder, 1972",
+          "bpm": 98,
+          "swing": 25,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Superstition_(song)",
+            "spotify": "https://open.spotify.com/track/5lDriBxJd22IhODiEwfqVE",
+            "youtube": "https://www.youtube.com/watch?v=0CFuCYNx-1g"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "30403032323040323040303230423230"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "00004000000040000000400000004000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "30003000300030003000300030003000"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Stevie_Wonder",
+          "cover": "/images/presets/superstition.jpg"
+        },
+        {
+          "name": "Knocks Me Off My Feet",
+          "credit": "Stevie Wonder, 1976",
+          "bpm": 91,
+          "swing": 8,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "spotify": "https://open.spotify.com/track/4p5NrK8VjJOqxr5eWl0eQk",
+            "youtube": "https://www.youtube.com/watch?v=o209wPGfGMI"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "30400034034000403040003403300040"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "00004000000040000000400000004000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "30302002303020023030200130302002"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Stevie_Wonder",
+          "cover": "/images/presets/knocks-me-off-my-feet.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Funk & Soul",
+      "presets": [
+        {
+          "name": "Sex Machine",
+          "credit": "Jabo Starks, 1970",
+          "bpm": 109,
+          "swing": 25,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Get_Up_(I_Feel_Like_Being_a)_Sex_Machine",
+            "spotify": "https://open.spotify.com/track/3LkJsJe2cbCDph8i6HBGKA",
+            "youtube": "https://www.youtube.com/watch?v=8mjQ1i5V0fY"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "30203032302030323030303230203030"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "00004011010040020000401101004001"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "40000000003000304000000000300030"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/John_%22Jabo%22_Starks",
+          "cover": "/images/presets/sex-machine.jpg"
+        },
+        {
+          "name": "Palm Grease",
+          "credit": "Mike Clark, 1974",
+          "bpm": 101,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Thrust_(album)",
+            "spotify": "https://open.spotify.com/track/6wgSAgA7PfsVmAqjMGpPAD",
+            "youtube": "https://www.youtube.com/watch?v=1GsQSJzmd1A"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "43320340403403404040000000400000"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "00004001020040020200004000000040"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "40000000400000040040000000000000"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Mike_Clark_(musician)",
+          "cover": "/images/presets/palm-grease.jpg"
+        },
+        {
+          "name": "Funky President",
+          "credit": "Allan Schwartzberg, 1974",
+          "bpm": 105,
+          "swing": 25,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Funky_President_(People_It%27s_Bad)",
+            "youtube": "https://www.youtube.com/watch?v=qFqov0MV2Lc"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "30303030304030303030303030403030"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "00004000000040000000400000004000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "40040004034000004004000403400000"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Allan_Schwartzberg",
+          "cover": "/images/presets/funky-president.jpg"
+        },
+        {
+          "name": "Come Dancing",
+          "credit": "Narada Michael Walden, 1976",
+          "bpm": 96,
+          "swing": 25,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {},
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "30203020302030203020302020403020"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "01204210012042100200420004004230"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "40000003400000034040040340000003"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Narada_Michael_Walden",
+          "cover": "/images/presets/come-dancing.jpg"
+        },
+        {
+          "name": "Respect Yourself",
+          "credit": "Roger Hawkins, 1971",
+          "bpm": 111,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Respect_Yourself",
+            "spotify": "https://open.spotify.com/track/3h33JEK9MZuGk4tVzOFkkN",
+            "youtube": "https://www.youtube.com/watch?v=ZYUQFNAGIQA"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "20202020202020202020202020202020"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "00004000004040000000400040404000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "20002000200020002000200020002000"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Roger_Hawkins",
+          "cover": "/images/presets/respect-yourself.jpg"
+        },
+        {
+          "name": "I Feel Good",
+          "credit": "Melvin Parker, 1965",
+          "bpm": 145,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/I_Got_You_(I_Feel_Good)",
+            "spotify": "https://open.spotify.com/track/7yTFbMPjnNb1FXZsDzyLkh",
+            "youtube": "https://www.youtube.com/watch?v=U5TqIdff_DQ"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "30303020303030203030302030303020"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "00004000000040000000400000004000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "30000000003000000030003000300030"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Melvin_Parker",
+          "cover": "/images/presets/i-feel-good.jpg"
+        },
+        {
+          "name": "It's A New Day",
+          "credit": "George Bragg, 1973",
+          "bpm": 96,
+          "swing": 25,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "youtube": "https://www.youtube.com/watch?v=CXFLEi5bPZE"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "30302040403020403030204040302040"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "00004000000040000000400000004000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "40400000004300034040000000340002"
+            }
+          ],
+          "cover": "/images/presets/it-s-a-new-day.jpg"
+        }
+      ]
+    },
+    {
+      "name": "New Orleans & Latin",
+      "presets": [
+        {
+          "name": "Groove Me",
+          "credit": "Wardell Quezergue, 1970",
+          "bpm": 104,
+          "swing": 8,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "youtube": "https://www.youtube.com/watch?v=WCl1iFJDS20"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "40404040404040404040404040404040"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "00004000000040000000400000004000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "40034003440404034003400344040403"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Wardell_Quezergue",
+          "cover": "/images/presets/groove-me.jpg"
+        },
+        {
+          "name": "Lady Marmalade",
+          "credit": "Herman Ernest III, 1974",
+          "bpm": 114,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Lady_Marmalade",
+            "spotify": "https://open.spotify.com/track/1Hcp9OMLu5bGo8e8GYUL0a",
+            "youtube": "https://www.youtube.com/watch?v=t4LWIP7SAjY"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "40204020402040204020402040404020"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "00004000000040000000400040000000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "40000040400000400000000000004000"
+            }
+          ],
+          "cover": "/images/presets/lady-marmalade.jpg"
+        },
+        {
+          "name": "The Thrill Is Gone",
+          "credit": "Herb Lovelle, 1969",
+          "bpm": 90,
+          "swing": 17,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/The_Thrill_Is_Gone",
+            "spotify": "https://open.spotify.com/track/2MuWVRByqdFBOeYpcuqMKQ",
+            "youtube": "https://www.youtube.com/watch?v=4fk2prKnYnI"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "30103010301030103010301030103010"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "20002000200040002000200020004000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "00000003404000000000000340400000"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Herb_Lovelle",
+          "cover": "/images/presets/the-thrill-is-gone.jpg"
+        },
+        {
+          "name": "DC Go-Go",
+          "credit": "Unknown, go-go",
+          "bpm": 101,
+          "swing": 25,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "wikipedia": "https://en.wikipedia.org/wiki/Go-go"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 7,
+              "steps": "02402402400002300240240240000230"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "01004001000040000100400100004000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 3,
+              "steps": "40040040004000004004004000400000"
+            }
+          ],
+          "cover": "/images/presets/dc-go-go.jpg"
+        }
+      ]
+    },
+    {
+      "name": "Modern",
+      "presets": [
+        {
+          "name": "Lady",
+          "credit": "?uestlove, 2012",
+          "bpm": 111,
+          "swing": 8,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "youtube": "https://www.youtube.com/watch?v=5AWI83MwnEA"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "00400040000000000040004000000000"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 7,
+              "steps": "00004300000000000000430040000000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "40000000400400404000000000040040"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Questlove",
+          "cover": "/images/presets/lady.jpg"
+        },
+        {
+          "name": "PopTech",
+          "credit": "Reggie Watts, 2010",
+          "bpm": 84,
+          "swing": 0,
+          "kit": {
+            "type": "drumMachine",
+            "id": "TR-808"
+          },
+          "links": {
+            "youtube": "https://www.youtube.com/watch?v=FkGK7bitav0"
+          },
+          "tracks": [
+            {
+              "name": "Hi-hat",
+              "group": "hihat-close",
+              "velMode": 3,
+              "steps": "40000000400000004000000040000000"
+            },
+            {
+              "name": "Snare",
+              "group": "snare",
+              "velMode": 3,
+              "steps": "00004000000040000000400000004000"
+            },
+            {
+              "name": "Kick",
+              "group": "kick",
+              "velMode": 7,
+              "steps": "40000000000000000400000000000233"
+            }
+          ],
+          "creditUrl": "https://en.wikipedia.org/wiki/Reggie_Watts",
+          "cover": "/images/presets/poptech.jpg"
+        }
+      ]
+    }
+  ]
+}
