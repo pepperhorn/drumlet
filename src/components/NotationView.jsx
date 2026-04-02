@@ -1,22 +1,38 @@
-import { memo, useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
 import { renderDrumStaff } from '../notation/renderStaff.js';
 
 /**
- * NotationStaff — renders the VexFlow staff.
- * Memo'd on tracks, stepsPerPage, and noteValue to avoid re-render on playhead changes.
+ * NotationView — VexFlow drum notation with Petaluma font.
+ *
+ * Architecture:
+ *   - VexFlow re-renders only when note data / layout params change (fingerprint check)
+ *   - Playhead is a lightweight React div overlay, re-rendered on every currentStep change
+ *   - Beat numbers are a separate SVG below the staff
  */
-const NotationStaff = memo(function NotationStaff({ tracks, stepsPerPage, noteValue, onLayout }) {
+function NotationView({ tracks, stepsPerPage, currentStep, noteValue }) {
   const containerRef = useRef(null);
+  const layoutRef = useRef(null);
+  const prevDataRef = useRef(null);
+  const [beatInfo, setBeatInfo] = useState(null);
 
   const nv = NOTE_VALUES.find((n) => n.key === noteValue) || NOTE_VALUES[3];
   const stepsPerBeat = Math.round(1 / nv.beatsPerStep) || 1;
+  const beatCount = Math.ceil(stepsPerPage / stepsPerBeat);
 
+  // Fingerprint for VexFlow re-render — excludes currentStep so playhead
+  // changes don't trigger expensive VexFlow re-renders
+  const stepsFingerprint = tracks.map(t => t.steps.join(',')).join('|');
+  const tracksFingerprint = tracks.map(t => `${t.id}:${t.color}:${t.group}:${t.kitSample}:${t.velMode}`).join('|');
+  const dataKey = `${stepsFingerprint}|${tracksFingerprint}|${stepsPerPage}|${noteValue}`;
+
+  // Render VexFlow when note data changes
   useEffect(() => {
+    if (prevDataRef.current === dataKey) return;
+    prevDataRef.current = dataKey;
+
     const el = containerRef.current;
     if (!el) return;
-
-    // Clear previous render
     el.innerHTML = '';
 
     try {
@@ -26,110 +42,73 @@ const NotationStaff = memo(function NotationStaff({ tracks, stepsPerPage, noteVa
         noteValueKey: noteValue || '1/4',
         stepsPerBeat,
       });
-
-      // Report layout info to parent for playhead positioning
-      onLayout(result);
+      layoutRef.current = result;
+      setBeatInfo({
+        noteXPositions: result.noteXPositions,
+        svgWidth: result.svgWidth,
+      });
     } catch (err) {
       console.error('VexFlow render error:', err);
-      // Show fallback text
       el.textContent = 'Notation rendering error';
     }
-  }, [tracks, stepsPerPage, noteValue, stepsPerBeat, onLayout]);
+  });
 
-  return <div ref={containerRef} className="vexflow-container" />;
-});
-
-/**
- * NotationView — top-level component with dual-layer architecture:
- *   1. VexFlow SVG layer (re-renders on data changes)
- *   2. Playhead overlay (re-renders on currentStep changes — lightweight)
- */
-function NotationView({ tracks, stepsPerPage, currentStep, noteValue }) {
-  const [layout, setLayout] = useState(null);
-
-  const handleLayout = useCallback((result) => {
-    setLayout(result);
-  }, []);
-
-  const nv = NOTE_VALUES.find((n) => n.key === noteValue) || NOTE_VALUES[3];
-  const stepsPerBeat = Math.round(1 / nv.beatsPerStep) || 1;
-
-  // Compute beat numbers for display
-  const beatCount = Math.ceil(stepsPerPage / stepsPerBeat);
+  // Playhead overlay — simple div positioned over the VexFlow SVG
+  const layout = layoutRef.current;
+  let playheadX = null;
+  if (layout && currentStep >= 0 && currentStep < layout.noteXPositions.length) {
+    playheadX = layout.noteXPositions[currentStep];
+  }
 
   return (
     <div className="notation-view bg-card rounded-2xl shadow-sm border border-border p-4 overflow-x-auto grid-scroll">
       <div style={{ position: 'relative', display: 'inline-block' }}>
-        {/* Layer 1: VexFlow staff */}
-        <NotationStaff
-          tracks={tracks}
-          stepsPerPage={stepsPerPage}
-          noteValue={noteValue}
-          onLayout={handleLayout}
-        />
-
-        {/* Layer 2: Playhead overlay */}
-        {layout && currentStep >= 0 && currentStep < layout.noteXPositions.length && (
-          <svg
+        <div ref={containerRef} className="vexflow-container" />
+        {playheadX !== null && (
+          <div
             style={{
               position: 'absolute',
-              top: 0,
-              left: 0,
+              left: playheadX - 14,
+              top: 4,
+              width: 28,
+              height: (layout?.svgHeight || 150) - 8,
+              background: 'rgba(91, 192, 235, 0.15)',
+              borderRadius: 4,
               pointerEvents: 'none',
-              width: layout.svgWidth,
-              height: layout.svgHeight,
+              zIndex: 10,
             }}
-            viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
-          >
-            <rect
-              x={layout.noteXPositions[currentStep] - 12}
-              y={4}
-              width={24}
-              height={layout.svgHeight - 8}
-              fill="#5BC0EB"
-              opacity={0.12}
-              rx={3}
-            />
-          </svg>
-        )}
-
-        {/* Beat numbers below the staff */}
-        {layout && (
-          <svg
-            style={{
-              position: 'absolute',
-              bottom: -16,
-              left: 0,
-              pointerEvents: 'none',
-              width: layout.svgWidth,
-              height: 20,
-            }}
-            viewBox={`0 0 ${layout.svgWidth} 20`}
-          >
-            {Array.from({ length: beatCount }, (_, i) => {
-              // Center the beat number under the middle step of each beat group
-              const startStep = i * stepsPerBeat;
-              const midStep = Math.min(startStep + Math.floor(stepsPerBeat / 2), stepsPerPage - 1);
-              const x = layout.noteXPositions[midStep] || 0;
-              return (
-                <text
-                  key={i}
-                  x={x}
-                  y={14}
-                  textAnchor="middle"
-                  fontSize={9}
-                  fontFamily="var(--font-mono)"
-                  fill="#94A3B8"
-                >
-                  {i + 1}
-                </text>
-              );
-            })}
-          </svg>
+          />
         )}
       </div>
+
+      {/* Beat numbers below the staff */}
+      {beatInfo && (
+        <svg
+          style={{ display: 'block', width: beatInfo.svgWidth, height: 20 }}
+          viewBox={`0 0 ${beatInfo.svgWidth} 20`}
+        >
+          {Array.from({ length: beatCount }, (_, i) => {
+            const startStep = i * stepsPerBeat;
+            const midStep = Math.min(startStep + Math.floor(stepsPerBeat / 2), stepsPerPage - 1);
+            const x = beatInfo.noteXPositions[midStep] || 0;
+            return (
+              <text
+                key={i}
+                x={x}
+                y={14}
+                textAnchor="middle"
+                fontSize={9}
+                fontFamily="var(--font-mono)"
+                fill="#94A3B8"
+              >
+                {i + 1}
+              </text>
+            );
+          })}
+        </svg>
+      )}
     </div>
   );
 }
 
-export default memo(NotationView);
+export default NotationView;
