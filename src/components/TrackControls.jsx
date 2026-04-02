@@ -66,7 +66,7 @@ function TrackControls({
   return (
     <div
       ref={dropRef}
-      className={`track-controls flex flex-col gap-0.5 min-w-[180px] lg:min-w-[220px] shrink-0 ${isDragOver ? 'drop-target rounded-lg' : ''}`}
+      className={`track-controls flex flex-col gap-0.5 w-[180px] lg:w-[220px] shrink-0 ${isDragOver ? 'drop-target rounded-lg' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}

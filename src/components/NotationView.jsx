@@ -1,6 +1,7 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback, memo } from 'react';
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
 import { renderDrumStaff } from '../notation/renderStaff.js';
+import { downloadSVG, downloadPNG } from '../notation/notationExport.js';
 
 const SIZE_CYCLE = ['sm', 'md', 'lg', 'xl', '2xl'];
 const SIZE_LABELS = { sm: 'S', md: 'M', lg: 'L', xl: 'XL', '2xl': '2X' };
@@ -26,7 +27,6 @@ const BEAT_LABELS = {
 
 /**
  * Interpolate an X position for a fractional step index.
- * If the step is between two note positions, linearly interpolate.
  */
 function interpolateX(positions, stepFloat) {
   if (stepFloat <= 0) return positions[0] || 0;
@@ -47,10 +47,20 @@ function NotationView({ tracks, stepsPerPage, currentStep, noteValue }) {
   const [countSize, setCountSize] = useState('sm');
   const [subdivIdx, setSubdivIdx] = useState(0);
 
-  const subdiv = SUBDIVISIONS[subdivIdx];
   const nv = NOTE_VALUES.find((n) => n.key === noteValue) || NOTE_VALUES[3];
   const stepsPerBeat = Math.round(1 / nv.beatsPerStep) || 1;
   const beatCount = Math.ceil(stepsPerPage / stepsPerBeat);
+
+  // Filter subdivisions to only those that fit within the current tick resolution
+  const availableSubdivs = SUBDIVISIONS.filter(s => s.perBeat <= stepsPerBeat);
+  const safeIdx = Math.min(subdivIdx, availableSubdivs.length - 1);
+  const subdiv = availableSubdivs[safeIdx] || SUBDIVISIONS[0];
+
+  useEffect(() => {
+    if (subdivIdx > availableSubdivs.length - 1) {
+      setSubdivIdx(0);
+    }
+  }, [subdivIdx, availableSubdivs.length]);
 
   const stepsFingerprint = tracks.map(t => t.steps.join(',')).join('|');
   const tracksFingerprint = tracks.map(t => `${t.id}:${t.color}:${t.group}:${t.kitSample}:${t.velMode}`).join('|');
@@ -81,16 +91,18 @@ function NotationView({ tracks, stepsPerPage, currentStep, noteValue }) {
       console.error('VexFlow render error:', err);
       el.textContent = 'Notation rendering error';
     }
-  });
+  }, [dataKey, tracks, stepsPerPage, noteValue, stepsPerBeat, useColor]);
 
   const layout = layoutRef.current;
   let playheadX = null;
   if (layout && currentStep >= 0 && currentStep < layout.noteXPositions.length) {
     playheadX = layout.noteXPositions[currentStep];
   }
+  const playheadWidth = layout?.stepWidth || 28;
 
   // Build count labels with positions
   const countLabels = [];
+  const fontSize = SIZE_FONT[countSize];
   if (beatInfo) {
     const labelFn = BEAT_LABELS[subdiv.key];
     for (let beat = 0; beat < beatCount; beat++) {
@@ -105,14 +117,22 @@ function NotationView({ tracks, stepsPerPage, currentStep, noteValue }) {
     }
   }
 
-  const fontSize = SIZE_FONT[countSize];
+  const handleDownloadSVG = useCallback(() => {
+    const svg = containerRef.current?.querySelector('svg');
+    if (svg) downloadSVG(svg);
+  }, []);
+
+  const handleDownloadPNG = useCallback(() => {
+    const svg = containerRef.current?.querySelector('svg');
+    if (svg) downloadPNG(svg);
+  }, []);
 
   return (
     <div className="notation-view bg-card rounded-2xl shadow-sm border border-border px-4 py-2 overflow-x-auto grid-scroll">
       {/* Toolbar */}
       <div className="notation-toolbar flex items-center gap-1.5 mb-2">
         <button
-          className={`notation-color-btn px-2 py-1 rounded-lg text-[11px] font-medium cursor-pointer transition-colors
+          className={`notation-color-btn px-2 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors
             ${useColor
               ? 'bg-sky/12 text-sky'
               : 'bg-gray-100 text-muted hover:bg-gray-200'
@@ -124,20 +144,40 @@ function NotationView({ tracks, stepsPerPage, currentStep, noteValue }) {
         </button>
 
         <button
-          className="notation-count-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-[11px] font-mono font-semibold cursor-pointer transition-colors"
+          className="notation-count-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-xs font-mono font-semibold cursor-pointer transition-colors"
           onClick={() => setCountSize(prev => SIZE_CYCLE[(SIZE_CYCLE.indexOf(prev) + 1) % SIZE_CYCLE.length])}
           title={`Beat count size: ${countSize}`}
         >
           Size: {SIZE_LABELS[countSize]}
         </button>
 
-        <button
-          className="notation-subdiv-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-[11px] font-mono font-semibold cursor-pointer transition-colors"
-          onClick={() => setSubdivIdx(prev => (prev + 1) % SUBDIVISIONS.length)}
-          title={`Count subdivision: ${subdiv.label}`}
-        >
-          Count: {subdiv.label}
-        </button>
+        {availableSubdivs.length > 1 && (
+          <button
+            className="notation-subdiv-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-xs font-mono font-semibold cursor-pointer transition-colors"
+            onClick={() => setSubdivIdx(prev => (prev + 1) % availableSubdivs.length)}
+            title={`Count subdivision: ${subdiv.label}`}
+          >
+            Count: {subdiv.label}
+          </button>
+        )}
+
+        {/* Export buttons */}
+        <div className="notation-export-btns flex items-center gap-1.5 ml-auto">
+          <button
+            className="notation-svg-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-xs font-semibold cursor-pointer transition-colors"
+            onClick={handleDownloadSVG}
+            title="Download notation as SVG"
+          >
+            SVG
+          </button>
+          <button
+            className="notation-png-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-xs font-semibold cursor-pointer transition-colors"
+            onClick={handleDownloadPNG}
+            title="Download notation as PNG"
+          >
+            PNG
+          </button>
+        </div>
       </div>
 
       <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -146,9 +186,9 @@ function NotationView({ tracks, stepsPerPage, currentStep, noteValue }) {
           <div
             style={{
               position: 'absolute',
-              left: playheadX - 14,
+              left: playheadX - playheadWidth / 2,
               top: 4,
-              width: 28,
+              width: playheadWidth,
               height: (layout?.svgHeight || 180) - 8,
               background: 'rgba(91, 192, 235, 0.15)',
               borderRadius: 4,
@@ -185,4 +225,4 @@ function NotationView({ tracks, stepsPerPage, currentStep, noteValue }) {
   );
 }
 
-export default NotationView;
+export default memo(NotationView);

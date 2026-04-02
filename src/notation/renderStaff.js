@@ -24,6 +24,8 @@ import { getVelocityOpacity } from '../audio/velocityConfig.js';
 
 VexFlow.setFonts('Petaluma', 'Petaluma Script');
 
+const TEXT_COLOR = '#1A1A2E';
+
 function hexToRGBA(hex, opacity) {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
@@ -38,6 +40,15 @@ const DURATION_MAP = {
   '1/4':  'q',
   'd1/4': 'q',
   '1/2':  'h',
+};
+
+// VexFlow beat value for Voice time signature
+const BEAT_VALUE_MAP = {
+  '32': 32,
+  '16': 16,
+  '8':  8,
+  'q':  4,
+  'h':  2,
 };
 
 function isDotted(noteValueKey) {
@@ -57,17 +68,15 @@ function beamGroupSize(noteValueKey) {
  * After VexFlow renders notes with stems + flags, draw flat beam bars
  * as SVG rects and hide flags on beamed notes.
  */
-function drawManualBeams(svg, notes, noteValueKey) {
+function drawManualBeams(svg, notes, noteValueKey, useColor) {
   const groupSize = beamGroupSize(noteValueKey);
   if (groupSize === 0) return;
 
   const beamHeight = 3.5;
   const beamCount = noteValueKey === '1/32' ? 3 : noteValueKey === '1/16' ? 2 : 1;
   const beamGap = 3;
-  // Total vertical space the beam stack occupies
   const beamStackHeight = beamCount * beamHeight + (beamCount - 1) * beamGap;
 
-  // Collect all beamed note X ranges so we can hide their VexFlow stems + flags
   const beamedRanges = [];
 
   for (let i = 0; i < notes.length; i += groupSize) {
@@ -75,24 +84,35 @@ function drawManualBeams(svg, notes, noteValueKey) {
     const staveNotes = group.filter(n => n instanceof StaveNote);
     if (staveNotes.length < 2) continue;
 
-    // Read each note's stem base (where it leaves the notehead)
     const stemPositions = [];
     for (const note of staveNotes) {
       const ext = note.getStem().getExtents();
       stemPositions.push({ x: note.getStemX(), baseY: ext.baseY, tipY: ext.topY });
     }
 
-    // The beam bottom edge aligns with the highest stem tip (smallest Y)
     const highestTipY = Math.min(...stemPositions.map(s => s.tipY));
-    // Bottom of beam stack = where stems meet the beam
     const beamBottomY = highestTipY;
 
     const firstX = stemPositions[0].x;
     const lastX = stemPositions[stemPositions.length - 1].x;
-    // Wide range to catch flags that extend right of the last stem
     beamedRanges.push({ x1: firstX - 5, x2: lastX + 20 });
 
-    // Draw beam bars — stack upward from beamBottomY
+    // Beam color: use track color when colored, otherwise default text color
+    let beamColor = TEXT_COLOR;
+    if (useColor) {
+      // Find most common track color among beamed notes
+      const colorCounts = {};
+      for (const note of staveNotes) {
+        const keys = note.getKeys();
+        const style = note.getKeyStyle(0);
+        const fill = style?.fillStyle || TEXT_COLOR;
+        colorCounts[fill] = (colorCounts[fill] || 0) + 1;
+      }
+      const sorted = Object.entries(colorCounts).sort((a, b) => b[1] - a[1]);
+      if (sorted.length > 0) beamColor = sorted[0][0];
+    }
+
+    // Draw beam bars
     for (let b = 0; b < beamCount; b++) {
       const y = beamBottomY - b * (beamHeight + beamGap);
       const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -100,12 +120,12 @@ function drawManualBeams(svg, notes, noteValueKey) {
       rect.setAttribute('y', String(y - beamHeight));
       rect.setAttribute('width', String(lastX - firstX + 1.2));
       rect.setAttribute('height', String(beamHeight));
-      rect.setAttribute('fill', '#1A1A2E');
+      rect.setAttribute('fill', beamColor);
       rect.setAttribute('class', 'manual-beam');
       svg.appendChild(rect);
     }
 
-    // Draw stems from each notehead up through the beam stack (to the top)
+    // Draw stems from each notehead up through the beam stack
     const beamTopY = beamBottomY - beamStackHeight;
     for (const sp of stemPositions) {
       const stem = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -113,7 +133,7 @@ function drawManualBeams(svg, notes, noteValueKey) {
       stem.setAttribute('y1', String(sp.baseY));
       stem.setAttribute('x2', String(sp.x));
       stem.setAttribute('y2', String(beamTopY));
-      stem.setAttribute('stroke', '#1A1A2E');
+      stem.setAttribute('stroke', beamColor);
       stem.setAttribute('stroke-width', '1.3');
       stem.setAttribute('class', 'manual-beam-stem');
       svg.appendChild(stem);
@@ -121,7 +141,9 @@ function drawManualBeams(svg, notes, noteValueKey) {
   }
 
   // Hide VexFlow's own stems and flags for beamed notes
-  // so our manual stems + beams are the only ones visible
+  // so our manual stems + beams are the only ones visible.
+  // NOTE: `.vf-stem` and `.vf-flag` are VexFlow 5.x class names —
+  // verify these still exist if upgrading VexFlow.
   svg.querySelectorAll('.vf-stem, .vf-flag').forEach(el => {
     const bbox = el.getBBox?.();
     if (!bbox) return;
@@ -141,14 +163,19 @@ function drawManualBeams(svg, notes, noteValueKey) {
 export function renderDrumStaff(container, { tracks, stepsPerPage, noteValueKey, stepsPerBeat, useColor = true }) {
   const duration = DURATION_MAP[noteValueKey] || 'q';
   const dotted = isDotted(noteValueKey);
+  const beatValue = BEAT_VALUE_MAP[duration] || 4;
 
+  // Layout
   const stepWidth = 28;
   const leftMargin = 50;
   const rightMargin = 20;
   const staveWidth = stepsPerPage * stepWidth;
   const svgWidth = leftMargin + staveWidth + rightMargin;
   const staveY = 20;
-  const svgHeight = staveY + 90;
+
+  // Dynamic height: add headroom if tracks have notes above the staff (hi-hat, crash)
+  const hasHighNotes = tracks.some(t => getNotation(t).pos >= 5);
+  const svgHeight = staveY + (hasHighNotes ? 95 : 80);
 
   const renderer = new Renderer(container, Renderer.Backends.SVG);
   renderer.resize(svgWidth, svgHeight);
@@ -204,7 +231,7 @@ export function renderDrumStaff(container, { tracks, stepsPerPage, noteValueKey,
     }
   }
 
-  const voice = new Voice({ numBeats: stepsPerPage, beatValue: 4 });
+  const voice = new Voice({ numBeats: stepsPerPage, beatValue });
   voice.setMode(VoiceMode.SOFT);
   voice.addTickables(notes);
 
@@ -214,7 +241,7 @@ export function renderDrumStaff(container, { tracks, stepsPerPage, noteValueKey,
   voice.draw(context, stave);
 
   // Overlay manual flat beams, hide flags on beamed notes
-  drawManualBeams(context.svg, notes, noteValueKey);
+  drawManualBeams(context.svg, notes, noteValueKey, useColor);
 
   const noteXPositions = notes.map(n => n.getAbsoluteX());
 
@@ -237,5 +264,5 @@ export function renderDrumStaff(container, { tracks, stepsPerPage, noteValueKey,
     }
   }
 
-  return { noteXPositions, svgWidth, svgHeight };
+  return { noteXPositions, svgWidth, svgHeight, stepWidth };
 }

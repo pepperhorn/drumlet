@@ -39,7 +39,7 @@ const POS_TO_KEY = {
   '0':    ['e', 4],
   '1':    ['g', 4],
   '1.5':  ['a', 4],
-  '2':    ['b', 4],
+  '2':    ['b', 4],   // second line
   '2.5':  ['c', 5],
   '3':    ['d', 5],
   '3.5':  ['e', 5],
@@ -140,11 +140,3 @@ export function toVexKey(notation) {
   return `${pitch}/${octave}${suffix}`;
 }
 
-/**
- * Determine stem direction based on staff position.
- * Notes at or below the middle line (pos <= 2.5) get stems up (1).
- * Notes above get stems down (-1).
- */
-export function stemDirection(pos) {
-  return pos <= 2.5 ? 1 : -1;
-}

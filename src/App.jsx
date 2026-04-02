@@ -527,6 +527,7 @@ function Drumlet() {
             tracks={currentPage.tracks}
             currentStep={currentStep}
             stepsPerPage={state.stepsPerPage}
+            noteValue={state.noteValue}
             onToggleCell={playMode ? () => {} : handleToggleCell}
             onChangeProp={playMode ? () => {} : handleChangeProp}
             onChangeSource={playMode ? () => {} : handleChangeSource}
