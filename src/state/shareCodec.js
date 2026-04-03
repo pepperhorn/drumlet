@@ -14,20 +14,32 @@
 /**
  * Encode state into a compact JSON payload, then base64url.
  */
-export function encodeState(state) {
+export function encodeState(state, pluginMeta = null) {
   const page = state.pages[state.currentPageIndex];
   if (!page) return null;
 
+  // Encode steps: plain digits for normal, (v1,v2,...) for splits
+  function encodeSteps(steps, count) {
+    return steps.slice(0, count).map(s =>
+      Array.isArray(s) ? `(${s.join(',')})` : String(s)
+    ).join('');
+  }
+
   const payload = {
-    v: 1, // format version
+    v: 3, // format version — v3 adds splits + swingTarget
     b: state.bpm,
     sw: state.swing || 0,
+    st: state.swingTarget || '8th',
     hu: state.humanize || 0,
     sp: state.stepsPerPage,
+    nv: state.noteValue || '1/4',
+    bb: state.beatsPerBar || 4,
+    sv: state.stepValue || '1/16',
+    pm: pluginMeta || null,
     t: page.tracks.map((t) => {
       const tr = {
         n: t.name,
-        s: t.steps.join(''),       // compact step string "00032010..."
+        s: encodeSteps(t.steps, state.stepsPerPage),
         vm: t.velMode || 3,
         vo: t.volume,
         rv: t.reverb,
@@ -59,6 +71,11 @@ export function encodeState(state) {
  * Decode a base64url string back into a sequencer state.
  */
 export function decodeState(encoded) {
+  const payload = decodePayload(encoded);
+  return payload?.state || null;
+}
+
+export function decodePayload(encoded) {
   try {
     // base64url decode
     let b64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
@@ -66,7 +83,18 @@ export function decodeState(encoded) {
     const json = atob(b64);
     const p = JSON.parse(json);
 
-    if (p.v !== 1) return null;
+    if (p.v !== 1 && p.v !== 2 && p.v !== 3) return null;
+
+    // Decode steps string: plain digits or (v1,v2,...) groups
+    function decodeSteps(str) {
+      const matches = [...str.matchAll(/\([\d,]+\)|\d/g)];
+      return matches.map(m => {
+        if (m[0].startsWith('(')) {
+          return m[0].slice(1, -1).split(',').map(Number);
+        }
+        return Number(m[0]);
+      });
+    }
 
     const tracks = p.t.map((tr, i) => {
       const COLORS = ['#FF6B6B', '#FFB347', '#A8E06C', '#5BC0EB', '#B39DDB', '#FFAB91', '#66D9A0', '#F48FB1'];
@@ -80,7 +108,7 @@ export function decodeState(encoded) {
         _stashedSteps: {},
         mute: false,
         solo: false,
-        steps: tr.s.split('').map(Number),
+        steps: p.v >= 3 ? decodeSteps(tr.s) : tr.s.split('').map(Number),
         soundfontName: null,
         customSampleName: null,
         kitId: null,
@@ -110,17 +138,24 @@ export function decodeState(encoded) {
     });
 
     return {
-      pages: [{
-        id: crypto.randomUUID(),
-        name: 'Page 1',
-        tracks,
-      }],
-      currentPageIndex: 0,
-      stepsPerPage: p.sp || 16,
-      bpm: p.b || 120,
-      swing: p.sw || 0,
-      humanize: p.hu || 0,
-      chainMode: false,
+      state: {
+        pages: [{
+          id: crypto.randomUUID(),
+          name: 'Page 1',
+          tracks,
+        }],
+        currentPageIndex: 0,
+        stepsPerPage: p.sp || 16,
+        bpm: p.b || 120,
+        noteValue: p.nv || '1/4',
+        beatsPerBar: p.bb || 4,
+        stepValue: p.sv || '1/16',
+        swing: p.sw || 0,
+        swingTarget: p.st || '8th',
+        humanize: p.hu || 0,
+        chainMode: false,
+      },
+      pluginMeta: p.pm || null,
     };
   } catch (e) {
     console.error('Failed to decode share URL:', e);
@@ -131,8 +166,8 @@ export function decodeState(encoded) {
 /**
  * Build a share URL for the current state.
  */
-export function buildShareUrl(state, baseUrl = 'https://drumlet.app') {
-  const encoded = encodeState(state);
+export function buildShareUrl(state, baseUrl = 'https://drumlet.app', pluginMeta = null) {
+  const encoded = encodeState(state, pluginMeta);
   if (!encoded) return null;
   return `${baseUrl}/#s=${encoded}`;
 }
@@ -140,8 +175,8 @@ export function buildShareUrl(state, baseUrl = 'https://drumlet.app') {
 /**
  * Build an embed URL. Adds embed=1 param and uses compact layout.
  */
-export function buildEmbedUrl(state, baseUrl = 'https://drumlet.app') {
-  const encoded = encodeState(state);
+export function buildEmbedUrl(state, baseUrl = 'https://drumlet.app', pluginMeta = null) {
+  const encoded = encodeState(state, pluginMeta);
   if (!encoded) return null;
   return `${baseUrl}/?embed=1#s=${encoded}`;
 }
@@ -149,8 +184,8 @@ export function buildEmbedUrl(state, baseUrl = 'https://drumlet.app') {
 /**
  * Build an iframe embed snippet.
  */
-export function buildEmbedSnippet(state, baseUrl = 'https://drumlet.app') {
-  const url = buildEmbedUrl(state, baseUrl);
+export function buildEmbedSnippet(state, baseUrl = 'https://drumlet.app', pluginMeta = null) {
+  const url = buildEmbedUrl(state, baseUrl, pluginMeta);
   if (!url) return null;
   return `<iframe src="${url}" width="100%" height="400" frameborder="0" style="border-radius:16px;border:1px solid #E2E8F0;" allow="autoplay"></iframe>`;
 }
@@ -159,10 +194,15 @@ export function buildEmbedSnippet(state, baseUrl = 'https://drumlet.app') {
  * Check the current URL for a shared state and return it if found.
  */
 export function loadFromUrl() {
+  const payload = loadSharedPayload();
+  return payload?.state || null;
+}
+
+export function loadSharedPayload() {
   const hash = window.location.hash;
   const match = hash.match(/[#&]s=([A-Za-z0-9_-]+)/);
   if (match) {
-    return decodeState(match[1]);
+    return decodePayload(match[1]);
   }
   return null;
 }

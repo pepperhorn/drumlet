@@ -10,21 +10,21 @@ const SOUNDFONTS = [
   'glockenspiel', 'marimba',
 ];
 
-const VEL_MODES = [1, 3, 7];
-
 function TrackControls({
   track,
   trackIndex,
+  expanded,
+  onToggleExpand,
+  colWidth,
   onChangeProp,
   onChangeSource,
   onChangeVelMode,
   onRemove,
-  onPreview,
   onDrop,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [customKits, setCustomKits] = useState([]); // [{ id, manifest }]
+  const [customKits, setCustomKits] = useState([]);
   const dropRef = useRef(null);
 
   // Load custom kit manifests when picker opens
@@ -38,7 +38,7 @@ function TrackControls({
         } catch { return null; }
       })
     ).then((results) => setCustomKits(results.filter(Boolean)));
-  }, [isOpen]);
+  }, [isOpen, customKits.length]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -66,50 +66,79 @@ function TrackControls({
   return (
     <div
       ref={dropRef}
-      className={`track-controls flex flex-col gap-0.5 w-[180px] lg:w-[220px] shrink-0 ${isDragOver ? 'drop-target rounded-lg' : ''}`}
+      className={`track-controls flex flex-col gap-0.5 ${colWidth} ${isDragOver ? 'drop-target rounded-lg' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Row 1: Icon + name ... mute/solo right-aligned */}
-      <div className="track-controls-row1 flex items-center gap-1.5">
+      {/* Row 1: chevron + name on left, M/S/Vel on right (desktop only) */}
+      <div className="track-controls-row1 flex items-center gap-1">
+        {/* Expand chevron — mobile only, left-aligned next to name */}
         <button
-          className="track-name-btn flex items-center gap-1.5 px-1.5 py-0.5 rounded-md hover:bg-gray-100 transition-colors text-sm lg:text-base font-medium cursor-pointer min-w-0"
+          className="track-expand-btn lg:hidden w-5 h-5 rounded bg-gray-100 text-muted hover:bg-gray-200 flex items-center justify-center cursor-pointer transition-colors shrink-0"
+          onClick={onToggleExpand}
+          title={expanded ? 'Collapse controls' : 'Expand controls'}
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            {expanded
+              ? <path d="M2 6.5 L5 3.5 L8 6.5" />
+              : <path d="M2 3.5 L5 6.5 L8 3.5" />
+            }
+          </svg>
+        </button>
+
+        <button
+          className="track-name-btn flex items-center gap-1.5 px-1 py-0.5 rounded-md hover:bg-gray-100 transition-colors text-sm lg:text-base font-medium cursor-pointer min-w-0"
           onClick={() => setIsOpen(!isOpen)}
           title={track.name}
         >
-          <TrackIcon track={track} className="text-muted" />
           <span
             className="track-color-dot w-2.5 h-2.5 rounded-full shrink-0"
             style={{ backgroundColor: track.color }}
           />
-          <span className="truncate max-w-[80px] lg:max-w-[100px]">{track.name}</span>
+          <span className="track-name-text truncate">{track.name}</span>
         </button>
 
-        <div className="flex-1" />
+        <div className="track-controls-spacer flex-1" />
 
-        <button
-          className={`track-mute-btn w-5 h-5 lg:w-6 lg:h-6 rounded text-[9px] lg:text-[11px] font-bold cursor-pointer transition-colors shrink-0
-            ${track.mute ? 'bg-red-100 text-stop' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
-          onClick={() => onChangeProp(trackIndex, 'mute', !track.mute)}
-          title="Mute"
-        >
-          M
-        </button>
+        {/* M/S/Vel — always visible on lg */}
+        <div className="track-msvl hidden lg:flex items-center gap-1">
+          <button
+            className={`track-mute-btn w-6 h-6 rounded text-xs font-bold cursor-pointer transition-colors shrink-0
+              ${track.mute ? 'bg-red-100 text-stop' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
+            onClick={() => onChangeProp(trackIndex, 'mute', !track.mute)}
+            title="Mute"
+          >
+            M
+          </button>
 
-        <button
-          className={`track-solo-btn w-5 h-5 lg:w-6 lg:h-6 rounded text-[9px] lg:text-[11px] font-bold cursor-pointer transition-colors shrink-0
-            ${track.solo ? 'bg-amber/20 text-amber' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
-          onClick={() => onChangeProp(trackIndex, 'solo', !track.solo)}
-          title="Solo"
-        >
-          S
-        </button>
+          <button
+            className={`track-solo-btn w-6 h-6 rounded text-xs font-bold cursor-pointer transition-colors shrink-0
+              ${track.solo ? 'bg-amber/20 text-amber' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
+            onClick={() => onChangeProp(trackIndex, 'solo', !track.solo)}
+            title="Solo"
+          >
+            S
+          </button>
+
+          <button
+            className={`track-vel-btn w-6 h-6 rounded text-xs font-mono font-bold cursor-pointer transition-colors shrink-0
+              ${(track.velMode || 3) > 1 ? 'bg-lavender/20 text-lavender' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
+            onClick={() => {
+              const cur = track.velMode || 3;
+              const next = cur === 1 ? 3 : cur === 3 ? 7 : 1;
+              onChangeVelMode(trackIndex, next);
+            }}
+            title={`Velocity: ${track.velMode || 3} levels (click to cycle)`}
+          >
+            {track.velMode || 3}
+          </button>
+        </div>
       </div>
 
-      {/* Row 2: Volume slider + velocity mode */}
-      <div className="track-controls-row2 flex items-center gap-1.5 pl-1.5">
-        <span className="text-[8px] lg:text-[10px] text-muted font-semibold uppercase w-5 shrink-0">Vol</span>
+      {/* Row 2 (desktop): Volume slider — always visible on lg */}
+      <div className="track-controls-row2 hidden lg:flex items-center gap-1.5 pl-1.5">
+        <span className="track-volume-label text-xs text-muted font-semibold uppercase w-5 shrink-0">Vol</span>
         <input
           type="range"
           className="track-volume-slider w-16 h-1 accent-sky cursor-pointer"
@@ -119,44 +148,80 @@ function TrackControls({
           onChange={(e) => onChangeProp(trackIndex, 'volume', Number(e.target.value))}
           title={`Volume: ${track.volume}`}
         />
-        <span className="text-[9px] lg:text-[11px] font-mono text-muted w-5 text-right shrink-0">{track.volume}</span>
-
-        <div className="flex-1" />
-
-        {/* Velocity mode — cycles 1→3→7→1 on click */}
-        <button
-          className="track-vel-toggle flex items-center gap-0.5 px-1.5 py-px rounded border border-border hover:border-lavender/40 cursor-pointer transition-colors"
-          onClick={() => {
-            const cur = track.velMode || 3;
-            const next = cur === 1 ? 3 : cur === 3 ? 7 : 1;
-            onChangeVelMode(trackIndex, next);
-          }}
-          title={`Velocity: ${track.velMode || 3} levels (click to cycle)`}
-        >
-          <span className="text-[8px] lg:text-[10px] text-muted font-semibold">V:</span>
-          <span className="text-[9px] lg:text-[11px] font-mono font-bold text-lavender">{track.velMode || 3}</span>
-        </button>
+        <span className="track-volume-value text-xs font-mono text-muted w-5 text-right shrink-0">{track.volume}</span>
       </div>
+
+      {/* Mobile expanded panel — drops down below name */}
+      {expanded && (
+        <div className="track-mobile-panel lg:hidden flex flex-col gap-1 pt-1 border-t border-border/50">
+          {/* M/S/Vel row */}
+          <div className="track-mobile-msvl flex items-center gap-1">
+            <button
+              className={`track-mute-btn w-6 h-6 rounded text-xs font-bold cursor-pointer transition-colors shrink-0
+                ${track.mute ? 'bg-red-100 text-stop' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
+              onClick={() => onChangeProp(trackIndex, 'mute', !track.mute)}
+              title="Mute"
+            >
+              M
+            </button>
+            <button
+              className={`track-solo-btn w-6 h-6 rounded text-xs font-bold cursor-pointer transition-colors shrink-0
+                ${track.solo ? 'bg-amber/20 text-amber' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
+              onClick={() => onChangeProp(trackIndex, 'solo', !track.solo)}
+              title="Solo"
+            >
+              S
+            </button>
+            <button
+              className={`track-vel-btn w-6 h-6 rounded text-xs font-mono font-bold cursor-pointer transition-colors shrink-0
+                ${(track.velMode || 3) > 1 ? 'bg-lavender/20 text-lavender' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
+              onClick={() => {
+                const cur = track.velMode || 3;
+                const next = cur === 1 ? 3 : cur === 3 ? 7 : 1;
+                onChangeVelMode(trackIndex, next);
+              }}
+              title={`Velocity: ${track.velMode || 3} levels`}
+            >
+              {track.velMode || 3}
+            </button>
+            <div className="track-mobile-spacer flex-1" />
+            <span className="track-mobile-volume-value text-xs font-mono text-muted">{track.volume}</span>
+          </div>
+          {/* Volume slider */}
+          <div className="track-mobile-volume flex items-center gap-1.5">
+            <span className="track-mobile-volume-label text-xs text-muted font-semibold uppercase shrink-0">Vol</span>
+            <input
+              type="range"
+              className="track-volume-slider flex-1 h-1 accent-sky cursor-pointer"
+              min={0}
+              max={100}
+              value={track.volume}
+              onChange={(e) => onChangeProp(trackIndex, 'volume', Number(e.target.value))}
+              title={`Volume: ${track.volume}`}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Sound selector popover */}
       {isOpen && (
         <div className="track-sound-picker absolute left-0 top-10 z-50 bg-card rounded-xl shadow-xl border border-border p-3 w-72 max-h-80 overflow-y-auto">
           <div className="track-sound-picker-header flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-muted uppercase tracking-wide">Sound Source</span>
-            <button className="text-xs text-muted hover:text-text cursor-pointer" onClick={() => setIsOpen(false)}>Close</button>
+            <span className="track-sound-picker-title text-xs font-semibold text-muted uppercase tracking-wide">Sound Source</span>
+            <button className="track-sound-picker-close text-xs text-muted hover:text-text cursor-pointer" onClick={() => setIsOpen(false)}>Close</button>
           </div>
 
           {/* Drum machines */}
           <div className="mb-2">
-            <div className="text-[10px] text-muted font-semibold uppercase mb-1">Drum Machines</div>
+            <div className="sound-group-label text-xs text-muted font-semibold uppercase mb-1">Drum Machines</div>
             {DRUM_MACHINES.map((dm) => (
               <div key={dm} className="mb-1">
-                <div className="text-xs font-medium text-text/70 pl-1">{dm}</div>
-                <div className="flex flex-wrap gap-1 mt-0.5">
+                <div className="sound-machine-name text-xs font-medium text-text/70 pl-1">{dm}</div>
+                <div className="sound-machine-options flex flex-wrap gap-1 mt-0.5">
                   {MACHINE_GROUPS[dm].map((g) => (
                     <button
                       key={`${dm}-${g}`}
-                      className={`sound-option px-2 py-0.5 rounded text-[10px] cursor-pointer transition-colors
+                      className={`sound-option px-2 py-0.5 rounded text-xs cursor-pointer transition-colors
                         ${track.sourceType === 'drumMachine' && track.instrument === dm && track.group === g
                           ? 'bg-sky text-white'
                           : 'bg-gray-100 text-text hover:bg-gray-200'
@@ -181,12 +246,12 @@ function TrackControls({
 
           {/* Soundfonts */}
           <div className="mb-2">
-            <div className="text-[10px] text-muted font-semibold uppercase mb-1">Soundfonts</div>
-            <div className="flex flex-wrap gap-1">
+            <div className="sound-group-label text-xs text-muted font-semibold uppercase mb-1">Soundfonts</div>
+            <div className="sound-soundfont-options flex flex-wrap gap-1">
               {SOUNDFONTS.map((sf) => (
                 <button
                   key={sf}
-                  className={`sound-option px-2 py-0.5 rounded text-[10px] cursor-pointer transition-colors
+                  className={`sound-option px-2 py-0.5 rounded text-xs cursor-pointer transition-colors
                     ${track.sourceType === 'soundfont' && track.soundfontName === sf
                       ? 'bg-lavender text-white'
                       : 'bg-gray-100 text-text hover:bg-gray-200'
@@ -209,15 +274,15 @@ function TrackControls({
           {/* Custom sample kits */}
           {customKits.length > 0 && (
             <div className="mb-2">
-              <div className="text-[10px] text-muted font-semibold uppercase mb-1">Sample Kits</div>
+              <div className="sound-group-label text-xs text-muted font-semibold uppercase mb-1">Sample Kits</div>
               {customKits.map(({ id, manifest }) => (
                 <div key={id} className="mb-1">
-                  <div className="text-xs font-medium text-text/70 pl-1">{manifest.name}</div>
-                  <div className="flex flex-wrap gap-1 mt-0.5">
+                  <div className="sound-kit-name text-xs font-medium text-text/70 pl-1">{manifest.name}</div>
+                  <div className="sound-kit-options flex flex-wrap gap-1 mt-0.5">
                     {getKitSampleNames(manifest).map(({ key, label }) => (
                       <button
                         key={`${id}-${key}`}
-                        className={`sound-option px-2 py-0.5 rounded text-[10px] cursor-pointer transition-colors
+                        className={`sound-option px-2 py-0.5 rounded text-xs cursor-pointer transition-colors
                           ${track.sourceType === 'kit' && track.kitId === id && track.kitSample === key
                             ? 'bg-mint text-white'
                             : 'bg-gray-100 text-text hover:bg-gray-200'
@@ -242,15 +307,15 @@ function TrackControls({
           )}
 
           {/* Custom sample hint */}
-          <div className="text-[10px] text-muted italic mt-2">
+          <div className="sound-drop-hint text-xs text-muted italic mt-2">
             Drag & drop a .wav/.mp3/.ogg file onto the track name to load a custom sample
           </div>
 
           {/* Reverb slider */}
-          <div className="mt-3 pt-2 border-t border-border">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-muted font-semibold uppercase">Reverb Send</span>
-              <span className="text-[10px] font-mono text-muted">{track.reverb}%</span>
+          <div className="track-reverb mt-3 pt-2 border-t border-border">
+            <div className="track-reverb-header flex items-center justify-between mb-1">
+              <span className="track-reverb-label text-xs text-muted font-semibold uppercase">Reverb Send</span>
+              <span className="track-reverb-value text-xs font-mono text-muted">{track.reverb}%</span>
             </div>
             <input
               type="range"
@@ -264,7 +329,7 @@ function TrackControls({
 
           {/* Remove track */}
           <button
-            className="track-remove-btn mt-2 text-[10px] text-stop hover:underline cursor-pointer"
+            className="track-remove-btn mt-2 text-xs text-stop hover:underline cursor-pointer"
             onClick={() => {
               onRemove(trackIndex);
               setIsOpen(false);

@@ -1,18 +1,58 @@
 import { memo, useRef, useCallback, useState } from 'react';
-import { NOTE_VALUES } from '../state/sequencerReducer.js';
+import { TIME_SIGNATURES } from '../state/sequencerReducer.js';
+
+// Ensure Petaluma font is loaded (VexFlow registers it via FontFace API)
+import VexFlow from 'vexflow';
+VexFlow.setFonts('Petaluma', 'Petaluma Script');
+
+export function BpmInput({ bpm, onSetBpm, compact }) {
+  const [text, setText] = useState(null);
+  const commit = useCallback((raw) => {
+    const v = parseInt(raw, 10);
+    setText(null);
+    if (!isNaN(v)) onSetBpm(Math.max(20, Math.min(300, v)));
+  }, [onSetBpm]);
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      className={compact
+        ? 'bpm-input w-12 h-8 px-1 rounded-lg bg-bg border border-border text-center font-mono font-semibold text-xs outline-none focus:border-sky transition-colors'
+        : 'bpm-input w-16 h-8 lg:w-20 lg:h-9 px-2 rounded-lg bg-bg border border-border text-center font-mono font-semibold text-sm lg:text-base outline-none focus:border-sky transition-colors'
+      }
+      value={text !== null ? text : bpm}
+      onFocus={(e) => { setText(String(bpm)); e.target.select(); }}
+      onBlur={() => commit(text)}
+      onChange={(e) => setText(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') { commit(text); e.target.blur(); }
+        if (e.key === 'Escape') { setText(null); e.target.blur(); }
+      }}
+    />
+  );
+}
+
+// SMuFL codepoints for Petaluma note glyphs (stem up variants)
+const STEP_OPTIONS = [
+  { key: '1/16', label: '16th',    glyph: '\uE1D9' },
+  { key: '1/8',  label: '8th',     glyph: '\uE1D7' },
+  { key: '1/4',  label: 'Quarter', glyph: '\uE1D5' },
+  { key: '1/2',  label: 'Half',    glyph: '\uE1D3' },
+];
 
 function Dial({ label, value = 0, onChange, color = 'sky' }) {
   const safeValue = Number(value) || 0;
   return (
     <div className="transport-dial flex flex-col items-center gap-1">
-      <span className="text-[9px] lg:text-[11px] text-muted font-semibold uppercase tracking-wide">{label}</span>
-      <div className="relative w-10 h-10 lg:w-12 lg:h-12">
+      <span className="dial-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide">{label}</span>
+      <div className="dial-ring relative w-10 h-10 lg:w-12 lg:h-12">
         {/* Background ring */}
-        <svg viewBox="0 0 40 40" className="w-full h-full">
+        <svg viewBox="0 0 40 40" className="dial-ring-svg w-full h-full">
           <circle
             cx="20" cy="20" r="16"
             fill="none"
-            stroke="#E2E8F0"
+            stroke="var(--color-border)"
             strokeWidth="3"
             strokeDasharray="75.4"
             strokeDashoffset="0"
@@ -32,13 +72,13 @@ function Dial({ label, value = 0, onChange, color = 'sky' }) {
           />
         </svg>
         {/* Value label */}
-        <span className="absolute inset-0 flex items-center justify-center text-[10px] lg:text-xs font-mono font-semibold text-text">
+        <span className="dial-value absolute inset-0 flex items-center justify-center text-[10px] lg:text-xs font-mono font-semibold text-text">
           {safeValue}
         </span>
         {/* Invisible range input overlay */}
         <input
           type="range"
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          className="dial-input absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           min={0}
           max={100}
           value={value}
@@ -49,9 +89,18 @@ function Dial({ label, value = 0, onChange, color = 'sky' }) {
   );
 }
 
-function Transport({ bpm, noteValue, swing, humanize, isPlaying, previewMode, onTogglePlay, onSetBpm, onSetNoteValue, onSetSwing, onSetHumanize, onTogglePreview }) {
+function SaveIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 2.5h8l2.5 2.5v8A1.5 1.5 0 0 1 12 14.5H4A1.5 1.5 0 0 1 2.5 13V4A1.5 1.5 0 0 1 4 2.5z" />
+      <path d="M5 2.5v4h5v-4" />
+      <path d="M5 11h6" />
+    </svg>
+  );
+}
+
+function Transport({ bpm, noteValue, beatsPerBar, stepValue, swing, swingTarget = '8th', humanize, isPlaying, previewMode, isDirty, hasSaveId, onSave, onTogglePlay, onSetBpm, onSetTimeSig, onSetStepValue, onSetSwing, onSetSwingTarget, onSetHumanize, onTogglePreview }) {
   const tapTimesRef = useRef([]);
-  const [bpmText, setBpmText] = useState(null); // null = not editing
 
   const handleTap = useCallback(() => {
     const now = performance.now();
@@ -84,6 +133,18 @@ function Transport({ bpm, noteValue, swing, humanize, isPlaying, previewMode, on
 
   return (
     <div className="transport-bar flex items-center gap-4 bg-card rounded-2xl shadow-sm border border-border px-5 py-3 flex-wrap">
+      <button
+        className={`transport-save-btn relative w-11 h-11 rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 border
+          ${isDirty
+            ? 'bg-sky/10 text-sky border-sky/30 hover:bg-sky/15'
+            : 'bg-gray-50 text-muted border-border hover:bg-gray-100 hover:text-text'}`}
+        onClick={onSave}
+        title={hasSaveId ? (isDirty ? 'Save changes' : 'Saved') : 'Save to your library'}
+      >
+        <SaveIcon />
+        {isDirty && <span className="transport-save-dot absolute top-2 right-2 w-2 h-2 rounded-full bg-coral" />}
+      </button>
+
       {/* Play / Stop */}
       <button
         className={`transport-play-btn w-11 h-11 rounded-xl flex items-center justify-center text-white text-lg cursor-pointer transition-all active:scale-95
@@ -104,23 +165,8 @@ function Transport({ bpm, noteValue, swing, humanize, isPlaying, previewMode, on
 
       {/* BPM */}
       <div className="transport-bpm flex items-center gap-2">
-        <span className="text-xs lg:text-sm text-muted font-semibold uppercase tracking-wide">BPM</span>
-        <input
-          type="number"
-          className="transport-bpm-input w-16 h-8 lg:w-20 lg:h-9 px-2 rounded-lg bg-bg border border-border text-center font-mono font-semibold text-sm lg:text-base outline-none focus:border-sky transition-colors"
-          value={bpmText !== null ? bpmText : bpm}
-          onFocus={() => setBpmText(String(bpm))}
-          onBlur={() => {
-            const v = parseInt(bpmText, 10);
-            setBpmText(null);
-            onSetBpm(isNaN(v) ? bpm : v);
-          }}
-          onChange={(e) => {
-            setBpmText(e.target.value);
-            const v = parseInt(e.target.value, 10);
-            if (!isNaN(v)) onSetBpm(v);
-          }}
-        />
+        <span className="transport-bpm-label text-xs lg:text-sm text-muted font-semibold uppercase tracking-wide">BPM</span>
+        <BpmInput bpm={bpm} onSetBpm={onSetBpm} />
         <input
           type="range"
           className="transport-bpm-slider w-28 h-1 accent-sky cursor-pointer"
@@ -140,27 +186,48 @@ function Transport({ bpm, noteValue, swing, humanize, isPlaying, previewMode, on
       </button>
 
       {/* Divider */}
-      <div className="w-px h-8 bg-border" />
+      <div className="transport-divider w-px h-8 bg-border" />
 
       {/* Labeled controls — aligned tops */}
       <div className="transport-controls flex items-start gap-4">
-        {/* Note value (step divisor) */}
-        <div className="transport-divisor flex flex-col items-center gap-1">
-          <span className="text-[9px] lg:text-[11px] text-muted font-semibold uppercase tracking-wide">Tick</span>
+        {/* Time signature */}
+        <div className="transport-time-sig flex flex-col items-center gap-1">
+          <span className="transport-time-sig-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide">Time</span>
           <select
-            className="transport-note-value-select h-10 lg:h-12 px-2 rounded-lg bg-gray-100 text-xs lg:text-sm font-semibold text-muted hover:bg-gray-200 hover:text-text transition-colors cursor-pointer border-none outline-none"
-            value={noteValue}
-            onChange={(e) => onSetNoteValue(e.target.value)}
+            className="transport-time-sig-select h-10 lg:h-12 px-2 rounded-lg bg-gray-100 text-xs lg:text-sm font-mono font-semibold text-muted hover:bg-gray-200 hover:text-text transition-colors cursor-pointer border-none outline-none"
+            value={`${beatsPerBar}/${TIME_SIGNATURES.find(ts => ts.num === beatsPerBar && ts.noteValue === noteValue)?.denom || 4}`}
+            onChange={(e) => {
+              const ts = TIME_SIGNATURES.find(t => t.label === e.target.value);
+              if (ts) onSetTimeSig(ts.num, ts.noteValue);
+            }}
           >
-            {NOTE_VALUES.map((nv) => (
-              <option key={nv.key} value={nv.key}>{nv.label}</option>
+            {TIME_SIGNATURES.map((ts) => (
+              <option key={ts.label} value={ts.label}>{ts.label}</option>
             ))}
           </select>
         </div>
 
+        {/* Step divisor — Petaluma note glyph buttons */}
+        <div className="transport-step-div flex flex-col items-center gap-1">
+          <span className="transport-step-div-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide">Step Div</span>
+          <div className="transport-step-btns flex items-center h-10 lg:h-12 rounded-lg bg-gray-100 px-0.5">
+            {STEP_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                className={`step-option-btn w-7 lg:w-8 h-full flex items-center justify-center cursor-pointer rounded transition-colors
+                  ${stepValue === opt.key ? 'bg-sky/15 text-sky' : 'text-muted hover:text-text'}`}
+                onClick={() => onSetStepValue(opt.key)}
+                title={opt.label}
+              >
+                <span className="step-option-glyph block" style={{ fontFamily: 'Petaluma', fontSize: '22px', lineHeight: 0 }}>{opt.glyph}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Preview / Audition toggle */}
         <div className="transport-preview flex flex-col items-center gap-1">
-          <span className="text-[9px] lg:text-[11px] text-muted font-semibold uppercase tracking-wide">Preview</span>
+          <span className="transport-preview-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide">Preview</span>
           <button
             className={`transport-preview-btn w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95
               ${previewMode
@@ -179,8 +246,26 @@ function Transport({ bpm, noteValue, swing, humanize, isPlaying, previewMode, on
           </button>
         </div>
 
-        {/* Swing dial */}
-        <Dial label="Swing" value={swing} onChange={onSetSwing} color="amber" />
+        {/* Swing dial + target */}
+        <div className="transport-swing flex items-end gap-1.5">
+          <Dial label="Swing" value={swing} onChange={onSetSwing} color="amber" />
+          <div className="swing-target-toggle flex flex-col items-center gap-0.5 pb-0.5">
+            {['8th', '16th'].map((t) => (
+              <button
+                key={t}
+                className={`swing-target-btn px-1.5 py-0.5 rounded text-[9px] lg:text-[10px] font-mono font-semibold cursor-pointer transition-colors leading-tight
+                  ${swingTarget === t
+                    ? 'bg-amber/15 text-amber'
+                    : 'text-muted/50 hover:text-muted'
+                  }`}
+                onClick={() => onSetSwingTarget(t)}
+                title={t === '8th' ? 'Swing 8th notes and below' : 'Swing 16th notes and below only'}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Humanize dial */}
         <Dial label="Human" value={humanize} onChange={onSetHumanize} color="lavender" />
@@ -189,8 +274,8 @@ function Transport({ bpm, noteValue, swing, humanize, isPlaying, previewMode, on
       {/* Playing indicator */}
       {isPlaying && (
         <div className="transport-indicator flex items-center gap-1.5 ml-auto">
-          <div className="w-2 h-2 rounded-full bg-play pulse-play" />
-          <span className="text-xs text-play font-medium">Playing</span>
+          <div className="transport-indicator-dot w-2 h-2 rounded-full bg-play pulse-play" />
+          <span className="transport-indicator-label text-xs text-play font-medium">Playing</span>
         </div>
       )}
     </div>

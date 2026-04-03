@@ -108,9 +108,23 @@ export function exportMidi(state) {
 
       const gmNote = getGMNote(track);
 
-      for (const vel of track.steps) {
-        if (vel > 0) {
-          const midiVelocity = getMidiVelocity(vel, track.velMode || 3);
+      for (const stepData of track.steps.slice(0, state.stepsPerPage)) {
+        if (Array.isArray(stepData)) {
+          // Split step — emit sub-notes at shorter durations
+          const subDuration = stepData.length === 2 ? '32' : stepData.length === 3 ? '32t' : '64';
+          for (const subVel of stepData) {
+            const midiVelocity = subVel > 0 ? getMidiVelocity(subVel, track.velMode || 3) : 0;
+            midiTrack.addEvent(
+              new MidiWriter.NoteEvent({
+                pitch: [gmNote],
+                duration: subDuration,
+                velocity: midiVelocity,
+                channel: 10,
+              })
+            );
+          }
+        } else if (stepData > 0) {
+          const midiVelocity = getMidiVelocity(stepData, track.velMode || 3);
           midiTrack.addEvent(
             new MidiWriter.NoteEvent({
               pitch: [gmNote],

@@ -25,6 +25,22 @@ npm run dev -- --host 0.0.0.0
 
 - [griddl](https://github.com/pepperhorn/griddl) — sister project with play-along system (ComparisonEngine, scoring, count-in overlay) to port into Drumlet
 
+## CSS Class Naming
+
+Every HTML/JSX element MUST have a contextual class name as its first class, before any Tailwind utilities. These semantic names make elements identifiable in DevTools and provide hooks for testing/styling overrides.
+
+- Use kebab-case: `transport-bar`, `track-row`, `cell-label`
+- Name should describe the element's role, not its appearance
+- Nest naming with parent context: `transport-bpm-input`, `track-mute-btn`
+- Apply to ALL elements — divs, buttons, spans, inputs, wrappers, icons, everything
+
+Example:
+```jsx
+<div className="transport-bar flex items-center gap-2">
+  <button className="transport-play-btn px-4 py-2 rounded-full">
+  <span className="transport-bpm-label text-sm text-muted">
+```
+
 ## Design System
 Always read DESIGN.md before making any visual or UI decisions.
 All font choices, colors, spacing, and aesthetic direction are defined there.

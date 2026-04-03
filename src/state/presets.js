@@ -63,12 +63,23 @@ function hydrateTrack(jsonTrack, index, presetKit) {
   };
 }
 
+/** Drummer categories get "In the style of" treatment */
+export const DRUMMER_CATEGORIES = new Set([
+  'Clyde Stubblefield',
+  'Bernard Purdie',
+  'Zigaboo Modeliste',
+  'James Gadson',
+  'Tony Allen',
+  'Stevie Wonder',
+]);
+
 /**
  * Hydrate a JSON preset into the shape the Library component expects.
  */
-function hydratePreset(jsonPreset) {
+function hydratePreset(jsonPreset, categoryName) {
   return {
     ...jsonPreset,
+    inTheStyleOf: DRUMMER_CATEGORIES.has(categoryName),
     tracks: jsonPreset.tracks.map((t, i) => hydrateTrack(t, i, jsonPreset.kit)),
   };
 }
@@ -80,7 +91,7 @@ function hydratePreset(jsonPreset) {
 export function loadPresetCategories(data = presetsData) {
   return data.categories.map((cat) => ({
     name: cat.name,
-    presets: cat.presets.map(hydratePreset),
+    presets: cat.presets.map((p) => hydratePreset(p, cat.name)),
   }));
 }
 

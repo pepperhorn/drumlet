@@ -57,13 +57,25 @@ body {
   animation: spin-in 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
+.step-cell-label {
+  position: relative;
+  top: calc(5 / 32 * 100%);
+}
+
+.step-option-glyph,
+.mobile-step-glyph {
+  position: relative;
+  top: calc(5 / 32 * 100%);
+}
+
 .cell-hit:active {
   transform: scale(1.15);
 }
 
 /* Playhead glow */
 .playhead-active {
-  box-shadow: 0 0 8px 2px rgba(91, 192, 235, 0.35);
+  box-shadow: 0 0 10px 3px rgba(91, 192, 235, 0.5), 0 0 4px 1px rgba(91, 192, 235, 0.3);
+  z-index: 2;
 }
 
 /* Safe area for fixed bottom elements (MPC pads) */
@@ -71,24 +83,19 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-/* Mobile: simplified track controls (below md breakpoint 768px) */
+/* Mobile: compact grid cells (below md breakpoint 768px) */
 @media (max-width: 767px) {
-  .track-controls {
-    min-width: 100px !important;
-  }
-  .track-controls-row2 {
-    display: none;
-  }
   .track-name-btn {
     font-size: 12px !important;
   }
   .step-cell {
     width: 28px !important;
     height: 28px !important;
-    font-size: 8px !important;
+    font-size: 10px !important;
   }
   .step-number {
     width: 28px !important;
+    height: 28px !important;
   }
 }
 
@@ -96,7 +103,7 @@ body {
 .drop-target {
   outline: 2px dashed var(--color-sky);
   outline-offset: -2px;
-  background: rgba(91, 192, 235, 0.08) !important;
+  background: color-mix(in srgb, var(--color-sky) 8%, transparent) !important;
 }
 
 /* Smooth scrollbar */
