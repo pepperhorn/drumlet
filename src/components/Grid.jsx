@@ -54,11 +54,9 @@ function Grid({
   onToggleSubStep,
   onClearSubStep,
   onChangeProp,
-  onChangeSource,
   onChangeVelMode,
-  onRemoveTrack,
   onAddTrack,
-  onPreview,
+  onOpenSoundPicker,
   onDrop,
 }) {
   const [countMode, setCountMode] = useState('step'); // 'step' | 'beat'
@@ -299,10 +297,8 @@ function Grid({
           onToggleSubStep={onToggleSubStep}
           onClearSubStep={onClearSubStep}
           onChangeProp={onChangeProp}
-          onChangeSource={onChangeSource}
           onChangeVelMode={onChangeVelMode}
-          onRemoveTrack={onRemoveTrack}
-          onPreview={onPreview}
+          onOpenSoundPicker={onOpenSoundPicker}
           onDrop={onDrop}
         />
       ))}

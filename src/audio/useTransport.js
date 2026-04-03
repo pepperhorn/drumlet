@@ -41,7 +41,6 @@ export function useTransport(stateRef, audioEngine) {
       const stepsPerBeat = beatNv.beatsPerStep / stepNv.beatsPerStep;
       const stepDuration = 60 / (bpm * stepsPerBeat);
 
-      if (step === 0) console.log('[transport] stepDiv:', state.stepValue, '(' + stepNv.beatsPerStep + ')', 'beat:', state.noteValue, '(' + beatNv.beatsPerStep + ')', 'bpm:', bpm, 'stepsPerBeat:', stepsPerBeat, 'stepDur:', stepDuration.toFixed(4) + 's', 'effective:', Math.round(bpm * stepsPerBeat) + '/min');
 
       // Swing: delay offbeat notes to create shuffle/groove feel.
       // swingTarget controls which subdivisions are affected:
@@ -100,7 +99,6 @@ export function useTransport(stateRef, audioEngine) {
             noteTime = Math.max(ctx.currentTime, noteTime + jitter);
           }
 
-          if (step === 0) console.log('[transport] step 0: triggering', track.name, 'vel:', stepData, 'time:', noteTime.toFixed(3));
           triggerNote(track, stepData, noteTime, track.velMode || 3);
         }
       }

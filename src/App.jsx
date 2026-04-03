@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SequencerProvider, useSequencer } from './state/SequencerContext.jsx';
 import { useAudioEngine } from './audio/useAudioEngine.js';
 import { useTransport } from './audio/useTransport.js';
@@ -11,28 +11,27 @@ import Transport, { BpmInput } from './components/Transport.jsx';
 import PageTabs from './components/PageTabs.jsx';
 import Library from './components/Library.jsx';
 import ShareModal from './components/ShareModal.jsx';
-import NotationView from './components/NotationView.jsx';
+const NotationView = lazy(() => import('./components/NotationView.jsx'));
 import MpcPads from './components/MpcPads.jsx';
 import PluginModal from './components/PluginModal.jsx';
-import { buildShareUrl, isEmbedMode, loadSharedPayload } from './state/shareCodec.js';
+import SoundPicker from './components/SoundPicker.jsx';
+import { isEmbedMode, loadSharedPayload } from './state/shareCodec.js';
 import { TIME_SIGNATURES, getStepConfigs } from './state/sequencerReducer.js';
 import { normalizeSequencerState } from './state/normalizeSequencerState.js';
 import { useUserLibrary } from './state/userLibrary.js';
+import { useLibraryActions } from './state/useLibraryActions.js';
+import { usePluginSession } from './state/usePluginSession.js';
 import { ACTION_KINDS, getFieldValue } from './plugins/librarySchema.js';
 import { createPluginRuntime } from './plugins/runtime.js';
-import { DEFAULT_SCORE_POLICY } from './plugins/timeline.js';
-import { getModePlugin, PRACTICE_PLUGIN_ID, TELEPHONE_PLUGIN_ID } from './plugins/modePlugins.js';
+import { PRACTICE_PLUGIN_ID } from './plugins/modePlugins.js';
 
-function snapshotState(state) {
-  const normalized = normalizeSequencerState(state);
-  return normalized ? JSON.stringify(normalized) : null;
-}
 
 const PAD_KEYS = ['A', 'S', 'D', 'F', 'J', 'K', 'L', ';'];
 
 function Drumlet() {
   const { state, dispatch } = useSequencer();
-  const { entries, bookmarks, addEntry, updateEntry, removeEntry, toggleBookmark } = useUserLibrary();
+  const userLibrary = useUserLibrary();
+  const { entries, bookmarks, toggleBookmark } = userLibrary;
   const audioEngine = useAudioEngine();
   const pluginRuntime = useMemo(() => createPluginRuntime(), []);
   const libraryCollections = useMemo(() => pluginRuntime.getLibraryCollections(), [pluginRuntime]);
@@ -42,37 +41,17 @@ function Drumlet() {
   const [previewMode, setPreviewMode] = useState(true);
   const audioStartedRef = useRef(false);
   const [audioStarted, setAudioStarted] = useState(false);
-  const [libraryOpen, setLibraryOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [notationView, setNotationView] = useState(false);
   const [playMode, setPlayMode] = useState(false); // false=edit, true=MPC pads
   const [showFullTransport, setShowFullTransport] = useState(false);
-  const [activePreset, setActivePreset] = useState(null); // { name, credit, creditUrl, cover, links }
-  const [currentSaveId, setCurrentSaveId] = useState(null);
-  const [isDirty, setIsDirty] = useState(false);
-  const [libraryEditMode, setLibraryEditMode] = useState(null);
   const [splitMode, setSplitMode] = useState(null); // null, 2, 3, or 4
-  const [pluginOpen, setPluginOpen] = useState(false);
-  const [selectedModeId, setSelectedModeId] = useState(PRACTICE_PLUGIN_ID);
-  const [pluginSourceItem, setPluginSourceItem] = useState(null);
-  const [pluginStatus, setPluginStatus] = useState('setup');
-  const [pluginCountdown, setPluginCountdown] = useState(0);
-  const [pluginResult, setPluginResult] = useState(null);
-  const [pluginShareUrl, setPluginShareUrl] = useState('');
-  const [pluginInputMode, setPluginInputMode] = useState('pads');
-  const [pluginLoops, setPluginLoops] = useState(1);
-  const [pluginTargetScore, setPluginTargetScore] = useState(85);
-  const [pluginPerformerName, setPluginPerformerName] = useState('');
-  const [pluginTurnLengthSteps, setPluginTurnLengthSteps] = useState(32);
+  const [soundPickerTrackIndex, setSoundPickerTrackIndex] = useState(null);
   const [activePadTrackIds, setActivePadTrackIds] = useState(new Set());
   const [embed] = useState(() => isEmbedMode());
   const customBuffersRef = useRef(new Map()); // trackId → AudioBuffer
-  const savedSnapshotRef = useRef(snapshotState(state));
-  const pluginSessionRef = useRef(null);
-  const pluginCaptureRef = useRef(null);
-  const pluginTimerRefs = useRef([]);
-  const pluginReferenceTimeRef = useRef(0);
   const activePadTimeoutsRef = useRef(new Map());
+  const tapTimesRef = useRef([]);
 
   // Keep a ref to state for the scheduler (avoids stale closures)
   const stateRef = useRef(state);
@@ -85,11 +64,16 @@ function Drumlet() {
 
   const { isPlaying, currentStep, toggle, stop } = useTransport(stateRef, audioEngine);
 
+  const library = useLibraryActions({ state, dispatch, stop, userLibrary });
+  const {
+    libraryOpen, libraryEditMode, currentSaveId, isDirty, activePreset,
+    setLibraryOpen, setLibraryEditMode, setActivePreset, setCurrentSaveId,
+    openLibrary, handleEditEntry, handleDeleteEntry, handleSaveEdit, handleSave,
+    handleLoadUserEntry, handleLoadLibraryState, loadStateIntoSequencer, markClean,
+    buildActivePreset, buildActivePresetFromLibraryItem,
+  } = library;
+
   const currentPage = state.pages[state.currentPageIndex];
-  const selectedModePlugin = useMemo(
-    () => getModePlugin(selectedModeId) || modePlugins[0] || null,
-    [modePlugins, selectedModeId]
-  );
   const padKeyMap = useMemo(() => {
     const map = {};
     (currentPage?.tracks || []).forEach((track, index) => {
@@ -101,43 +85,6 @@ function Drumlet() {
     () => Object.fromEntries(Object.entries(padKeyMap).map(([trackId, key]) => [key.toLowerCase(), trackId])),
     [padKeyMap]
   );
-
-  const buildActivePreset = useCallback((metadata = {}) => ({
-    sourceEntryId: metadata.sourceEntryId || null,
-    sourcePreset: metadata.sourcePreset || null,
-    name: metadata.name || 'Untitled',
-    inTheStyleOf: metadata.inTheStyleOf ?? false,
-    credit: metadata.credit || '',
-    creditUrl: metadata.creditUrl || '',
-    cover: metadata.cover || '',
-    links: metadata.links || {},
-    bpm: metadata.bpm ?? null,
-    body: metadata.body || null,
-    notes: metadata.notes || null,
-  }), []);
-
-  const buildActivePresetFromLibraryItem = useCallback((item) => buildActivePreset({
-    name: item.title,
-    inTheStyleOf: item.card?.subtitle === 'In the style of' || getFieldValue(item, 'in_the_style_of', false),
-    credit: getFieldValue(item, 'credit', ''),
-    creditUrl: getFieldValue(item, 'credit_url', ''),
-    cover: item.card?.cover || getFieldValue(item, 'cover', ''),
-    links: getFieldValue(item, 'links', {}),
-    bpm: getFieldValue(item, 'bpm', null),
-    body: getFieldValue(item, 'description', null),
-    notes: getFieldValue(item, 'notes', null),
-    sourcePreset: getFieldValue(item, 'source_preset', item.title),
-  }), [buildActivePreset]);
-
-  const markClean = useCallback((nextState) => {
-    savedSnapshotRef.current = snapshotState(nextState);
-    setIsDirty(false);
-  }, []);
-
-  const clearPluginTimers = useCallback(() => {
-    pluginTimerRefs.current.forEach((timerId) => window.clearTimeout(timerId));
-    pluginTimerRefs.current = [];
-  }, []);
 
   const pulsePadTrack = useCallback((trackId) => {
     setActivePadTrackIds((prev) => {
@@ -207,16 +154,16 @@ function Drumlet() {
     return () => { cancelled = true; };
   }, [trackSoundKey, loadTrackInstrument, audioStarted]);
 
-  // Called on first user interaction to init audio
-  const startAudio = useCallback(async () => {
-    if (!audioStarted) {
-      await audioEngine.ensureRunning();
-      setAudioStarted(true);
-    }
-  }, [audioStarted, audioEngine]);
+  // Called on first user interaction to init audio — single source of truth
+  const startAudioIfNeeded = useCallback(async () => {
+    if (audioStartedRef.current) return;
+    await audioEngine.ensureRunning();
+    audioStartedRef.current = true;
+    setAudioStarted(true);
+  }, [audioEngine]);
 
   const handleToggleCell = useCallback((trackIndex, stepIndex, isRightClick) => {
-    startAudio();
+    startAudioIfNeeded();
     const page = stateRef.current.pages[stateRef.current.currentPageIndex];
     const track = page?.tracks[trackIndex];
     const stepData = track?.steps[stepIndex];
@@ -246,10 +193,10 @@ function Drumlet() {
       }
     }
     // If split cell clicked without splitMode → handled by Cell's onExpandToggle
-  }, [dispatch, previewMode, audioEngine, splitMode, startAudio]);
+  }, [dispatch, previewMode, audioEngine, splitMode, startAudioIfNeeded]);
 
   const handleToggleSubStep = useCallback((trackIndex, stepIndex, subIndex) => {
-    startAudio();
+    startAudioIfNeeded();
     dispatch({ type: 'TOGGLE_SUBSTEP', trackIndex, stepIndex, subIndex });
 
     // Preview the sub-step sound
@@ -267,7 +214,7 @@ function Drumlet() {
         }
       }
     }
-  }, [dispatch, previewMode, audioEngine, startAudio]);
+  }, [dispatch, previewMode, audioEngine, startAudioIfNeeded]);
 
   const handleClearSubStep = useCallback((trackIndex, stepIndex, subIndex) => {
     dispatch({ type: 'SET_SUBSTEP', trackIndex, stepIndex, subIndex, velocity: 0 });
@@ -295,15 +242,34 @@ function Drumlet() {
     dispatch({ type: 'SET_TRACK_VEL_MODE', trackIndex, mode });
   }, [dispatch]);
 
+  const handleOpenSoundPicker = useCallback((trackIndex) => {
+    setSoundPickerTrackIndex(trackIndex);
+  }, []);
+
+  const handleCloseSoundPicker = useCallback(() => {
+    setSoundPickerTrackIndex(null);
+  }, []);
+
+  const handlePreviewSound = useCallback(async (sourceConfig) => {
+    if (soundPickerTrackIndex === null) return;
+    const track = stateRef.current?.pages?.[stateRef.current.currentPageIndex]?.tracks?.[soundPickerTrackIndex];
+    if (!track) return;
+    const tempTrack = { ...track, ...sourceConfig };
+    await audioEngine.loadTrackInstrument(tempTrack, { force: true });
+    await audioEngine.previewSound(tempTrack);
+  }, [audioEngine, soundPickerTrackIndex]);
+
+  const handleCancelPreview = useCallback(async () => {
+    if (soundPickerTrackIndex === null) return;
+    const track = stateRef.current?.pages?.[stateRef.current.currentPageIndex]?.tracks?.[soundPickerTrackIndex];
+    if (!track) return;
+    await audioEngine.loadTrackInstrument(track, { force: true });
+  }, [audioEngine, soundPickerTrackIndex]);
+
   // Play handler — always ensures audio + instruments are ready before toggling
   const handlePlay = useCallback(async () => {
     try {
-      // Ensure audio context is running (idempotent after first call)
-      await audioEngine.ensureRunning();
-      if (!audioStartedRef.current) {
-        audioStartedRef.current = true;
-        setAudioStarted(true);
-      }
+      await startAudioIfNeeded();
 
       // Always verify instruments are loaded for current tracks —
       // loadTrackInstrument returns immediately if already cached
@@ -323,29 +289,34 @@ function Drumlet() {
     } catch (err) {
       console.error('[app] handlePlay failed:', err);
     }
-  }, [isPlaying, audioEngine, toggle]);
+  }, [isPlaying, audioEngine, toggle, startAudioIfNeeded]);
+
+  const plugin = usePluginSession({
+    audioEngine, audioFollowCore, state, currentPage,
+    isPlaying, stop, handlePlay, activePreset, setPlayMode,
+  });
+  const {
+    pluginOpen, selectedModeId, pluginSourceItem, pluginStatus, pluginCountdown,
+    pluginResult, pluginShareUrl, pluginInputMode, pluginLoops, pluginTargetScore,
+    pluginPerformerName, pluginTurnLengthSteps, selectedModePlugin,
+    setSelectedModeId, setPluginInputMode, setPluginLoops, setPluginTargetScore,
+    setPluginPerformerName, setPluginTurnLengthSteps,
+    openPluginModal, closePluginModal: closePluginModalBase, handleStartPlugin, handleRetryPlugin,
+    recordPadEvent, initFromSharedPayload,
+  } = plugin;
+
+  const closePluginModal = useCallback(() => {
+    closePluginModalBase();
+    setActivePadTrackIds(new Set());
+  }, [closePluginModalBase]);
 
   // MPC pad trigger — play a track's sound immediately
   const handleMpcTrigger = useCallback((track) => {
-    if (!audioStartedRef.current) {
-      audioEngine.ensureRunning().then(() => {
-        audioStartedRef.current = true;
-        setAudioStarted(true);
-      });
-    }
+    startAudioIfNeeded();
     audioEngine.previewSound(track);
     pulsePadTrack(track.id);
-
-    if (pluginStatus === 'running' && pluginInputMode === 'pads' && pluginSessionRef.current) {
-      const ctx = audioEngine.getContext();
-      pluginSessionRef.current.recordEvent({
-        source: 'pad',
-        trackId: track.id,
-        timeSec: Math.max(0, ctx.currentTime - pluginReferenceTimeRef.current),
-        confidence: 1,
-      });
-    }
-  }, [audioEngine, pluginInputMode, pluginStatus, pulsePadTrack]);
+    recordPadEvent(track.id);
+  }, [audioEngine, pulsePadTrack, recordPadEvent, startAudioIfNeeded]);
 
   const handleDrop = useCallback(async (file, trackIndex) => {
     try {
@@ -388,37 +359,6 @@ function Drumlet() {
   const handleExport = useCallback(() => exportToFile(state), [state]);
   const handleMidiExport = useCallback(() => exportMidi(state), [state]);
 
-  const loadStateIntoSequencer = useCallback((nextState, nextActivePreset = null, nextSaveId = null, closeLibrary = true) => {
-    const normalizedState = normalizeSequencerState(nextState);
-    if (!normalizedState) return false;
-
-    stop();
-    dispatch({ type: 'LOAD_STATE', state: normalizedState });
-    setActivePreset(nextActivePreset);
-    setCurrentSaveId(nextSaveId);
-    setLibraryEditMode(null);
-    markClean(normalizedState);
-    if (closeLibrary) setLibraryOpen(false);
-    return true;
-  }, [dispatch, markClean, stop]);
-
-  const handleLoadLibraryState = useCallback((item) => {
-    const nextState = getFieldValue(item, 'pattern_state');
-    if (!nextState) return;
-
-    loadStateIntoSequencer(nextState, buildActivePresetFromLibraryItem(item), null, true);
-  }, [buildActivePresetFromLibraryItem, loadStateIntoSequencer]);
-
-  const handleLoadUserEntry = useCallback((entry) => {
-    const nextState = normalizeSequencerState(entry.state);
-    if (!nextState) return;
-
-    loadStateIntoSequencer(nextState, buildActivePreset({
-      ...entry,
-      sourceEntryId: entry.id,
-    }), entry.id, true);
-  }, [buildActivePreset, loadStateIntoSequencer]);
-
   // Load shared state from URL on mount
   useEffect(() => {
     const sharedPayload = loadSharedPayload();
@@ -430,19 +370,7 @@ function Drumlet() {
       setActivePreset(null);
       markClean(nextState);
       if (sharedPayload.pluginMeta?.modeId) {
-        const sharedMode = getModePlugin(sharedPayload.pluginMeta.modeId);
-        if (sharedMode) {
-          setSelectedModeId(sharedMode.manifest.id);
-          setPluginInputMode(sharedPayload.pluginMeta.inputMode || sharedMode.defaults?.inputMode || 'pads');
-          setPluginLoops(sharedPayload.pluginMeta.loops || sharedMode.defaults?.loops || 1);
-          setPluginTargetScore(sharedPayload.pluginMeta.targetScore || sharedMode.defaults?.targetScore || 85);
-          setPluginPerformerName(sharedPayload.pluginMeta.performerName || '');
-          setPluginTurnLengthSteps(sharedPayload.pluginMeta.turnLengthSteps || sharedMode.defaults?.turnLengthSteps || 32);
-          setPluginResult(sharedPayload.pluginMeta.result || null);
-          setPluginStatus(sharedPayload.pluginMeta.result ? 'results' : 'setup');
-          setPluginSourceItem(null);
-          setPluginOpen(true);
-        }
+        initFromSharedPayload(sharedPayload.pluginMeta);
       }
       // Clean hash to avoid reloading on refresh
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -461,126 +389,6 @@ function Drumlet() {
       markClean(nextState);
     }
   }, [dispatch, markClean, stop]);
-
-  useEffect(() => {
-    const currentSnapshot = snapshotState(state);
-    setIsDirty(currentSnapshot !== savedSnapshotRef.current);
-  }, [state]);
-
-  useEffect(() => {
-    if (!pluginOpen || pluginStatus !== 'setup' || !selectedModePlugin) return;
-    setPluginInputMode(selectedModePlugin.defaults?.inputMode || 'pads');
-    setPluginLoops(selectedModePlugin.defaults?.loops || 1);
-    setPluginTargetScore(selectedModePlugin.defaults?.targetScore || 85);
-    setPluginPerformerName(selectedModePlugin.defaults?.performerName || '');
-    setPluginTurnLengthSteps(selectedModePlugin.defaults?.turnLengthSteps || 32);
-  }, [pluginOpen, pluginStatus, selectedModePlugin]);
-
-  const openLibrary = useCallback(() => {
-    setLibraryEditMode(null);
-    setLibraryOpen(true);
-  }, []);
-
-  const handleEditEntry = useCallback((id) => {
-    setLibraryEditMode({ id, isNew: false });
-    setLibraryOpen(true);
-  }, []);
-
-  const handleDeleteEntry = useCallback((id) => {
-    removeEntry(id);
-    if (currentSaveId === id) {
-      setCurrentSaveId(null);
-      setIsDirty(true);
-    }
-    if (activePreset?.sourceEntryId === id) {
-      setActivePreset(null);
-    }
-    if (libraryEditMode?.id === id) {
-      setLibraryEditMode(null);
-    }
-  }, [activePreset, currentSaveId, libraryEditMode, removeEntry]);
-
-  const handleSaveEdit = useCallback((metadata) => {
-    if (libraryEditMode?.id) {
-      updateEntry(libraryEditMode.id, {
-        ...metadata,
-        bpm: state.bpm,
-        swing: state.swing || 0,
-        state,
-      });
-
-      if (currentSaveId === libraryEditMode.id) {
-        setActivePreset((prev) => buildActivePreset({
-          ...prev,
-          ...metadata,
-          bpm: state.bpm,
-          sourceEntryId: libraryEditMode.id,
-        }));
-      }
-    } else {
-      const entryId = addEntry(metadata, state);
-      if (entryId) {
-        setCurrentSaveId(entryId);
-        setActivePreset(buildActivePreset({
-          ...metadata,
-          bpm: state.bpm,
-          swing: state.swing || 0,
-          sourceEntryId: entryId,
-        }));
-      }
-    }
-
-    markClean(state);
-    setLibraryEditMode(null);
-  }, [addEntry, buildActivePreset, currentSaveId, libraryEditMode, markClean, state, updateEntry]);
-
-  const handleSave = useCallback(() => {
-    if (!currentSaveId) {
-      setLibraryEditMode({ id: null, isNew: true });
-      setLibraryOpen(true);
-      return;
-    }
-
-    if (!isDirty) return;
-
-    updateEntry(currentSaveId, {
-      bpm: state.bpm,
-      swing: state.swing || 0,
-      state,
-    });
-    markClean(state);
-  }, [currentSaveId, isDirty, markClean, state, updateEntry]);
-
-  const openPluginModal = useCallback((modeId = PRACTICE_PLUGIN_ID, sourceItem = null) => {
-    const modePlugin = getModePlugin(modeId) || getModePlugin(PRACTICE_PLUGIN_ID);
-    if (!modePlugin) return;
-
-    setSelectedModeId(modePlugin.manifest.id);
-    setPluginInputMode(modePlugin.defaults?.inputMode || 'pads');
-    setPluginLoops(modePlugin.defaults?.loops || 1);
-    setPluginTargetScore(modePlugin.defaults?.targetScore || 85);
-    setPluginPerformerName(modePlugin.defaults?.performerName || '');
-    setPluginTurnLengthSteps(modePlugin.defaults?.turnLengthSteps || 32);
-    setPluginResult(null);
-    setPluginShareUrl('');
-    setPluginCountdown(0);
-    setPluginStatus('setup');
-    setPluginSourceItem(sourceItem);
-    setPluginOpen(true);
-  }, []);
-
-  const closePluginModal = useCallback(() => {
-    clearPluginTimers();
-    pluginCaptureRef.current?.stop?.();
-    pluginCaptureRef.current = null;
-    pluginSessionRef.current = null;
-    pluginReferenceTimeRef.current = 0;
-    setPluginStatus('setup');
-    setPluginCountdown(0);
-    setPluginOpen(false);
-    setActivePadTrackIds(new Set());
-    if (isPlaying) stop();
-  }, [clearPluginTimers, isPlaying, stop]);
 
   const handleActivateLibraryItem = useCallback((item, action = null) => {
     const primaryAction = action || item.actions?.[0] || null;
@@ -610,135 +418,6 @@ function Drumlet() {
       openPluginModal(item.actions[0].targetPluginId, item);
     }
   }, [buildActivePresetFromLibraryItem, handleLoadLibraryState, loadStateIntoSequencer, openPluginModal]);
-
-  const finalizePluginRun = useCallback((modeId) => {
-    const session = pluginSessionRef.current;
-    if (!session) return;
-
-    pluginCaptureRef.current?.stop?.();
-    pluginCaptureRef.current = null;
-
-    if (isPlaying) {
-      stop();
-    }
-
-    const result = session.score();
-    const pluginMeta = {
-      modeId,
-      inputMode: pluginInputMode,
-      loops: pluginLoops,
-      targetScore: pluginTargetScore,
-      performerName: pluginPerformerName,
-      turnLengthSteps: pluginTurnLengthSteps,
-      sourceTitle: pluginSourceItem?.title || activePreset?.name || 'Current pattern',
-      result,
-    };
-
-    setPluginResult(result);
-    setPluginStatus('results');
-    setPluginCountdown(0);
-    setPluginShareUrl(
-      buildShareUrl(state, window.location.origin, pluginMeta)
-    );
-    pluginSessionRef.current = null;
-    pluginReferenceTimeRef.current = 0;
-  }, [
-    activePreset?.name,
-    isPlaying,
-    pluginInputMode,
-    pluginLoops,
-    pluginPerformerName,
-    pluginSourceItem?.title,
-    pluginTargetScore,
-    pluginTurnLengthSteps,
-    state,
-    stop,
-  ]);
-
-  const handleStartPlugin = useCallback(async () => {
-    if (!audioFollowCore || !selectedModePlugin) return;
-
-    clearPluginTimers();
-    pluginCaptureRef.current?.stop?.();
-    pluginCaptureRef.current = null;
-    pluginSessionRef.current = null;
-    setPluginShareUrl('');
-    setPluginResult(null);
-
-    const sessionState = normalizeSequencerState(state);
-    if (!sessionState) return;
-
-    if (isPlaying) {
-      stop();
-    }
-
-    const session = audioFollowCore.createSession({
-      state: sessionState,
-      mode: pluginInputMode,
-      trackIds: currentPage?.tracks?.filter((track) => !track.mute).map((track) => track.id) || null,
-      loops: pluginLoops,
-      scorePolicy: DEFAULT_SCORE_POLICY,
-      audioEngine,
-    });
-    pluginSessionRef.current = session;
-
-    const countInBeats = (selectedModePlugin.defaults?.countInBars || 1) * (state.beatsPerBar || 4);
-    setPluginCountdown(countInBeats);
-    setPluginStatus('countdown');
-    if (pluginInputMode === 'pads') {
-      setPlayMode(true);
-    }
-
-    for (let beat = countInBeats - 1; beat >= 1; beat -= 1) {
-      const timerId = window.setTimeout(() => {
-        setPluginCountdown(beat);
-      }, (countInBeats - beat) * (60 / state.bpm) * 1000);
-      pluginTimerRefs.current.push(timerId);
-    }
-
-    const countInDuration = await session.startCountIn(selectedModePlugin.defaults?.countInBars || 1);
-    const startTimerId = window.setTimeout(async () => {
-      setPluginStatus('running');
-      const ctx = await audioEngine.ensureRunning();
-      pluginReferenceTimeRef.current = ctx.currentTime;
-      session.setReferenceTime?.(pluginReferenceTimeRef.current);
-
-      if (pluginInputMode === 'audio') {
-        pluginCaptureRef.current = await session.startAudioCapture();
-      }
-
-      if (!isPlaying) {
-        await handlePlay();
-      }
-
-      const finishTimerId = window.setTimeout(() => {
-        finalizePluginRun(selectedModePlugin.manifest.id);
-      }, (session.getDurationSeconds() * 1000) + 120);
-      pluginTimerRefs.current.push(finishTimerId);
-    }, countInDuration * 1000);
-
-    pluginTimerRefs.current.push(startTimerId);
-  }, [
-    audioEngine,
-    audioFollowCore,
-    clearPluginTimers,
-    currentPage?.tracks,
-    finalizePluginRun,
-    handlePlay,
-    isPlaying,
-    pluginInputMode,
-    pluginLoops,
-    selectedModePlugin,
-    state,
-    stop,
-  ]);
-
-  const handleRetryPlugin = useCallback(() => {
-    setPluginStatus('setup');
-    setPluginResult(null);
-    setPluginShareUrl('');
-    handleStartPlugin();
-  }, [handleStartPlugin]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -802,10 +481,8 @@ function Drumlet() {
   ]);
 
   useEffect(() => () => {
-    clearPluginTimers();
-    pluginCaptureRef.current?.stop?.();
     activePadTimeoutsRef.current.forEach((timerId) => window.clearTimeout(timerId));
-  }, [clearPluginTimers]);
+  }, []);
 
   return (
     <div className={`drumlet-app min-h-screen bg-bg ${embed ? 'p-2 md:p-3' : 'p-4 md:p-6 lg:p-8'}`}>
@@ -1050,17 +727,16 @@ function Drumlet() {
               onClick={() => {
                 // Inline tap tempo for mobile
                 const now = performance.now();
-                if (!window._tapTimes) window._tapTimes = [];
-                window._tapTimes.push(now);
-                if (window._tapTimes.length > 5) window._tapTimes.shift();
-                if (window._tapTimes.length >= 2) {
+                tapTimesRef.current.push(now);
+                if (tapTimesRef.current.length > 5) tapTimesRef.current.shift();
+                if (tapTimesRef.current.length >= 2) {
                   const intervals = [];
-                  for (let i = 1; i < window._tapTimes.length; i++) intervals.push(window._tapTimes[i] - window._tapTimes[i - 1]);
+                  for (let i = 1; i < tapTimesRef.current.length; i++) intervals.push(tapTimesRef.current[i] - tapTimesRef.current[i - 1]);
                   const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
                   const tapBpm = Math.round(60000 / avg);
                   if (tapBpm >= 20 && tapBpm <= 300) dispatch({ type: 'SET_BPM', bpm: tapBpm });
                 }
-                setTimeout(() => { if (window._tapTimes?.length && performance.now() - window._tapTimes[window._tapTimes.length - 1] > 2000) window._tapTimes = []; }, 2100);
+                setTimeout(() => { if (tapTimesRef.current.length && performance.now() - tapTimesRef.current[tapTimesRef.current.length - 1] > 2000) tapTimesRef.current = []; }, 2100);
               }}
             >
               TAP
@@ -1162,19 +838,21 @@ function Drumlet() {
         </div>
       )}
 
-      {/* Notation view */}
+      {/* Notation view (lazy-loaded — VexFlow code-split) */}
       {notationView && currentPage && (
-        <div className="notation-view-wrap mb-4">
-          <NotationView
-            pages={state.pages}
-            stepsPerPage={state.stepsPerPage}
-            currentStep={currentStep}
-            currentPageIndex={state.currentPageIndex}
-            noteValue={state.noteValue}
-            beatsPerBar={state.beatsPerBar}
-            stepValue={state.stepValue}
-          />
-        </div>
+        <Suspense fallback={<div className="notation-loading mb-4 flex items-center justify-center py-8"><span className="notation-loading-text text-sm text-muted">Loading notation...</span></div>}>
+          <div className="notation-view-wrap mb-4">
+            <NotationView
+              pages={state.pages}
+              stepsPerPage={state.stepsPerPage}
+              currentStep={currentStep}
+              currentPageIndex={state.currentPageIndex}
+              noteValue={state.noteValue}
+              beatsPerBar={state.beatsPerBar}
+              stepValue={state.stepValue}
+            />
+          </div>
+        </Suspense>
       )}
 
       {/* Grid */}
@@ -1197,11 +875,9 @@ function Drumlet() {
             onToggleSubStep={playMode ? () => {} : handleToggleSubStep}
             onClearSubStep={playMode ? () => {} : handleClearSubStep}
             onChangeProp={playMode ? () => {} : handleChangeProp}
-            onChangeSource={playMode ? () => {} : handleChangeSource}
             onChangeVelMode={playMode ? () => {} : handleChangeVelMode}
-            onRemoveTrack={playMode ? () => {} : (i) => dispatch({ type: 'REMOVE_TRACK', trackIndex: i })}
             onAddTrack={playMode ? undefined : () => dispatch({ type: 'ADD_TRACK' })}
-            onPreview={playMode ? () => {} : (track) => audioEngine.previewSound(track)}
+            onOpenSoundPicker={playMode ? () => {} : handleOpenSoundPicker}
             onDrop={playMode ? () => {} : handleDrop}
           />
         </div>
@@ -1264,6 +940,22 @@ function Drumlet() {
         state={state}
       />
 
+      {/* Sound picker overlay */}
+      <SoundPicker
+        isOpen={soundPickerTrackIndex !== null}
+        onClose={handleCloseSoundPicker}
+        track={soundPickerTrackIndex !== null ? currentPage?.tracks?.[soundPickerTrackIndex] : null}
+        trackIndex={soundPickerTrackIndex}
+        onChangeSource={handleChangeSource}
+        onChangeProp={handleChangeProp}
+        onPreview={handlePreviewSound}
+        onCancelPreview={handleCancelPreview}
+        onRemove={(i) => {
+          dispatch({ type: 'REMOVE_TRACK', trackIndex: i });
+          handleCloseSoundPicker();
+        }}
+      />
+
       {/* Share modal */}
       <ShareModal
         isOpen={shareOpen}
@@ -1302,11 +994,7 @@ function Drumlet() {
         <div className="audio-start-overlay fixed inset-0 z-50 flex items-center justify-center bg-bg/80 backdrop-blur-sm">
           <button
             className="audio-start-btn flex flex-col items-center gap-3 px-10 py-8 rounded-2xl bg-card shadow-lg border border-border cursor-pointer transition-all hover:shadow-xl hover:scale-105 active:scale-95"
-            onClick={async () => {
-              await audioEngine.ensureRunning();
-              audioStartedRef.current = true;
-              setAudioStarted(true);
-            }}
+            onClick={() => startAudioIfNeeded()}
           >
             <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
               <circle cx="24" cy="24" r="23" stroke="var(--color-sky)" strokeWidth="2" />

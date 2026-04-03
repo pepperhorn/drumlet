@@ -1,14 +1,4 @@
-import { memo, useState, useRef, useEffect } from 'react';
-import { MACHINE_GROUPS } from '../audio/drumGroups.js';
-import { CUSTOM_KIT_IDS, loadKitManifest, getKitSampleNames } from '../audio/customKits.js';
-import TrackIcon from './TrackIcon.jsx';
-
-const DRUM_MACHINES = Object.keys(MACHINE_GROUPS);
-const SOUNDFONTS = [
-  'taiko_drum', 'timpani', 'woodblock', 'steel_drums', 'synth_drum',
-  'melodic_tom', 'agogo', 'tinkle_bell', 'xylophone', 'vibraphone',
-  'glockenspiel', 'marimba',
-];
+import { memo, useState, useRef } from 'react';
 
 function TrackControls({
   track,
@@ -17,28 +7,12 @@ function TrackControls({
   onToggleExpand,
   colWidth,
   onChangeProp,
-  onChangeSource,
   onChangeVelMode,
-  onRemove,
+  onOpenSoundPicker,
   onDrop,
 }) {
-  const [isOpen, setIsOpen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [customKits, setCustomKits] = useState([]);
   const dropRef = useRef(null);
-
-  // Load custom kit manifests when picker opens
-  useEffect(() => {
-    if (!isOpen || customKits.length > 0) return;
-    Promise.all(
-      CUSTOM_KIT_IDS.map(async (id) => {
-        try {
-          const manifest = await loadKitManifest(id);
-          return { id, manifest };
-        } catch { return null; }
-      })
-    ).then((results) => setCustomKits(results.filter(Boolean)));
-  }, [isOpen, customKits.length]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -89,7 +63,7 @@ function TrackControls({
 
         <button
           className="track-name-btn flex items-center gap-1.5 px-1 py-0.5 rounded-md hover:bg-gray-100 transition-colors text-sm lg:text-base font-medium cursor-pointer min-w-0"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => onOpenSoundPicker(trackIndex)}
           title={track.name}
         >
           <span
@@ -200,143 +174,6 @@ function TrackControls({
               title={`Volume: ${track.volume}`}
             />
           </div>
-        </div>
-      )}
-
-      {/* Sound selector popover */}
-      {isOpen && (
-        <div className="track-sound-picker absolute left-0 top-10 z-50 bg-card rounded-xl shadow-xl border border-border p-3 w-72 max-h-80 overflow-y-auto">
-          <div className="track-sound-picker-header flex items-center justify-between mb-2">
-            <span className="track-sound-picker-title text-xs font-semibold text-muted uppercase tracking-wide">Sound Source</span>
-            <button className="track-sound-picker-close text-xs text-muted hover:text-text cursor-pointer" onClick={() => setIsOpen(false)}>Close</button>
-          </div>
-
-          {/* Drum machines */}
-          <div className="mb-2">
-            <div className="sound-group-label text-xs text-muted font-semibold uppercase mb-1">Drum Machines</div>
-            {DRUM_MACHINES.map((dm) => (
-              <div key={dm} className="mb-1">
-                <div className="sound-machine-name text-xs font-medium text-text/70 pl-1">{dm}</div>
-                <div className="sound-machine-options flex flex-wrap gap-1 mt-0.5">
-                  {MACHINE_GROUPS[dm].map((g) => (
-                    <button
-                      key={`${dm}-${g}`}
-                      className={`sound-option px-2 py-0.5 rounded text-xs cursor-pointer transition-colors
-                        ${track.sourceType === 'drumMachine' && track.instrument === dm && track.group === g
-                          ? 'bg-sky text-white'
-                          : 'bg-gray-100 text-text hover:bg-gray-200'
-                        }`}
-                      onClick={() => {
-                        onChangeSource(trackIndex, {
-                          sourceType: 'drumMachine',
-                          instrument: dm,
-                          group: g,
-                          name: g,
-                        });
-                        setIsOpen(false);
-                      }}
-                    >
-                      {g}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Soundfonts */}
-          <div className="mb-2">
-            <div className="sound-group-label text-xs text-muted font-semibold uppercase mb-1">Soundfonts</div>
-            <div className="sound-soundfont-options flex flex-wrap gap-1">
-              {SOUNDFONTS.map((sf) => (
-                <button
-                  key={sf}
-                  className={`sound-option px-2 py-0.5 rounded text-xs cursor-pointer transition-colors
-                    ${track.sourceType === 'soundfont' && track.soundfontName === sf
-                      ? 'bg-lavender text-white'
-                      : 'bg-gray-100 text-text hover:bg-gray-200'
-                    }`}
-                  onClick={() => {
-                    onChangeSource(trackIndex, {
-                      sourceType: 'soundfont',
-                      soundfontName: sf,
-                      name: sf.replace(/_/g, ' '),
-                    });
-                    setIsOpen(false);
-                  }}
-                >
-                  {sf.replace(/_/g, ' ')}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Custom sample kits */}
-          {customKits.length > 0 && (
-            <div className="mb-2">
-              <div className="sound-group-label text-xs text-muted font-semibold uppercase mb-1">Sample Kits</div>
-              {customKits.map(({ id, manifest }) => (
-                <div key={id} className="mb-1">
-                  <div className="sound-kit-name text-xs font-medium text-text/70 pl-1">{manifest.name}</div>
-                  <div className="sound-kit-options flex flex-wrap gap-1 mt-0.5">
-                    {getKitSampleNames(manifest).map(({ key, label }) => (
-                      <button
-                        key={`${id}-${key}`}
-                        className={`sound-option px-2 py-0.5 rounded text-xs cursor-pointer transition-colors
-                          ${track.sourceType === 'kit' && track.kitId === id && track.kitSample === key
-                            ? 'bg-mint text-white'
-                            : 'bg-gray-100 text-text hover:bg-gray-200'
-                          }`}
-                        onClick={() => {
-                          onChangeSource(trackIndex, {
-                            sourceType: 'kit',
-                            kitId: id,
-                            kitSample: key,
-                            name: label,
-                          });
-                          setIsOpen(false);
-                        }}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Custom sample hint */}
-          <div className="sound-drop-hint text-xs text-muted italic mt-2">
-            Drag & drop a .wav/.mp3/.ogg file onto the track name to load a custom sample
-          </div>
-
-          {/* Reverb slider */}
-          <div className="track-reverb mt-3 pt-2 border-t border-border">
-            <div className="track-reverb-header flex items-center justify-between mb-1">
-              <span className="track-reverb-label text-xs text-muted font-semibold uppercase">Reverb Send</span>
-              <span className="track-reverb-value text-xs font-mono text-muted">{track.reverb}%</span>
-            </div>
-            <input
-              type="range"
-              className="track-reverb-slider w-full h-1 accent-lavender cursor-pointer"
-              min={0}
-              max={100}
-              value={track.reverb}
-              onChange={(e) => onChangeProp(trackIndex, 'reverb', Number(e.target.value))}
-            />
-          </div>
-
-          {/* Remove track */}
-          <button
-            className="track-remove-btn mt-2 text-xs text-stop hover:underline cursor-pointer"
-            onClick={() => {
-              onRemove(trackIndex);
-              setIsOpen(false);
-            }}
-          >
-            Remove track
-          </button>
         </div>
       )}
     </div>

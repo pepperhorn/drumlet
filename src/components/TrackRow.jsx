@@ -19,10 +19,8 @@ function TrackRow({
   onToggleSubStep,
   onClearSubStep,
   onChangeProp,
-  onChangeSource,
   onChangeVelMode,
-  onRemoveTrack,
-  onPreview,
+  onOpenSoundPicker,
   onDrop,
 }) {
   return (
@@ -34,10 +32,8 @@ function TrackRow({
         onToggleExpand={onToggleExpand}
         colWidth={colWidth}
         onChangeProp={onChangeProp}
-        onChangeSource={onChangeSource}
         onChangeVelMode={onChangeVelMode}
-        onRemove={onRemoveTrack}
-        onPreview={onPreview}
+        onOpenSoundPicker={onOpenSoundPicker}
         onDrop={onDrop}
       />
 

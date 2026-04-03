@@ -15,7 +15,7 @@
     "hi-tom":     { "file": "acoustic-HiTom.ogg",     "label": "Hi Tom" },
     "floor-tom":  { "file": "acoustic-FloorTom.ogg",  "label": "Floor Tom" },
     "crash":      { "file": "acoustic-Crash.ogg",     "label": "Crash" },
-    "ride":       { "file": "acouscit-Ride.ogg",      "label": "Ride" },
+    "ride":       { "file": "acoustic-Ride.ogg",      "label": "Ride" },
     "ride-bell":  { "file": "acoustic-RideBell.ogg",  "label": "Ride Bell" }
   }
 }
