@@ -26,3 +26,6 @@ dist-ssr
 
 #temp plans folder
 plans
+
+# internal architecture doc — not for the public repo
+ARCHITECTURE.md
