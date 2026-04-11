@@ -1,4 +1,6 @@
 import { memo, useState, useCallback, useRef, useSyncExternalStore, useMemo } from 'react';
+import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import TrackRow from './TrackRow.jsx';
 import SectionHeadingEditor from './SectionHeadingEditor.jsx';
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
@@ -56,6 +58,7 @@ function Grid({
   onChangeProp,
   onChangeVelMode,
   onAddTrack,
+  onReorderTracks,
   onOpenSoundPicker,
   onDrop,
 }) {
@@ -155,6 +158,21 @@ function Grid({
   const handleDragEnd = useCallback(() => {
     setDragHeading(null);
   }, []);
+
+  // Track reordering (dnd-kit)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const trackIds = useMemo(() => tracks.map(t => t.id), [tracks]);
+  const handleTrackDragEnd = useCallback((event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !onReorderTracks) return;
+    const fromIndex = trackIds.indexOf(active.id);
+    const toIndex = trackIds.indexOf(over.id);
+    if (fromIndex < 0 || toIndex < 0) return;
+    onReorderTracks(fromIndex, toIndex);
+  }, [trackIds, onReorderTracks]);
 
   return (
     <div className="sequencer-grid bg-card rounded-2xl shadow-sm border border-border p-4 overflow-x-auto grid-scroll relative">
@@ -279,29 +297,34 @@ function Grid({
       </div>
 
       {/* Track rows */}
-      {tracks.map((track, i) => (
-        <TrackRow
-          key={track.id}
-          track={track}
-          trackIndex={i}
-          currentStep={currentStep}
-          stepsPerPage={stepsPerPage}
-          stepsPerBeat={stepsPerBeat}
-          expanded={expandedTracks.has(i)}
-          onToggleExpand={() => toggleTrackExpand(i)}
-          colWidth={colWidth}
-          splitMode={splitMode}
-          expandedSplitCell={expandedSplitCell}
-          onExpandSplitCell={handleExpandSplitCell}
-          onToggleCell={onToggleCell}
-          onToggleSubStep={onToggleSubStep}
-          onClearSubStep={onClearSubStep}
-          onChangeProp={onChangeProp}
-          onChangeVelMode={onChangeVelMode}
-          onOpenSoundPicker={onOpenSoundPicker}
-          onDrop={onDrop}
-        />
-      ))}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTrackDragEnd}>
+        <SortableContext items={trackIds} strategy={verticalListSortingStrategy}>
+          {tracks.map((track, i) => (
+            <TrackRow
+              key={track.id}
+              track={track}
+              trackIndex={i}
+              currentStep={currentStep}
+              stepsPerPage={stepsPerPage}
+              stepsPerBeat={stepsPerBeat}
+              expanded={expandedTracks.has(i)}
+              onToggleExpand={() => toggleTrackExpand(i)}
+              colWidth={colWidth}
+              splitMode={splitMode}
+              expandedSplitCell={expandedSplitCell}
+              onExpandSplitCell={handleExpandSplitCell}
+              onToggleCell={onToggleCell}
+              onToggleSubStep={onToggleSubStep}
+              onClearSubStep={onClearSubStep}
+              onChangeProp={onChangeProp}
+              onChangeVelMode={onChangeVelMode}
+              onOpenSoundPicker={onOpenSoundPicker}
+              onDrop={onDrop}
+              sortableEnabled={!!onReorderTracks}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
 
       {/* Add track button */}
       {onAddTrack && (

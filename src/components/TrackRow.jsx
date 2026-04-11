@@ -1,4 +1,6 @@
 import { memo } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import Cell from './Cell.jsx';
 import TrackControls from './TrackControls.jsx';
 import { isSplit, masterVelocity } from '../util/stepHelpers.js';
@@ -22,9 +24,30 @@ function TrackRow({
   onChangeVelMode,
   onOpenSoundPicker,
   onDrop,
+  sortableEnabled,
 }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: track.id, disabled: !sortableEnabled });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.6 : undefined,
+  };
+
   return (
-    <div className={`track-row flex items-start gap-3 py-1.5 relative ${track.mute ? 'opacity-40' : ''}`}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`track-row flex items-start gap-3 py-1.5 relative ${track.mute ? 'opacity-40' : ''} ${isDragging ? 'track-row-dragging' : ''}`}
+    >
       <TrackControls
         track={track}
         trackIndex={trackIndex}
@@ -35,6 +58,7 @@ function TrackRow({
         onChangeVelMode={onChangeVelMode}
         onOpenSoundPicker={onOpenSoundPicker}
         onDrop={onDrop}
+        dragHandleProps={sortableEnabled ? { ...attributes, ...listeners } : null}
       />
 
       <div className="track-steps flex items-start mt-0.5">

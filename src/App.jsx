@@ -877,6 +877,7 @@ function Drumlet() {
             onChangeProp={playMode ? () => {} : handleChangeProp}
             onChangeVelMode={playMode ? () => {} : handleChangeVelMode}
             onAddTrack={playMode ? undefined : () => dispatch({ type: 'ADD_TRACK' })}
+            onReorderTracks={playMode ? undefined : (fromIndex, toIndex) => dispatch({ type: 'REORDER_TRACK', fromIndex, toIndex })}
             onOpenSoundPicker={playMode ? () => {} : handleOpenSoundPicker}
             onDrop={playMode ? () => {} : handleDrop}
           />

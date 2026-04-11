@@ -10,6 +10,7 @@ function TrackControls({
   onChangeVelMode,
   onOpenSoundPicker,
   onDrop,
+  dragHandleProps,
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const dropRef = useRef(null);
@@ -47,6 +48,22 @@ function TrackControls({
     >
       {/* Row 1: chevron + name on left, M/S/Vel on right (desktop only) */}
       <div className="track-controls-row1 flex items-center gap-1">
+        {/* Drag handle — reorder tracks */}
+        {dragHandleProps && (
+          <button
+            type="button"
+            className="track-drag-handle w-4 h-5 flex items-center justify-center text-muted/60 hover:text-text cursor-grab active:cursor-grabbing shrink-0 touch-none"
+            title="Drag to reorder track"
+            aria-label="Drag to reorder track"
+            {...dragHandleProps}
+          >
+            <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor" aria-hidden="true">
+              <circle cx="3" cy="2" r="1.1" /><circle cx="7" cy="2" r="1.1" />
+              <circle cx="3" cy="7" r="1.1" /><circle cx="7" cy="7" r="1.1" />
+              <circle cx="3" cy="12" r="1.1" /><circle cx="7" cy="12" r="1.1" />
+            </svg>
+          </button>
+        )}
         {/* Expand chevron — mobile only, left-aligned next to name */}
         <button
           className="track-expand-btn lg:hidden w-5 h-5 rounded bg-gray-100 text-muted hover:bg-gray-200 flex items-center justify-center cursor-pointer transition-colors shrink-0"

@@ -216,6 +216,18 @@ export function sequencerReducer(state, action) {
       return { ...state, pages };
     }
 
+    case 'REORDER_TRACK': {
+      const { fromIndex, toIndex } = action;
+      if (fromIndex === toIndex) return state;
+      const pages = structuredClone(state.pages);
+      const tracks = pages[state.currentPageIndex].tracks;
+      if (fromIndex < 0 || fromIndex >= tracks.length) return state;
+      if (toIndex < 0 || toIndex >= tracks.length) return state;
+      const [moved] = tracks.splice(fromIndex, 1);
+      tracks.splice(toIndex, 0, moved);
+      return { ...state, pages };
+    }
+
     case 'ADD_PAGE': {
       const pages = structuredClone(state.pages);
       // Copy track structure from current page but with empty steps
