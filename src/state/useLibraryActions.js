@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { normalizeSequencerState } from './normalizeSequencerState.js';
-import { getFieldValue } from '../plugins/librarySchema.js';
+import { applyPatchToState, getFieldValue } from '../plugins/librarySchema.js';
 
 function snapshotState(state) {
   const normalized = normalizeSequencerState(state);
@@ -72,7 +72,9 @@ export function useLibraryActions({ state, dispatch, stop, userLibrary }) {
   const handleLoadLibraryState = useCallback((item) => {
     const nextState = getFieldValue(item, 'pattern_state');
     if (!nextState) return;
-    loadStateIntoSequencer(nextState, buildActivePresetFromLibraryItem(item), null, true);
+    const defaultPatch = getFieldValue(item, 'default_patch', null);
+    const stateWithPatch = defaultPatch ? applyPatchToState(nextState, defaultPatch) : nextState;
+    loadStateIntoSequencer(stateWithPatch, buildActivePresetFromLibraryItem(item), null, true);
   }, [buildActivePresetFromLibraryItem, loadStateIntoSequencer]);
 
   const handleLoadUserEntry = useCallback((entry) => {

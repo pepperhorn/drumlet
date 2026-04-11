@@ -1,5 +1,22 @@
 import { loadPresetCategories, presetToState } from '../state/presets.js';
-import { ACTION_KINDS, FIELD_TYPES, createCardView, createField, createNamespacedLibraryId } from './librarySchema.js';
+import { ACTION_KINDS, FIELD_TYPES, createCardView, createField, createNamespacedLibraryId, createPatchRef } from './librarySchema.js';
+
+function derivePatchRef(preset) {
+  if (preset.kit?.type === 'kit') {
+    return createPatchRef({ sourceType: 'kit', kitId: preset.kit.id });
+  }
+  if (preset.kit?.type === 'drumMachine') {
+    return createPatchRef({ sourceType: 'drumMachine', instrument: preset.kit.id });
+  }
+  const firstTrack = preset.tracks?.[0];
+  if (firstTrack?.kitId) {
+    return createPatchRef({ sourceType: 'kit', kitId: firstTrack.kitId });
+  }
+  return createPatchRef({
+    sourceType: firstTrack?.sourceType || 'drumMachine',
+    instrument: firstTrack?.instrument || 'TR-808',
+  });
+}
 
 function makeFactoryItem(category, preset) {
   const itemId = createNamespacedLibraryId('factory-library', category.name, preset.name);
@@ -19,6 +36,7 @@ function makeFactoryItem(category, preset) {
       createField('notes', FIELD_TYPES.MARKDOWN, preset.notes || ''),
       createField('links', FIELD_TYPES.CUSTOM_JSON, preset.links || {}),
       createField('pattern_state', FIELD_TYPES.PATTERN_STATE, presetToState(preset)),
+      createField('default_patch', FIELD_TYPES.PATCH_REF, derivePatchRef(preset)),
       createField('source_preset', FIELD_TYPES.TEXT, preset.name),
       createField('in_the_style_of', FIELD_TYPES.BOOLEAN, preset.inTheStyleOf ?? false),
     ],
