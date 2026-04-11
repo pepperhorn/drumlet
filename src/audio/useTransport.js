@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
+import { NOTE_VALUES } from '../state/sequencerReducer.js';
 
 const LOOKAHEAD = 0.1; // seconds
 const SCHEDULE_INTERVAL = 25; // ms
@@ -13,7 +14,7 @@ export function useTransport(stateRef, audioEngine) {
   const schedulerIdRef = useRef(null);
   const rafIdRef = useRef(null);
 
-  const { getContext, triggerNote } = audioEngine;
+  const { getContext, ensureRunning, triggerNote } = audioEngine;
 
   const scheduleNotes = useCallback(() => {
     const ctx = getContext();
@@ -26,18 +27,42 @@ export function useTransport(stateRef, audioEngine) {
 
       const step = currentStepRef.current;
       const bpm = state.bpm || 120;
-      const stepDuration = 60 / bpm / 4; // 16th notes
 
-      // Swing: delay every odd-indexed 16th note (the offbeats).
-      // At swing=0: straight 16ths (no delay).
-      // At swing=50: triplet feel — offbeat lands 2/3 through the pair instead of 1/2.
-      // At swing=100: dotted feel — offbeat is delayed to 3/4 of the pair.
-      // The pair duration is 2 * stepDuration. Straight offbeat is at stepDuration (1/2).
-      // Swing pushes it toward: stepDuration * (1 + swingRatio), where swingRatio goes 0→0.5.
+      // BPM counts the beat unit from the time signature denominator.
+      // 4/4 → BPM counts quarter notes. 6/8 → BPM counts eighth notes.
+      // Step div tells us what each grid step represents relative to that beat.
+      //
+      // stepsPerBeat = how many grid steps fit in one BPM beat
+      //   e.g. 4/4 + 16th step div → 4 steps per quarter beat
+      //   e.g. 4/4 + quarter step div → 1 step per quarter beat
+      //   e.g. 4/4 + half step div → 0.5 steps per quarter beat (step is 2 beats)
+      const beatNv = NOTE_VALUES.find(n => n.key === state.noteValue) || NOTE_VALUES[3];
+      const stepNv = NOTE_VALUES.find(n => n.key === state.stepValue) || beatNv;
+      const stepsPerBeat = beatNv.beatsPerStep / stepNv.beatsPerStep;
+      const stepDuration = 60 / (bpm * stepsPerBeat);
+
+
+      // Swing: delay offbeat notes to create shuffle/groove feel.
+      // swingTarget controls which subdivisions are affected:
+      //   '8th'  → swing every odd step (8th-note offbeats at finest grid level)
+      //   '16th' → only swing 16th-note offbeats (needs ≥4 steps per beat)
       let swingOffset = 0;
-      if ((state.swing || 0) > 0 && step % 2 === 1) {
-        const swingRatio = (state.swing / 100) * 0.5; // 0 to 0.5
-        swingOffset = stepDuration * swingRatio;
+      if ((state.swing || 0) > 0) {
+        const swingTarget = state.swingTarget || '8th';
+        let applySwing = false;
+        if (swingTarget === '8th') {
+          applySwing = step % 2 === 1;
+        } else {
+          // '16th' — only swing when grid has 16th resolution or finer
+          if (stepsPerBeat >= 4) {
+            const posInBeat = step % stepsPerBeat;
+            applySwing = posInBeat % 2 === 1;
+          }
+        }
+        if (applySwing) {
+          const swingRatio = (state.swing / 100) * 0.5; // 0 to 0.5
+          swingOffset = stepDuration * swingRatio;
+        }
       }
 
       // Humanize: random timing offset per note
@@ -49,17 +74,32 @@ export function useTransport(stateRef, audioEngine) {
         if (track.mute) continue;
         if (hasSolo && !track.solo) continue;
 
-        const vel = track.steps[step];
-        if (vel > 0) {
+        const stepData = track.steps[step];
+
+        if (Array.isArray(stepData)) {
+          // Split step: schedule sub-steps at evenly-spaced intervals
+          const subCount = stepData.length;
+          const subDuration = stepDuration / subCount;
+          for (let s = 0; s < subCount; s++) {
+            const subVel = stepData[s];
+            if (subVel > 0) {
+              let noteTime = nextStepTimeRef.current + swingOffset + (s * subDuration);
+              if (maxHumanizeMs > 0) {
+                const jitter = (Math.random() * 2 - 1) * maxHumanizeMs / 1000;
+                noteTime = Math.max(ctx.currentTime, noteTime + jitter);
+              }
+              triggerNote(track, subVel, noteTime, track.velMode || 3);
+            }
+          }
+        } else if (stepData > 0) {
           let noteTime = nextStepTimeRef.current + swingOffset;
 
-          // Add humanize jitter per note
           if (maxHumanizeMs > 0) {
             const jitter = (Math.random() * 2 - 1) * maxHumanizeMs / 1000;
             noteTime = Math.max(ctx.currentTime, noteTime + jitter);
           }
 
-          triggerNote(track, vel, noteTime, track.velMode || 3);
+          triggerNote(track, stepData, noteTime, track.velMode || 3);
         }
       }
 
@@ -81,22 +121,23 @@ export function useTransport(stateRef, audioEngine) {
     }
   }, [getContext, stateRef, triggerNote]);
 
-  const updateVisual = useCallback(() => {
+  const updateVisual = useCallback(function tick() {
     if (!isPlayingRef.current) return;
     setCurrentStep(currentStepRef.current > 0 ? currentStepRef.current - 1 : (stateRef.current?.stepsPerPage || 16) - 1);
-    rafIdRef.current = requestAnimationFrame(updateVisual);
+    rafIdRef.current = requestAnimationFrame(tick);
   }, [stateRef]);
 
-  const play = useCallback(() => {
-    const ctx = getContext();
+  const play = useCallback(async () => {
+    // Resume AudioContext from user gesture — must complete before scheduling
+    const ctx = await ensureRunning();
     isPlayingRef.current = true;
     setIsPlaying(true);
     currentStepRef.current = 0;
-    nextStepTimeRef.current = ctx.currentTime + 0.05;
+    nextStepTimeRef.current = ctx.currentTime + 0.1; // slightly longer delay for safety
 
     schedulerIdRef.current = setInterval(scheduleNotes, SCHEDULE_INTERVAL);
     rafIdRef.current = requestAnimationFrame(updateVisual);
-  }, [getContext, scheduleNotes, updateVisual]);
+  }, [ensureRunning, scheduleNotes, updateVisual]);
 
   const stop = useCallback(() => {
     isPlayingRef.current = false;

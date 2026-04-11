@@ -1,249 +1,428 @@
-import { memo } from 'react';
-import { getVelocityOpacity } from '../audio/velocityConfig.js';
+import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
+import { NOTE_VALUES } from '../state/sequencerReducer.js';
+import { renderDrumStaff } from '../notation/renderStaff.js';
+import { downloadSVG, downloadPNG } from '../notation/notationExport.js';
+import { v4 as uuid } from 'uuid';
 
-/**
- * Standard drum notation staff positions (from bottom line = 0).
- * Staff has 5 lines at y positions 0-4. Spaces are between lines.
- * Higher y = higher on staff visually (lower SVG y coordinate).
- *
- * Position reference (line 0 = bottom, line 4 = top):
- *   Above staff (5+): hi-hat, crash, ride
- *   Line 4 (top):     ride bell
- *   Space 3-4:        crash
- *   Line 3:           open hi-hat
- *   Space 2-3:        hi tom
- *   Line 2:           snare, cross stick
- *   Space 1-2:        floor tom
- *   Line 1:           bass drum
- *   Space 0-1:        bass drum alt
- *   Line 0 (bottom):  bass drum
- */
+const SIZE_CYCLE = ['sm', 'md', 'lg', 'xl', '2xl'];
+const SIZE_LABELS = { sm: 'S', md: 'M', lg: 'L', xl: 'XL', '2xl': '2X' };
+const SIZE_FONT = { sm: 9, md: 11, lg: 14, xl: 18, '2xl': 24 };
 
-// Map group/kitSample names to notation position and notehead style
-const NOTATION_MAP = {
-  // Kicks — bottom of staff
-  'kick':       { pos: 0,   head: 'filled' },
-  'kick-alt':   { pos: 0,   head: 'filled' },
+const BARS_PER_LINE_OPTIONS = [0, 2, 3, 4]; // 0 = ∞ (single scrolling line)
 
-  // Snare — 3rd space from bottom (between lines 2 and 3)
-  'snare':      { pos: 2.5, head: 'filled' },
-  'snare-h':    { pos: 2.5, head: 'filled' },
-  'snare-m':    { pos: 2.5, head: 'filled' },
-  'snare-l':    { pos: 2.5, head: 'filled' },
-  'snare-on1':  { pos: 2.5, head: 'filled' },
-  'snare-on2':  { pos: 2.5, head: 'filled' },
-  'snare-off':  { pos: 2.5, head: 'filled' },
-  'crossstick': { pos: 2.5, head: 'x' },
-  'rimshot':    { pos: 2.5, head: 'x' },
+/** Subdivision options — perBeat is how many labels per beat */
+const SUBDIVISIONS = [
+  { key: '1/4',  label: '1/4',  perBeat: 1 },
+  { key: '1/8',  label: '1/8',  perBeat: 2 },
+  { key: '1/8T', label: '1/8T', perBeat: 3 },
+  { key: '1/16', label: '1/16', perBeat: 4 },
+  { key: '1/16T', label: '1/16T', perBeat: 6 },
+];
 
-  // Hi-hats — above staff
-  'hihat-close':  { pos: 5, head: 'x' },
-  'hihat-closed': { pos: 5, head: 'x' },
-  'hihat-open':   { pos: 5, head: 'xo' },
-  'hhclosed':     { pos: 5, head: 'x' },
-  'hhopen':       { pos: 5, head: 'xo' },
-  'hh-closed1':   { pos: 5, head: 'x' },
-  'hh-closed2':   { pos: 5, head: 'x' },
-  'hh-open':      { pos: 5, head: 'xo' },
-  'hh-foot':      { pos: -0.5, head: 'x' },
-
-  // Toms
-  'tom-hi':     { pos: 3.5, head: 'filled' },
-  'tom-high':   { pos: 3.5, head: 'filled' },
-  'tom-hh':     { pos: 3.5, head: 'filled' },
-  'tom-1':      { pos: 3.5, head: 'filled' },
-  'hi-tom':     { pos: 3.5, head: 'filled' },
-  'mid-tom':    { pos: 2.5, head: 'filled' },
-  'tom-mid':    { pos: 2.5, head: 'filled' },
-  'tom-m':      { pos: 2.5, head: 'filled' },
-  'tom-2':      { pos: 2.5, head: 'filled' },
-  'tom-low':    { pos: 1.5, head: 'filled' },
-  'tom-l':      { pos: 1.5, head: 'filled' },
-  'tom-ll':     { pos: 1,   head: 'filled' },
-  'tom-3':      { pos: 1.5, head: 'filled' },
-  'floor-tom':  { pos: 1.5, head: 'filled' },
-
-  // Cymbals
-  'crash':      { pos: 5.5, head: 'x' },
-  'cymbal':     { pos: 5.5, head: 'x' },
-  'cymball':    { pos: 5.5, head: 'x' },
-  'ride':       { pos: 4.5, head: 'x' },
-  'ride-bell':  { pos: 4,   head: 'diamond' },
-
-  // Latin percussion
-  'cowbell':    { pos: 5.5, head: 'triangle' },
-  'clave':      { pos: 5.5, head: 'x' },
-  'conga-hi':   { pos: 3.5, head: 'filled' },
-  'conga-high': { pos: 3.5, head: 'filled' },
-  'conga-mid':  { pos: 2.5, head: 'filled' },
-  'conga-low':  { pos: 1.5, head: 'filled' },
-  'tambourine': { pos: 5.5, head: 'triangle' },
-  'maraca':     { pos: 5.5, head: 'triangle' },
-  'cabasa':     { pos: 5.5, head: 'triangle' },
-  'agogo':      { pos: 5.5, head: 'triangle' },
+const BEAT_LABELS = {
+  '1/4':  (b) => [`${b}`],
+  '1/8':  (b) => [`${b}`, '&'],
+  '1/8T': (b) => [`${b}`, '&', 'a'],
+  '1/16': (b) => [`${b}`, 'e', '&', 'a'],
+  '1/16T': (b) => [`${b}`, 'ta', 'ta', '&', 'ta', 'ta'],
 };
 
-function getNotation(track) {
-  const key = track.kitSample || track.group || '';
-  return NOTATION_MAP[key] || NOTATION_MAP[key.toLowerCase()] || { pos: 2.5, head: 'filled' };
+function interpolateX(positions, stepFloat) {
+  if (positions.length === 0) return 0;
+  if (stepFloat <= 0) return positions[0]?.x || 0;
+  if (stepFloat >= positions.length - 1) return positions[positions.length - 1]?.x || 0;
+  const lo = Math.floor(stepFloat);
+  const hi = Math.ceil(stepFloat);
+  if (lo === hi) return positions[lo]?.x || 0;
+  const frac = stepFloat - lo;
+  return (positions[lo]?.x || 0) * (1 - frac) + (positions[hi]?.x || 0) * frac;
 }
 
-// Staff geometry
-const LINE_SPACING = 8;
-const STAFF_TOP = 20; // y of top line (line 4)
-const STAFF_BOTTOM = STAFF_TOP + 4 * LINE_SPACING;
-const NOTE_R = 3.5;
+/**
+ * Merge all pages' tracks into flat step arrays.
+ * Returns tracks with concatenated steps + totalSteps.
+ */
+function mergePages(pages, stepsPerPage) {
+  if (!pages || pages.length === 0) return { mergedTracks: [], totalSteps: 0 };
 
-function staffY(pos) {
-  // pos 0 = bottom line, pos 4 = top line
-  return STAFF_BOTTOM - pos * LINE_SPACING;
+  const firstPage = pages[0];
+  const mergedTracks = firstPage.tracks.map((track, trackIdx) => {
+    const allSteps = [];
+    for (const page of pages) {
+      const t = page.tracks[trackIdx];
+      if (t) {
+        // Use only visible steps (stepsPerPage), not the full array
+        allSteps.push(...t.steps.slice(0, stepsPerPage));
+      }
+    }
+    return { ...track, steps: allSteps };
+  });
+
+  return { mergedTracks, totalSteps: pages.length * stepsPerPage };
 }
 
-function NoteHead({ x, y, head, color, opacity }) {
-  const o = Math.max(0.5, opacity);
-  if (head === 'x' || head === 'xo') {
-    return (
-      <g>
-        <line x1={x - 3} y1={y - 3} x2={x + 3} y2={y + 3} stroke={color} strokeWidth={1.8} opacity={o} />
-        <line x1={x + 3} y1={y - 3} x2={x - 3} y2={y + 3} stroke={color} strokeWidth={1.8} opacity={o} />
-        {head === 'xo' && <circle cx={x} cy={y - 7} r={2} fill="none" stroke={color} strokeWidth={1} opacity={o} />}
-      </g>
-    );
-  }
-  if (head === 'diamond') {
-    return (
-      <polygon
-        points={`${x},${y - 3.5} ${x + 3.5},${y} ${x},${y + 3.5} ${x - 3.5},${y}`}
-        fill={color} opacity={o}
-      />
-    );
-  }
-  if (head === 'triangle') {
-    return (
-      <polygon
-        points={`${x},${y - 3.5} ${x + 3.5},${y + 2.5} ${x - 3.5},${y + 2.5}`}
-        fill={color} opacity={o}
-      />
-    );
-  }
-  // filled circle (default)
-  return <circle cx={x} cy={y} r={NOTE_R} fill={color} opacity={o} />;
+function makePart(name, trackIds) {
+  return { id: uuid(), name, trackIds: new Set(trackIds) };
 }
 
-function NotationView({ tracks, stepsPerPage, currentStep }) {
-  const stepWidth = 28;
-  const leftMargin = 40;
-  const svgWidth = leftMargin + stepsPerPage * stepWidth + 20;
-  const svgHeight = STAFF_TOP + 4 * LINE_SPACING + 30;
+function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, noteValue, beatsPerBar = 4, stepValue }) {
+  const containerRef = useRef(null);
+  const prevDataRef = useRef(null);
+  const [layout, setLayout] = useState(null);
+  const [layoutInfo, setLayoutInfo] = useState(null);
+  const [useColor, setUseColor] = useState(true);
+  const [countSize, setCountSize] = useState('lg');
+  const [subdivIdx, setSubdivIdx] = useState(0);
+  const [barsPerLine, setBarsPerLine] = useState(0); // 0 = ∞
+  const scrollRef = useRef(null);
+
+  // Parts state
+  const allTrackIds = useMemo(
+    () => (pages?.[0]?.tracks || []).map(t => t.id),
+    [pages],
+  );
+  const [parts, setParts] = useState(() => [makePart('Part 1', allTrackIds)]);
+  const [activePartIdx, setActivePartIdx] = useState(0);
+
+  const displayParts = useMemo(() => {
+    if (parts.length !== 1 || parts[0].name !== 'Part 1') return parts;
+
+    const current = parts[0].trackIds;
+    const shouldSync = allTrackIds.every(id => current.has(id)) || current.size === 0;
+    if (!shouldSync) return parts;
+
+    return [{ ...parts[0], trackIds: new Set(allTrackIds) }];
+  }, [allTrackIds, parts]);
+
+  const activePart = displayParts[Math.min(activePartIdx, displayParts.length - 1)];
+
+  const handleAddPart = useCallback(() => {
+    setParts(prev => [...prev, makePart(`Part ${prev.length + 1}`, [])]);
+    setActivePartIdx(prev => prev + 1);
+  }, []);
+
+  const handleRemovePart = useCallback((idx) => {
+    setParts(prev => {
+      if (prev.length <= 1) return prev;
+      const next = prev.filter((_, i) => i !== idx);
+      return next;
+    });
+    setActivePartIdx(prev => Math.min(prev, parts.length - 2));
+  }, [parts.length]);
+
+  const handleToggleTrack = useCallback((partIdx, trackId) => {
+    setParts(prev => prev.map((p, i) => {
+      if (i !== partIdx) return p;
+      const next = new Set(p.trackIds);
+      if (next.has(trackId)) next.delete(trackId);
+      else next.add(trackId);
+      return { ...p, trackIds: next };
+    }));
+  }, []);
+
+  const beatNv = NOTE_VALUES.find((n) => n.key === noteValue) || NOTE_VALUES[3];
+  const stepNv = NOTE_VALUES.find((n) => n.key === (stepValue || noteValue)) || beatNv;
+  const stepsPerBeat = Math.round(beatNv.beatsPerStep / stepNv.beatsPerStep) || 1;
+
+  const { mergedTracks: allMergedTracks, totalSteps } = mergePages(pages, stepsPerPage);
+
+  // Filter tracks by active part selection
+  const mergedTracks = allMergedTracks.filter(t => activePart.trackIds.has(t.id));
+  const partTrackCount = mergedTracks.length;
+  const numStaffLines = partTrackCount <= 1 ? 1 : partTrackCount === 2 ? 2 : 5;
+
+  const stepsPerBar = beatsPerBar * stepsPerBeat;
+  const totalBars = Math.ceil(totalSteps / stepsPerBar);
+  const totalBeats = Math.ceil(totalSteps / stepsPerBeat);
+  const effectiveBarsPerLine = barsPerLine === 0 ? totalBars : barsPerLine;
+
+  // Filter subdivisions to current resolution
+  const availableSubdivs = SUBDIVISIONS.filter(s => s.perBeat <= stepsPerBeat);
+  const safeIdx = Math.min(subdivIdx, availableSubdivs.length - 1);
+  const subdiv = availableSubdivs[safeIdx] || SUBDIVISIONS[0];
+
+  // Fingerprint — includes all pages
+  const stepsFingerprint = mergedTracks.map(t => t.steps.join(',')).join('|');
+  const tracksFingerprint = mergedTracks.map(t => `${t.id}:${t.color}:${t.group}:${t.kitSample}:${t.velMode}`).join('|');
+  const dataKey = `${stepsFingerprint}|${tracksFingerprint}|${totalSteps}|${noteValue}|${stepValue}|${beatsPerBar}|${effectiveBarsPerLine}|${useColor}|${numStaffLines}`;
+
+  useEffect(() => {
+    if (prevDataRef.current === dataKey) return;
+    prevDataRef.current = dataKey;
+
+    const el = containerRef.current;
+    if (!el) return;
+    el.innerHTML = '';
+
+    if (mergedTracks.length === 0 || totalSteps === 0) return;
+
+    try {
+      const result = renderDrumStaff(el, {
+        mergedTracks,
+        totalSteps,
+        noteValueKey: stepValue || noteValue || '1/4',
+        beatNoteValue: noteValue || '1/4',
+        stepsPerBeat,
+        beatsPerBar,
+        barsPerLine: effectiveBarsPerLine,
+        useColor,
+        numStaffLines,
+      });
+      setLayout(result);
+      setLayoutInfo({
+        stepPositions: result.stepPositions,
+        svgWidth: result.svgWidth,
+        svgHeight: result.svgHeight,
+      });
+    } catch (err) {
+      setLayout(null);
+      setLayoutInfo(null);
+      console.error('VexFlow render error:', err);
+      el.textContent = 'Notation rendering error';
+    }
+  }, [dataKey, mergedTracks, totalSteps, noteValue, stepValue, stepsPerBeat, beatsPerBar, effectiveBarsPerLine, useColor, numStaffLines]);
+
+  // Playhead: compute global step from currentPageIndex + currentStep
+  const globalStep = (currentPageIndex || 0) * stepsPerPage + (currentStep >= 0 ? currentStep : -1);
+  let playhead = null;
+  if (layout && globalStep >= 0 && globalStep < layout.stepPositions.length) {
+    const pos = layout.stepPositions[globalStep];
+    playhead = { x: pos.x, y: pos.y, line: pos.line };
+  }
+
+  // Auto-scroll in ∞ mode to keep playhead visible with 2.5 bars of context
+  useEffect(() => {
+    if (barsPerLine !== 0 || !playhead || !scrollRef.current) return;
+    const el = scrollRef.current;
+    const barWidthPx = stepsPerBar * (layout?.stepWidth || 28);
+    const contextPx = barWidthPx * 2.5;
+    const targetScroll = playhead.x - contextPx;
+    // Smooth scroll only if moving forward; snap if jumping back (loop restart)
+    if (targetScroll > el.scrollLeft) {
+      el.scrollLeft = targetScroll;
+    } else if (el.scrollLeft - targetScroll > barWidthPx * 2) {
+      el.scrollLeft = Math.max(0, targetScroll);
+    }
+  });
+
+  // Build count labels per line
+  const countLabels = [];
+  const fontSize = SIZE_FONT[countSize];
+  if (layoutInfo && layoutInfo.stepPositions.length > 0) {
+    const labelFn = BEAT_LABELS[subdiv.key];
+    for (let beat = 0; beat < totalBeats; beat++) {
+      const labels = labelFn(beat + 1);
+      const beatStartStep = beat * stepsPerBeat;
+      for (let j = 0; j < labels.length; j++) {
+        const stepFloat = beatStartStep + (j / labels.length) * stepsPerBeat;
+        const stepIdx = Math.min(Math.floor(stepFloat), layoutInfo.stepPositions.length - 1);
+        if (stepIdx < 0) continue;
+        const pos = layoutInfo.stepPositions[stepIdx];
+        const x = interpolateX(layoutInfo.stepPositions, stepFloat) + fontSize * 0.4;
+        countLabels.push({ text: labels[j], x, y: pos.y, line: pos.line, isBeatNum: j === 0 });
+      }
+    }
+  }
+
+  const handleDownloadSVG = useCallback(() => {
+    const svg = containerRef.current?.querySelector('svg');
+    if (svg) downloadSVG(svg);
+  }, []);
+
+  const handleDownloadPNG = useCallback(() => {
+    const svg = containerRef.current?.querySelector('svg');
+    if (svg) downloadPNG(svg);
+  }, []);
+
+  const playheadWidth = layout?.stepWidth || 28;
+  const lineHeight = layout?.lineHeight || 100;
+  const lineGap = layout?.lineGap || 10;
+
+  // All tracks from first page (for checkbox display)
+  const allTracks = pages?.[0]?.tracks || [];
 
   return (
-    <div className="notation-view bg-card rounded-2xl shadow-sm border border-border p-4 overflow-x-auto grid-scroll">
-      <svg
-        className="notation-svg"
-        width={svgWidth}
-        height={svgHeight}
-        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* Percussion clef — two thick vertical bars */}
-        <rect x={leftMargin - 28} y={staffY(4) - 0.5} width={4} height={4 * LINE_SPACING + 1} rx={1} fill="#1A1A2E" />
-        <rect x={leftMargin - 20} y={staffY(4) - 0.5} width={4} height={4 * LINE_SPACING + 1} rx={1} fill="#1A1A2E" />
-
-        {/* Staff lines */}
-        {[0, 1, 2, 3, 4].map((line) => (
-          <line
-            key={line}
-            x1={leftMargin - 2}
-            y1={staffY(line)}
-            x2={svgWidth - 10}
-            y2={staffY(line)}
-            stroke="#CBD5E1"
-            strokeWidth={0.8}
-          />
-        ))}
-
-        {/* Beat group lines (every 4 steps) */}
-        {Array.from({ length: Math.ceil(stepsPerPage / 4) + 1 }, (_, i) => {
-          const step = i * 4;
-          if (step > stepsPerPage) return null;
-          const x = leftMargin + step * stepWidth;
-          return (
-            <line
-              key={`bar-${i}`}
-              x1={x}
-              y1={staffY(4) - 2}
-              x2={x}
-              y2={staffY(0) + 2}
-              stroke={step === 0 || step === stepsPerPage ? '#94A3B8' : '#E2E8F0'}
-              strokeWidth={step === 0 || step === stepsPerPage ? 1.5 : 0.5}
-            />
-          );
-        })}
-
-        {/* Beat numbers */}
-        {Array.from({ length: Math.ceil(stepsPerPage / 4) }, (_, i) => (
-          <text
-            key={`beat-${i}`}
-            x={leftMargin + i * 4 * stepWidth + 2 * stepWidth}
-            y={svgHeight - 4}
-            textAnchor="middle"
-            fontSize={9}
-            fontFamily="var(--font-mono)"
-            fill="#94A3B8"
+    <div ref={scrollRef} className="notation-view bg-card rounded-2xl shadow-sm border border-border px-4 py-2 overflow-x-auto grid-scroll">
+      {/* Parts tab bar */}
+      <div className="notation-parts flex items-center gap-1.5 mb-2 flex-wrap">
+        {displayParts.map((part, idx) => (
+          <button
+            key={part.id}
+            className={`notation-part-tab px-3 py-1 rounded-lg text-xs font-display font-semibold cursor-pointer transition-all
+              ${idx === activePartIdx
+                ? 'bg-sky text-white shadow-sm'
+                : 'bg-gray-50 text-muted hover:bg-gray-100 hover:text-text'
+              }`}
+            onClick={() => setActivePartIdx(idx)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              if (displayParts.length > 1) handleRemovePart(idx);
+            }}
+            title={displayParts.length > 1 ? `${part.name} (right-click to remove)` : part.name}
           >
-            {i + 1}
-          </text>
+            {part.name}
+          </button>
         ))}
+        <button
+          className="notation-add-part w-7 h-7 rounded-lg bg-gray-50 text-muted hover:bg-gray-100 hover:text-text text-sm cursor-pointer transition-colors flex items-center justify-center"
+          onClick={handleAddPart}
+          title="Add part"
+        >
+          +
+        </button>
 
-        {/* Playhead */}
-        {currentStep >= 0 && (
-          <rect
-            x={leftMargin + currentStep * stepWidth - 1}
-            y={staffY(5.5) - 4}
-            width={stepWidth}
-            height={svgHeight - staffY(5.5) + 4}
-            fill="#5BC0EB"
-            opacity={0.1}
-            rx={2}
-          />
+        {/* Track checkboxes for active part */}
+        <div className="notation-part-tracks flex items-center gap-2 ml-3 pl-3 border-l border-border">
+          {allTracks.map((track) => (
+            <label
+              key={track.id}
+              className="notation-track-check flex items-center gap-1 cursor-pointer select-none"
+            >
+              <input
+                type="checkbox"
+                checked={activePart.trackIds.has(track.id)}
+                onChange={() => handleToggleTrack(activePartIdx, track.id)}
+                className="accent-sky w-3.5 h-3.5 cursor-pointer"
+              />
+              <span
+                className="text-xs font-medium truncate max-w-[80px]"
+                style={{ color: track.color }}
+              >
+                {track.name}
+              </span>
+            </label>
+          ))}
+          <span className="notation-staff-lines text-[10px] text-muted font-mono ml-1">
+            {numStaffLines === 1 ? '1-line' : numStaffLines === 2 ? '2-line' : '5-line'}
+          </span>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="notation-toolbar flex items-center gap-1.5 mb-2 flex-wrap">
+        <button
+          className={`notation-color-btn px-2 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors
+            ${useColor
+              ? 'bg-sky/12 text-sky'
+              : 'bg-gray-100 text-muted hover:bg-gray-200'
+            }`}
+          onClick={() => setUseColor(c => !c)}
+          title={useColor ? 'Turn off note colors' : 'Turn on note colors'}
+        >
+          Color {useColor ? 'On' : 'Off'}
+        </button>
+
+        <button
+          className="notation-count-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-xs font-mono font-semibold cursor-pointer transition-colors"
+          onClick={() => setCountSize(prev => SIZE_CYCLE[(SIZE_CYCLE.indexOf(prev) + 1) % SIZE_CYCLE.length])}
+          title={`Beat count size: ${countSize}`}
+        >
+          Size: {SIZE_LABELS[countSize]}
+        </button>
+
+        {availableSubdivs.length > 1 && (
+          <button
+            className="notation-subdiv-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-xs font-mono font-semibold cursor-pointer transition-colors"
+            onClick={() => setSubdivIdx(prev => (prev + 1) % availableSubdivs.length)}
+            title={`Count subdivision: ${subdiv.label}`}
+          >
+            Count: {subdiv.label}
+          </button>
         )}
 
-        {/* Notes */}
-        {tracks.map((track) => {
-          const notation = getNotation(track);
-          const y = staffY(notation.pos);
+        {/* Bars per line toggle */}
+        <div className="notation-bpl flex items-center gap-0.5">
+          <span className="notation-bpl-label text-[10px] text-muted font-semibold mr-0.5">Bars/line</span>
+          {BARS_PER_LINE_OPTIONS.map(n => (
+            <button
+              key={n}
+              className={`notation-bpl-btn px-1.5 py-0.5 rounded text-xs font-mono cursor-pointer transition-colors
+                ${barsPerLine === n ? 'bg-sky/10 text-sky font-bold' : 'text-muted hover:text-text'}`}
+              onClick={() => setBarsPerLine(n)}
+            >
+              {n === 0 ? '∞' : n}
+            </button>
+          ))}
+        </div>
 
-          return track.steps.map((vel, stepIdx) => {
-            if (vel === 0) return null;
-            const x = leftMargin + stepIdx * stepWidth + stepWidth / 2;
-            const opacity = getVelocityOpacity(vel, track.velMode || 3);
+        {/* Export buttons */}
+        <div className="notation-export-btns flex items-center gap-1.5 ml-auto">
+          <button
+            className="notation-svg-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-xs font-semibold cursor-pointer transition-colors"
+            onClick={handleDownloadSVG}
+            title="Download notation as SVG"
+          >
+            SVG
+          </button>
+          <button
+            className="notation-png-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-xs font-semibold cursor-pointer transition-colors"
+            onClick={handleDownloadPNG}
+            title="Download notation as PNG"
+          >
+            PNG
+          </button>
+        </div>
+      </div>
 
+      <div className="notation-score-wrap" style={{ position: 'relative', display: 'inline-block' }}>
+        <div ref={containerRef} className="vexflow-container" />
+        {playhead && (
+          <div
+            className="notation-playhead"
+            style={{
+              position: 'absolute',
+              left: playhead.x - playheadWidth / 2,
+              top: playhead.y + 4,
+              width: playheadWidth,
+              height: lineHeight - 16,
+              background: 'color-mix(in srgb, var(--color-sky) 15%, transparent)',
+              borderRadius: 4,
+              pointerEvents: 'none',
+              zIndex: 10,
+            }}
+          />
+        )}
+      </div>
+
+      {/* Count labels below each system line */}
+      {layoutInfo && countLabels.length > 0 && layout && (
+        <div className="notation-count-labels" style={{ position: 'relative', width: layoutInfo.svgWidth, marginTop: -layoutInfo.svgHeight }}>
+          {Array.from({ length: layout.numLines }, (_, lineIdx) => {
+            const lineLabels = countLabels.filter(cl => cl.line === lineIdx);
+            if (lineLabels.length === 0) return null;
+            const topOffset = (lineIdx + 1) * (lineHeight + lineGap) - lineGap + 10;
             return (
-              <g key={`${track.id}-${stepIdx}`}>
-                <NoteHead
-                  x={x}
-                  y={y}
-                  head={notation.head}
-                  color={track.color}
-                  opacity={opacity}
-                />
-                {/* Stem */}
-                {notation.pos <= 2.5 ? (
-                  // Stem up for lower notes
-                  <line x1={x + NOTE_R} y1={y} x2={x + NOTE_R} y2={y - 16} stroke={track.color} strokeWidth={1} opacity={opacity} />
-                ) : (
-                  // Stem down for upper notes
-                  <line x1={x - NOTE_R} y1={y} x2={x - NOTE_R} y2={y + 16} stroke={track.color} strokeWidth={1} opacity={opacity} />
-                )}
-                {/* Ledger line for notes below/above staff */}
-                {notation.pos < 0 && (
-                  <line x1={x - 5} y1={staffY(-0.5)} x2={x + 5} y2={staffY(-0.5)} stroke="#CBD5E1" strokeWidth={0.8} />
-                )}
-              </g>
+              <svg
+                key={lineIdx}
+                style={{
+                  position: 'absolute',
+                  top: topOffset,
+                  left: 0,
+                  width: layoutInfo.svgWidth,
+                  height: fontSize + 10,
+                }}
+                viewBox={`0 0 ${layoutInfo.svgWidth} ${fontSize + 10}`}
+              >
+                {lineLabels.map((cl, i) => (
+                  <text
+                    key={i}
+                    x={cl.x}
+                    y={fontSize + 2}
+                    textAnchor="middle"
+                    fontSize={fontSize}
+                    fontFamily="var(--font-mono)"
+                    fontWeight={cl.isBeatNum ? 600 : 400}
+                    fill="var(--color-muted)"
+                    fillOpacity={cl.isBeatNum ? 1 : 0.5}
+                  >
+                    {cl.text}
+                  </text>
+                ))}
+              </svg>
             );
-          });
-        })}
-      </svg>
+          })}
+        </div>
+      )}
     </div>
   );
 }

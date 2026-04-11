@@ -1,17 +1,51 @@
-import { memo, useState, useCallback } from 'react';
-import { PRESET_CATEGORIES } from '../state/presets.js';
+import { memo, useMemo, useState } from 'react';
+import { getFieldValue } from '../plugins/librarySchema.js';
+import LibraryEditForm from './LibraryEditForm.jsx';
 
 const COVER_COLORS = ['#FF6B6B', '#FFB347', '#A8E06C', '#5BC0EB', '#B39DDB', '#FFAB91', '#66D9A0', '#F48FB1'];
 
-function CoverImage({ preset, index }) {
-  const [failed, setFailed] = useState(false);
-  const color = COVER_COLORS[index % COVER_COLORS.length];
-  const initials = preset.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+function HeartIcon({ filled }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? '#EF4444' : 'none'} stroke={filled ? '#EF4444' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  );
+}
 
-  if (!preset.cover || failed) {
+function getPreviewSteps(item) {
+  const cardPreview = item.card?.previewSteps;
+  if (Array.isArray(cardPreview)) return cardPreview;
+  return getFieldValue(item, 'pattern_state')?.pages?.[0]?.tracks?.[0]?.steps || null;
+}
+
+function getCardMeta(item) {
+  if (item.card?.meta?.length) return item.card.meta;
+
+  const bpm = getFieldValue(item, 'bpm');
+  const swing = getFieldValue(item, 'swing');
+  const credit = getFieldValue(item, 'credit');
+  const duration = getFieldValue(item, 'duration');
+  const difficulty = getFieldValue(item, 'difficulty');
+
+  return [
+    bpm ? `${bpm} BPM${swing ? ` · swing ${swing}` : ''}` : '',
+    credit || '',
+    duration || '',
+    difficulty ? String(difficulty).replace(/^\w/, (char) => char.toUpperCase()) : '',
+  ].filter(Boolean);
+}
+
+function CoverImage({ item, index }) {
+  const [failed, setFailed] = useState(false);
+  const cover = item.card?.cover || getFieldValue(item, 'cover', '');
+  const title = item.card?.title || item.title || 'Item';
+  const color = COVER_COLORS[index % COVER_COLORS.length];
+  const initials = title.split(' ').map((word) => word[0]).join('').slice(0, 2).toUpperCase();
+
+  if (!cover || failed) {
     return (
       <div
-        className="preset-cover-fallback w-10 h-10 lg:w-12 lg:h-12 rounded-xl shrink-0 flex items-center justify-center text-white font-display font-bold text-sm lg:text-base"
+        className="preset-cover-fallback w-12 h-12 rounded-xl shrink-0 flex items-center justify-center text-white font-display font-bold text-sm"
         style={{ backgroundColor: color, opacity: 0.8 }}
       >
         {initials}
@@ -21,169 +55,313 @@ function CoverImage({ preset, index }) {
 
   return (
     <img
-      src={preset.cover}
-      alt={preset.name}
-      className="preset-cover w-10 h-10 lg:w-12 lg:h-12 rounded-xl shrink-0 object-cover overflow-hidden"
+      src={cover}
+      alt={title}
+      className="preset-cover w-12 h-12 rounded-xl shrink-0 object-cover overflow-hidden"
       onError={() => setFailed(true)}
     />
   );
 }
 
-function Library({ isOpen, onClose, onLoadPreset }) {
-  const [expandedCategory, setExpandedCategory] = useState(null);
+function GenericLibraryCard({ item, index, onActivate, bookmarked, onToggleBookmark }) {
+  const title = item.card?.title || item.title;
+  const subtitle = item.card?.subtitle || '';
+  const meta = getCardMeta(item);
+  const previewSteps = getPreviewSteps(item);
+  const previewTrack = getFieldValue(item, 'pattern_state')?.pages?.[0]?.tracks?.[0];
+
+  return (
+    <div className="preset-card-row flex items-center">
+      <div className="preset-card-shell flex-1 px-3 py-2.5 rounded-xl transition-all hover:bg-sky/6 group">
+        <button
+          className="preset-card w-full flex items-center gap-3 text-left cursor-pointer"
+          onClick={() => onActivate(item)}
+        >
+          <CoverImage item={item} index={index} />
+          <div className="preset-card-info flex-1 min-w-0">
+            <div className="preset-card-title flex flex-col">
+              {subtitle && (
+                <span className="preset-style-of text-[10px] uppercase tracking-wider text-muted/70 font-medium leading-tight">
+                  {subtitle}
+                </span>
+              )}
+              <span className="preset-name text-sm font-medium text-text group-hover:text-sky transition-colors truncate">
+                {title}
+              </span>
+            </div>
+            <div className="preset-meta flex flex-wrap items-center gap-1.5 text-xs text-muted mt-0.5">
+              {meta.map((part, metaIndex) => (
+                <span key={`${part}-${metaIndex}`} className="preset-meta-info">{part}</span>
+              ))}
+            </div>
+          </div>
+          {previewSteps && previewTrack && (
+            <div className="preset-preview flex gap-px shrink-0">
+              {previewSteps.map((value, stepIndex) => (
+                <div
+                  key={stepIndex}
+                  className="preset-preview-step w-1 h-4 rounded-sm"
+                  style={{
+                    backgroundColor: Array.isArray(value)
+                      ? value.some((subValue) => subValue > 0) ? previewTrack.color : 'var(--color-border)'
+                      : value > 0 ? previewTrack.color : 'var(--color-border)',
+                    opacity: Array.isArray(value)
+                      ? value.some((subValue) => subValue > 0) ? 0.75 : 1
+                      : value > 0 ? 0.4 + value * 0.2 : 1,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </button>
+        {item.actions?.length > 1 && (
+          <div className="preset-actions flex flex-wrap gap-1.5 mt-2 ml-[60px]">
+            {item.actions.slice(0, 3).map((action) => (
+              <button
+                key={action.id}
+                className="preset-action-chip px-2 py-0.5 rounded-full bg-gray-100 text-[10px] font-semibold uppercase tracking-wide text-muted hover:bg-sky/10 hover:text-sky cursor-pointer transition-colors"
+                onClick={() => onActivate(item, action)}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <button
+        className="preset-heart-btn shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-muted/50 hover:text-red-400 transition-colors cursor-pointer"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleBookmark(item.id);
+        }}
+        title={bookmarked ? 'Remove from Your Library' : 'Add to Your Library'}
+      >
+        <HeartIcon filled={bookmarked} />
+      </button>
+    </div>
+  );
+}
+
+function UserSaveCard({ entry, index, onLoad, onEdit, onDelete }) {
+  return (
+    <div className="user-save-card-row flex items-center">
+      <button
+        className="user-save-card flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl text-left cursor-pointer transition-all hover:bg-sky/6 group"
+        onClick={() => onLoad(entry)}
+      >
+        <CoverImage item={{ title: entry.name, card: { cover: entry.cover } }} index={index} />
+        <div className="user-save-info flex-1 min-w-0">
+          <div className="user-save-title flex flex-col">
+            {entry.inTheStyleOf && (
+              <span className="preset-style-of text-[10px] uppercase tracking-wider text-muted/70 font-medium leading-tight">
+                In the style of
+              </span>
+            )}
+            <span className="user-save-name text-sm font-medium text-text group-hover:text-sky transition-colors truncate">
+              {entry.name}
+            </span>
+          </div>
+          <div className="user-save-meta text-xs text-muted mt-0.5">
+            {entry.bpm} BPM{entry.swing ? ` · swing ${entry.swing}` : ''}
+            {entry.credit && ` · ${entry.credit}`}
+          </div>
+        </div>
+        {entry.state?.pages?.[0]?.tracks?.[0] && (
+          <div className="preset-preview flex gap-px shrink-0">
+            {entry.state.pages[0].tracks[0].steps.map((value, stepIndex) => (
+              <div
+                key={stepIndex}
+                className="preset-preview-step w-1 h-4 rounded-sm"
+                style={{
+                  backgroundColor: Array.isArray(value)
+                    ? value.some((subValue) => subValue > 0) ? entry.state.pages[0].tracks[0].color : 'var(--color-border)'
+                    : value > 0 ? entry.state.pages[0].tracks[0].color : 'var(--color-border)',
+                  opacity: Array.isArray(value)
+                    ? value.some((subValue) => subValue > 0) ? 0.75 : 1
+                    : value > 0 ? 0.4 + value * 0.2 : 1,
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </button>
+      <button
+        className="user-save-edit-btn shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-muted/50 hover:text-sky transition-colors cursor-pointer"
+        onClick={(event) => { event.stopPropagation(); onEdit(entry.id); }}
+        title="Edit"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+      </button>
+      <button
+        className="user-save-delete-btn shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-muted/50 hover:text-red-400 transition-colors cursor-pointer"
+        onClick={(event) => { event.stopPropagation(); onDelete(entry.id); }}
+        title="Delete"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function Library({
+  isOpen,
+  onClose,
+  libraryCollections = [],
+  userEntries = [],
+  bookmarks = [],
+  onToggleBookmark,
+  onEditEntry,
+  onDeleteEntry,
+  onLoadUserEntry,
+  onActivateLibraryItem,
+  editMode,
+  onSaveEdit,
+  onCancelEdit,
+  activePreset,
+  state,
+}) {
+  const { bookmarkedItems, unbookmarkedCollections } = useMemo(() => {
+    const bookmarked = [];
+    const collections = [];
+
+    for (const collection of libraryCollections) {
+      const unbookmarkedItems = [];
+      for (const item of collection.items || []) {
+        if (bookmarks.includes(item.id)) {
+          bookmarked.push({ item, collection });
+        } else {
+          unbookmarkedItems.push(item);
+        }
+      }
+
+      if (unbookmarkedItems.length > 0) {
+        collections.push({ ...collection, items: unbookmarkedItems });
+      }
+    }
+
+    return { bookmarkedItems: bookmarked, unbookmarkedCollections: collections };
+  }, [bookmarks, libraryCollections]);
+
+  const hasYourLibrary = userEntries.length > 0 || bookmarkedItems.length > 0;
 
   return (
     <>
-      {/* Backdrop */}
       {isOpen && (
         <div
-          className="library-backdrop fixed inset-0 bg-black/20 z-40 transition-opacity"
+          className="library-backdrop fixed inset-0 bg-black/30 backdrop-blur-sm z-40 transition-opacity"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar */}
       <div
-        className={`library-sidebar fixed top-0 left-0 h-full w-80 lg:w-96 bg-card border-r border-border shadow-2xl z-50
-          transition-transform duration-300 ease-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}
+        className={`library-panel fixed inset-0 z-50 flex flex-col bg-card transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
       >
-        {/* Header */}
-        <div className="library-header flex items-center justify-between px-5 py-4 border-b border-border">
-          <h2 className="text-lg lg:text-xl font-display font-bold text-text">Library</h2>
+        <div className="library-header flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+          <h2 className="library-title text-xl font-display font-bold text-text">Library</h2>
           <button
-            className="library-close-btn w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-muted hover:text-text cursor-pointer transition-colors"
+            className="library-close-btn w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-muted hover:text-text cursor-pointer transition-colors"
             onClick={onClose}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <svg width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="2" y1="2" x2="12" y2="12" />
               <line x1="12" y1="2" x2="2" y2="12" />
             </svg>
           </button>
         </div>
 
-        {/* Content */}
-        <div className="library-content overflow-y-auto h-[calc(100%-60px)]">
-          {/* Preset categories */}
-          <div className="library-presets px-3 py-3">
-            <div className="text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wider px-2 mb-2">
-              Preset Rhythms
-            </div>
-
-            {PRESET_CATEGORIES.map((category) => (
-              <div key={category.name} className="library-category mb-1">
-                <button
-                  className={`library-category-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm lg:text-base font-medium cursor-pointer transition-colors
-                    ${expandedCategory === category.name
-                      ? 'bg-sky/8 text-sky'
-                      : 'text-text hover:bg-gray-50'
-                    }`}
-                  onClick={() => setExpandedCategory(
-                    expandedCategory === category.name ? null : category.name
-                  )}
-                >
-                  <span>{category.name}</span>
-                  <svg
-                    width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
-                    strokeWidth="2" strokeLinecap="round"
-                    className={`transition-transform duration-200 ${expandedCategory === category.name ? 'rotate-90' : ''}`}
-                  >
-                    <polyline points="4,2 8,6 4,10" />
-                  </svg>
-                </button>
-
-                {expandedCategory === category.name && (
-                  <div className="library-preset-list pl-3 pr-1 pb-1">
-                    {category.presets.map((preset) => (
-                      <button
-                        key={preset.name}
-                        className="library-preset-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left cursor-pointer transition-colors hover:bg-gray-50 group"
-                        onClick={() => onLoadPreset(preset)}
-                      >
-                        <CoverImage preset={preset} index={category.presets.indexOf(preset)} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm lg:text-base font-medium text-text group-hover:text-sky transition-colors truncate">
-                              {preset.name}
-                            </span>
-                            {/* Reference links */}
-                            {preset.links?.wikipedia && (
-                              <a href={preset.links.wikipedia} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title="Wikipedia" className="preset-link shrink-0 opacity-40 hover:opacity-100 transition-opacity">
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="text-muted"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zM4.6 5h1.2l1.5 3.8L8.8 5H10l-2.5 6H6.3L4.6 5z"/></svg>
-                              </a>
-                            )}
-                            {preset.links?.spotify && (
-                              <a href={preset.links.spotify} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title="Spotify" className="preset-link shrink-0 opacity-40 hover:opacity-100 transition-opacity">
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="#1DB954"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.67 11.56a.5.5 0 01-.68.16c-1.87-1.14-4.22-1.4-6.99-.77a.5.5 0 01-.22-.97c3.03-.69 5.63-.39 7.73.9a.5.5 0 01.16.68zm.98-2.18a.62.62 0 01-.85.2c-2.14-1.31-5.4-1.69-7.93-.93a.62.62 0 01-.36-1.18c2.9-.88 6.5-.45 8.94 1.06a.62.62 0 01.2.85zm.08-2.27C10.5 5.6 6.1 5.46 3.56 6.25a.74.74 0 11-.43-1.42C6.02 3.9 10.9 4.06 13.4 5.82a.74.74 0 01-.77 1.29z"/></svg>
-                              </a>
-                            )}
-                            {preset.links?.youtube && (
-                              <a href={preset.links.youtube} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title="YouTube" className="preset-link shrink-0 opacity-40 hover:opacity-100 transition-opacity">
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="#FF0000"><path d="M14.6 4.3a1.9 1.9 0 00-1.3-1.3C12.2 2.7 8 2.7 8 2.7s-4.2 0-5.3.3A1.9 1.9 0 001.4 4.3 19.6 19.6 0 001 8c0 1.3.1 2.5.4 3.7a1.9 1.9 0 001.3 1.3c1.1.3 5.3.3 5.3.3s4.2 0 5.3-.3a1.9 1.9 0 001.3-1.3c.3-1.2.4-2.4.4-3.7s-.1-2.5-.4-3.7zM6.5 10.2V5.8L10.4 8l-3.9 2.2z"/></svg>
-                              </a>
-                            )}
-                          </div>
-                          <div className="text-[10px] lg:text-xs text-muted">
-                            {preset.bpm} BPM{preset.swing ? ` · swing ${preset.swing}` : ''}
-                            {preset.credit && (
-                              <>
-                                {' · '}
-                                {preset.creditUrl ? (
-                                  <a
-                                    href={preset.creditUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="preset-credit-link text-sky/70 hover:text-sky underline decoration-sky/30 hover:decoration-sky transition-colors"
-                                  >
-                                    {preset.credit}
-                                  </a>
-                                ) : preset.credit}
-                              </>
-                            )}
-                          </div>
+        <div className="library-content flex-1 overflow-y-auto px-6 py-6">
+          <div className="library-grid max-w-5xl mx-auto">
+            {editMode ? (
+              <LibraryEditForm
+                key={editMode.id || activePreset?.sourceEntryId || activePreset?.sourcePreset || activePreset?.name || 'new-entry'}
+                editMode={editMode}
+                entry={editMode.id ? userEntries.find((entry) => entry.id === editMode.id) : null}
+                activePreset={activePreset}
+                state={state}
+                onSave={onSaveEdit}
+                onCancel={onCancelEdit}
+                onDelete={editMode.id ? () => onDeleteEntry(editMode.id) : null}
+              />
+            ) : (
+              <>
+                {hasYourLibrary && (
+                  <div className="your-library-section mb-8">
+                    <h3 className="your-library-heading text-sm font-display font-bold uppercase tracking-wider text-muted px-3 mb-3">
+                      Your Library
+                    </h3>
+                    <div className="your-library-cards bg-white rounded-2xl border border-border shadow-sm">
+                      {userEntries.map((entry, index) => (
+                        <div key={entry.id} className={index > 0 ? 'border-t border-border/50' : ''}>
+                          <UserSaveCard
+                            entry={entry}
+                            index={index}
+                            onLoad={onLoadUserEntry}
+                            onEdit={onEditEntry}
+                            onDelete={onDeleteEntry}
+                          />
                         </div>
-                        {/* Mini step preview */}
-                        <div className="library-preset-preview flex gap-px shrink-0">
-                          {preset.tracks[0]?.steps.map((v, i) => (
-                            <div
-                              key={i}
-                              className="w-1 h-3 rounded-sm"
-                              style={{
-                                backgroundColor: v > 0 ? preset.tracks[0].color : '#E2E8F0',
-                                opacity: v > 0 ? 0.4 + v * 0.2 : 1,
-                              }}
-                            />
-                          ))}
+                      ))}
+                      {bookmarkedItems.map(({ item }, index) => (
+                        <div
+                          key={item.id}
+                          className={(userEntries.length > 0 || index > 0) ? 'border-t border-border/50' : ''}
+                        >
+                          <GenericLibraryCard
+                            item={item}
+                            index={index}
+                            onActivate={onActivateLibraryItem}
+                            bookmarked={true}
+                            onToggleBookmark={onToggleBookmark}
+                          />
                         </div>
-                      </button>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
-              </div>
-            ))}
-          </div>
 
-          {/* Divider */}
-          <div className="mx-5 border-t border-border" />
+                {!hasYourLibrary && (
+                  <div className="library-empty-state mb-8 rounded-2xl border border-dashed border-border bg-white px-5 py-4 text-sm text-muted">
+                    Save your own patterns or bookmark items from any library plugin to build your library.
+                  </div>
+                )}
 
-          {/* User saves (placeholder) */}
-          <div className="library-user-saves px-3 py-3">
-            <div className="text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wider px-2 mb-2">
-              My Saves
-            </div>
-
-            <div className="library-saves-placeholder px-3 py-6 text-center">
-              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-2">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round">
-                  <rect x="3" y="3" width="14" height="14" rx="2" />
-                  <path d="M6 3 L6 8 L10 6 L14 8 L14 3" />
-                </svg>
-              </div>
-              <p className="text-xs lg:text-sm text-muted mb-1">No saved patterns yet</p>
-              <p className="text-[10px] lg:text-xs text-muted/60">Sign in to save and sync your patterns across devices</p>
-            </div>
+                <div className="more-grooves-section">
+                  <h3 className="more-grooves-heading text-sm font-display font-bold uppercase tracking-wider text-muted px-3 mb-3">
+                    {hasYourLibrary ? 'Browse Library' : 'Library'}
+                  </h3>
+                  <div className="library-categories columns-1 md:columns-2 lg:columns-3 gap-6">
+                    {unbookmarkedCollections.map((collection) => (
+                      <div key={collection.id} className="library-category break-inside-avoid mb-6">
+                        <div className="category-heading px-3 mb-2">
+                          <h4 className="category-name text-xs font-semibold uppercase tracking-wider text-muted">
+                            {collection.label}
+                          </h4>
+                        </div>
+                        <div className="category-presets bg-white rounded-2xl border border-border shadow-sm">
+                          {collection.items.map((item, index) => (
+                            <div key={item.id} className={index > 0 ? 'border-t border-border/50' : ''}>
+                              <GenericLibraryCard
+                                item={item}
+                                index={index}
+                                onActivate={onActivateLibraryItem}
+                                bookmarked={false}
+                                onToggleBookmark={onToggleBookmark}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

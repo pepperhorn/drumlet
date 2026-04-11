@@ -4,7 +4,6 @@ import { v4 as uuid } from 'uuid';
  * Serialize sequencer state to dottl-spec v5 compatible JSON
  */
 export function serializeProject(state) {
-  const allNotes = [];
   const layers = [];
 
   for (const page of state.pages) {
@@ -38,8 +37,26 @@ export function serializeProject(state) {
       const layer = layers.find((l) => l.id === track.id);
       if (!layer) continue;
 
-      track.steps.forEach((vel, col) => {
-        if (vel > 0) {
+      track.steps.slice(0, state.stepsPerPage).forEach((stepData, col) => {
+        if (Array.isArray(stepData)) {
+          stepData.forEach((subVel, subIdx) => {
+            if (subVel > 0) {
+              layer.notes.push({
+                id: `${track.id}-p${pageIdx}-n${col}-s${subIdx}`,
+                name: 'C',
+                col: pageOffset + col,
+                subCol: subIdx,
+                subCount: stepData.length,
+                row: 0,
+                octave: 0,
+                isRoot: false,
+                isStartNote: false,
+                sustainCells: 0,
+                velocity: subVel,
+              });
+            }
+          });
+        } else if (stepData > 0) {
           layer.notes.push({
             id: `${track.id}-p${pageIdx}-n${col}`,
             name: 'C',
@@ -49,7 +66,7 @@ export function serializeProject(state) {
             isRoot: false,
             isStartNote: false,
             sustainCells: 0,
-            velocity: vel,
+            velocity: stepData,
           });
         }
       });
@@ -68,6 +85,7 @@ export function serializeProject(state) {
     projectName: 'Drumlet Project',
     bpm: state.bpm,
     divisor: 4,
+    timeSignature: { numerator: state.beatsPerBar || 4, denominator: state.noteValue || '1/4' },
     transposition: 0,
     difficulty: null,
     layers,
@@ -77,6 +95,10 @@ export function serializeProject(state) {
     extensions: {
       drumlet: {
         stepsPerPage: state.stepsPerPage,
+        stepValue: state.stepValue || '1/16',
+        beatsPerBar: state.beatsPerBar || 4,
+        noteValue: state.noteValue || '1/4',
+        swingTarget: state.swingTarget || '8th',
         chainMode: state.chainMode,
         pages: state.pages.map((p) => ({
           id: p.id,
@@ -117,7 +139,15 @@ export function deserializeProject(json) {
           for (const note of layer.notes) {
             const localCol = note.col - pageOffset;
             if (localCol >= 0 && localCol < stepsPerPage) {
-              steps[localCol] = note.velocity || 2;
+              if (note.subCount > 0 && note.subCol != null) {
+                // Split note — reconstruct array
+                if (!Array.isArray(steps[localCol])) {
+                  steps[localCol] = new Array(note.subCount).fill(0);
+                }
+                steps[localCol][note.subCol] = note.velocity || 2;
+              } else {
+                steps[localCol] = note.velocity || 2;
+              }
             }
           }
         }
@@ -147,6 +177,12 @@ export function deserializeProject(json) {
       currentPageIndex: 0,
       stepsPerPage,
       bpm: json.bpm || 120,
+      beatsPerBar: ext.beatsPerBar || 4,
+      noteValue: ext.noteValue || '1/4',
+      stepValue: ext.stepValue || '1/16',
+      swing: 0,
+      swingTarget: ext.swingTarget || '8th',
+      humanize: 0,
       chainMode: ext.chainMode || false,
     };
   }
@@ -198,6 +234,11 @@ export function deserializeProject(json) {
     currentPageIndex: 0,
     stepsPerPage,
     bpm: json.bpm || 120,
+    beatsPerBar: json.timeSignature?.numerator || 4,
+    noteValue: json.timeSignature?.denominator || '1/4',
+    stepValue: stepsPerPage === 16 ? '1/16' : '1/8',
+    swing: 0,
+    humanize: 0,
     chainMode: false,
   };
 }
