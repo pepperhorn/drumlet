@@ -7,7 +7,8 @@ Browser-based rhythm education game / step sequencer. Build patterns, play them 
 - React 19 + Vite 8 + Tailwind 4
 - smplr for drum machine samples (TR-808, LM-2, CR-8000, etc.)
 - Single shared AudioContext for all audio
-- No backend — challenge data encoded in URL hash fragment
+- Directus 11.17.1 backend at apps.pepperhorn.com (OTP auth, user profiles)
+- Challenge data encoded in URL hash fragment
 
 ## Architecture
 
