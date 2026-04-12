@@ -1,10 +1,9 @@
 import { memo, useState, useRef, useEffect } from 'react';
 
 const PRESET_LABELS = [
+  'Intro', 'Verse', 'Pre-Chorus', 'Chorus',
   'A', 'B', 'C', 'D',
-  'Intro', 'Verse', 'Chorus', 'Pre-Chorus',
-  'Bridge', 'Vamp', 'Solo', 'Solos',
-  'Outro', 'Ending', 'End',
+  'Solos', 'Repeat',
 ];
 
 /**

@@ -46,6 +46,7 @@ function Drumlet() {
   const [playMode, setPlayMode] = useState(false); // false=edit, true=MPC pads
   const [showFullTransport, setShowFullTransport] = useState(false);
   const [splitMode, setSplitMode] = useState(null); // null, 2, 3, or 4
+  const [selectedStep, setSelectedStep] = useState(null); // step index for section heading targeting
   const [soundPickerTrackIndex, setSoundPickerTrackIndex] = useState(null);
   const [activePadTrackIds, setActivePadTrackIds] = useState(new Set());
   const [embed] = useState(() => isEmbedMode());
@@ -787,13 +788,18 @@ function Drumlet() {
           stepOptions={getStepConfigs(TIME_SIGNATURES.find(t => t.num === state.beatsPerBar && t.noteValue === state.noteValue)?.label || '4/4')}
           chainMode={state.chainMode}
           splitMode={splitMode}
-          onSetPage={(i) => dispatch({ type: 'SET_CURRENT_PAGE', pageIndex: i })}
+          selectedStep={selectedStep}
+          sectionHeadings={currentPage?.sectionHeadings}
+          onSetPage={(i) => { setSelectedStep(null); dispatch({ type: 'SET_CURRENT_PAGE', pageIndex: i }); }}
           onAddPage={() => dispatch({ type: 'ADD_PAGE' })}
           onRemovePage={(i) => dispatch({ type: 'REMOVE_PAGE', pageIndex: i })}
           onSetStepsPerPage={(n) => dispatch({ type: 'SET_STEPS_PER_PAGE', stepsPerPage: n })}
           onToggleChainMode={() => dispatch({ type: 'TOGGLE_CHAIN_MODE' })}
           onSetSplitMode={setSplitMode}
           onClearPage={() => dispatch({ type: 'CLEAR_PAGE' })}
+          onAddSectionHeading={(step, label) => dispatch({ type: 'ADD_SECTION_HEADING', step, label })}
+          onUpdateSectionHeading={(id, label) => dispatch({ type: 'UPDATE_SECTION_HEADING', id, label })}
+          onRemoveSectionHeading={(id) => dispatch({ type: 'REMOVE_SECTION_HEADING', id })}
         />
       </div>
 
@@ -850,6 +856,7 @@ function Drumlet() {
               noteValue={state.noteValue}
               beatsPerBar={state.beatsPerBar}
               stepValue={state.stepValue}
+              onClose={() => setNotationView(false)}
             />
           </div>
         </Suspense>
@@ -863,6 +870,10 @@ function Drumlet() {
             currentStep={currentStep}
             stepsPerPage={state.stepsPerPage}
             noteValue={state.noteValue}
+            stepValue={state.stepValue}
+            beatsPerBar={state.beatsPerBar}
+            selectedStep={selectedStep}
+            onSelectStep={playMode ? undefined : setSelectedStep}
             sectionHeadings={currentPage.sectionHeadings}
             splitMode={splitMode}
             notationView={notationView}

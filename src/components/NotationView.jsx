@@ -65,7 +65,7 @@ function makePart(name, trackIds) {
   return { id: uuid(), name, trackIds: new Set(trackIds) };
 }
 
-function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, noteValue, beatsPerBar = 4, stepValue }) {
+function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, noteValue, beatsPerBar = 4, stepValue, onClose }) {
   const containerRef = useRef(null);
   const prevDataRef = useRef(null);
   const [layout, setLayout] = useState(null);
@@ -300,6 +300,19 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
 
       {/* Toolbar */}
       <div className="notation-toolbar flex items-center gap-1.5 mb-2 flex-wrap">
+        {onClose && (
+          <button
+            className="notation-back-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 hover:text-text text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1"
+            onClick={onClose}
+            title="Back to grid view"
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="13" y1="8" x2="3" y2="8" />
+              <polyline points="7 4 3 8 7 12" />
+            </svg>
+            Grid
+          </button>
+        )}
         <button
           className={`notation-color-btn px-2 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors
             ${useColor
@@ -364,8 +377,8 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
         </div>
       </div>
 
-      <div className="notation-score-wrap" style={{ position: 'relative', display: 'inline-block' }}>
-        <div ref={containerRef} className="vexflow-container" />
+      <div className="notation-score-wrap" style={{ position: 'relative', display: 'block', minHeight: 120 }}>
+        <div ref={containerRef} className="vexflow-container" style={{ display: 'block' }} />
         {playhead && (
           <div
             className="notation-playhead"
@@ -382,47 +395,57 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
             }}
           />
         )}
-      </div>
 
-      {/* Count labels below each system line */}
-      {layoutInfo && countLabels.length > 0 && layout && (
-        <div className="notation-count-labels" style={{ position: 'relative', width: layoutInfo.svgWidth, marginTop: -layoutInfo.svgHeight }}>
-          {Array.from({ length: layout.numLines }, (_, lineIdx) => {
-            const lineLabels = countLabels.filter(cl => cl.line === lineIdx);
-            if (lineLabels.length === 0) return null;
-            const topOffset = (lineIdx + 1) * (lineHeight + lineGap) - lineGap + 10;
-            return (
-              <svg
-                key={lineIdx}
-                style={{
-                  position: 'absolute',
-                  top: topOffset,
-                  left: 0,
-                  width: layoutInfo.svgWidth,
-                  height: fontSize + 10,
-                }}
-                viewBox={`0 0 ${layoutInfo.svgWidth} ${fontSize + 10}`}
-              >
-                {lineLabels.map((cl, i) => (
-                  <text
-                    key={i}
-                    x={cl.x}
-                    y={fontSize + 2}
-                    textAnchor="middle"
-                    fontSize={fontSize}
-                    fontFamily="var(--font-mono)"
-                    fontWeight={cl.isBeatNum ? 600 : 400}
-                    fill="var(--color-muted)"
-                    fillOpacity={cl.isBeatNum ? 1 : 0.5}
-                  >
-                    {cl.text}
-                  </text>
-                ))}
-              </svg>
-            );
-          })}
-        </div>
-      )}
+        {/* Count labels — overlay each system line */}
+        {layoutInfo && countLabels.length > 0 && layout && (
+          <div
+            className="notation-count-labels"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: layoutInfo.svgWidth,
+              height: layoutInfo.svgHeight,
+              pointerEvents: 'none',
+            }}
+          >
+            {Array.from({ length: layout.numLines }, (_, lineIdx) => {
+              const lineLabels = countLabels.filter(cl => cl.line === lineIdx);
+              if (lineLabels.length === 0) return null;
+              const topOffset = (lineIdx + 1) * (lineHeight + lineGap) - lineGap + 10;
+              return (
+                <svg
+                  key={lineIdx}
+                  style={{
+                    position: 'absolute',
+                    top: topOffset,
+                    left: 0,
+                    width: layoutInfo.svgWidth,
+                    height: fontSize + 10,
+                  }}
+                  viewBox={`0 0 ${layoutInfo.svgWidth} ${fontSize + 10}`}
+                >
+                  {lineLabels.map((cl, i) => (
+                    <text
+                      key={i}
+                      x={cl.x}
+                      y={fontSize + 2}
+                      textAnchor="middle"
+                      fontSize={fontSize}
+                      fontFamily="var(--font-mono)"
+                      fontWeight={cl.isBeatNum ? 600 : 400}
+                      fill="var(--color-muted)"
+                      fillOpacity={cl.isBeatNum ? 1 : 0.5}
+                    >
+                      {cl.text}
+                    </text>
+                  ))}
+                </svg>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

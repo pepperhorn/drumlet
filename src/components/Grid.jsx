@@ -39,11 +39,21 @@ const SIZE_PX = {
   lg: [13, 15],
 };
 
+const BAR_LINE_STYLE = {
+  borderLeftWidth: 2,
+  borderLeftStyle: 'dashed',
+  borderLeftColor: 'color-mix(in srgb, var(--color-sky) 30%, transparent)',
+};
+
 function Grid({
   tracks,
   currentStep,
   stepsPerPage,
   noteValue,
+  stepValue,
+  beatsPerBar = 4,
+  selectedStep,
+  onSelectStep,
   sectionHeadings,
   splitMode,
   notationView,
@@ -75,6 +85,11 @@ function Grid({
   const nv = NOTE_VALUES.find((n) => n.key === noteValue) || NOTE_VALUES[3];
   const stepsPerBeat = Math.round(1 / nv.beatsPerStep) || 1;
   const divisorLabels = buildDivisorLabels(stepsPerPage, stepsPerBeat);
+
+  // True steps-per-bar from time sig + step value (independent of the buggy beat-grouping calc above)
+  const stepNv = NOTE_VALUES.find((n) => n.key === stepValue) || nv;
+  const realStepsPerBeat = Math.max(1, Math.round(nv.beatsPerStep / stepNv.beatsPerStep));
+  const stepsPerBar = beatsPerBar * realStepsPerBeat;
 
   const anyExpanded = expandedTracks.size > 0;
 
@@ -182,6 +197,7 @@ function Grid({
         <div className="section-headings-cells flex items-center">
           {Array.from({ length: stepsPerPage }, (_, i) => {
             const heading = headingByStep[i];
+            const isBarStart = i > 0 && i % stepsPerBar === 0;
             return (
               <div
                 key={i}
@@ -192,6 +208,7 @@ function Grid({
                   ${heading ? '' : 'hover:bg-sky/5'}
                   ${dragHeading && !heading ? 'hover:bg-sky/10' : ''}
                 `}
+                style={isBarStart ? BAR_LINE_STYLE : undefined}
                 onClick={(e) => handleHeadingClick(i, e)}
                 onDragOver={handleDragOverStep}
                 onDrop={() => handleDropOnStep(i)}
@@ -259,16 +276,26 @@ function Grid({
           {Array.from({ length: stepsPerPage }, (_, i) => {
             const label = countMode === 'step' ? i + 1 : divisorLabels[i];
             const isBeatStart = i % stepsPerBeat === 0;
+            const isBarStart = i > 0 && i % stepsPerBar === 0;
+            const isSelected = selectedStep === i;
+            const handleSelect = onSelectStep
+              ? () => onSelectStep(selectedStep === i ? null : i)
+              : undefined;
             return (
               <div
                 key={i}
                 className={`step-number w-9 h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 flex items-center justify-center
-                  rounded-md border border-transparent font-mono select-none
+                  rounded-md border font-mono select-none transition-colors
+                  ${onSelectStep ? 'cursor-pointer' : ''}
                   ${i > 0 && i % stepsPerBeat === 0 ? 'ml-1.5' : 'ml-0.5'}
-                  ${currentStep === i ? 'text-sky font-bold' : ''}
-                  ${countMode === 'beat' && isBeatStart ? 'font-semibold text-text' : 'text-muted'}
+                  ${isSelected
+                    ? 'bg-sky/15 border-sky text-sky font-bold'
+                    : `border-transparent hover:bg-sky/5 ${currentStep === i ? 'text-sky font-bold' : ''} ${countMode === 'beat' && isBeatStart ? 'font-semibold text-text' : 'text-muted'}`
+                  }
                 `}
-                style={{ fontSize }}
+                style={{ fontSize, ...(isBarStart ? BAR_LINE_STYLE : {}) }}
+                onClick={handleSelect}
+                title={onSelectStep ? `Step ${i + 1} — click to ${isSelected ? 'deselect' : 'select for section heading'}` : undefined}
               >
                 {label}
               </div>
@@ -281,18 +308,22 @@ function Grid({
       <div className="beat-markers flex items-center gap-3 mb-2">
         <div className={`beat-markers-spacer ${colWidth}`} />
         <div className="beat-markers-cells flex items-center">
-          {Array.from({ length: stepsPerPage }, (_, i) => (
-            <div
-              key={i}
-              className={`beat-marker w-9 md:w-10 lg:w-11 h-0.5 rounded-full border border-transparent
-                ${i > 0 && i % stepsPerBeat === 0 ? 'ml-1.5' : 'ml-0.5'}`}
-              style={{
-                backgroundColor: currentStep >= Math.floor(i / stepsPerBeat) * stepsPerBeat && currentStep < (Math.floor(i / stepsPerBeat) + 1) * stepsPerBeat
-                  ? 'var(--color-sky)'
-                  : 'var(--color-border)',
-              }}
-            />
-          ))}
+          {Array.from({ length: stepsPerPage }, (_, i) => {
+            const isBarStart = i > 0 && i % stepsPerBar === 0;
+            return (
+              <div
+                key={i}
+                className={`beat-marker w-9 md:w-10 lg:w-11 h-0.5 rounded-full border border-transparent
+                  ${i > 0 && i % stepsPerBeat === 0 ? 'ml-1.5' : 'ml-0.5'}`}
+                style={{
+                  backgroundColor: currentStep >= Math.floor(i / stepsPerBeat) * stepsPerBeat && currentStep < (Math.floor(i / stepsPerBeat) + 1) * stepsPerBeat
+                    ? 'var(--color-sky)'
+                    : 'var(--color-border)',
+                  ...(isBarStart ? BAR_LINE_STYLE : {}),
+                }}
+              />
+            );
+          })}
         </div>
       </div>
 
@@ -307,6 +338,7 @@ function Grid({
               currentStep={currentStep}
               stepsPerPage={stepsPerPage}
               stepsPerBeat={stepsPerBeat}
+              stepsPerBar={stepsPerBar}
               expanded={expandedTracks.has(i)}
               onToggleExpand={() => toggleTrackExpand(i)}
               colWidth={colWidth}

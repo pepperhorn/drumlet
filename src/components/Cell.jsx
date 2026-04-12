@@ -1,7 +1,13 @@
 import { memo, useRef, useState, useEffect } from 'react';
 import { getVelocityLabel, getVelocityOpacity } from '../audio/velocityConfig.js';
 
-function Cell({ velocity, velMode, color, isPlayhead, isBeatStart, onClick, onRightClick,
+const BAR_LINE_STYLE = {
+  borderLeftWidth: 2,
+  borderLeftStyle: 'dashed',
+  borderLeftColor: 'color-mix(in srgb, var(--color-sky) 30%, transparent)',
+};
+
+function Cell({ velocity, velMode, color, isPlayhead, isBeatStart, isBarStart, onClick, onRightClick,
                 splitData, splitMode, isExpanded, onExpandToggle, onToggleSubStep, onClearSubStep }) {
   const label = getVelocityLabel(velocity, velMode);
   const opacity = getVelocityOpacity(velocity, velMode);
@@ -24,7 +30,7 @@ function Cell({ velocity, velMode, color, isPlayhead, isBeatStart, onClick, onRi
   // Split cell — collapsed view: show color-coded segments
   if (splitData && !isExpanded) {
     return (
-      <div className={`step-cell-split-wrap ${isBeatStart ? 'ml-1.5' : 'ml-0.5'}`}>
+      <div className={`step-cell-split-wrap ${isBeatStart ? 'ml-1.5' : 'ml-0.5'}`} style={isBarStart ? BAR_LINE_STYLE : undefined}>
         <button
           className={`step-cell step-cell-split relative w-9 h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
             flex items-stretch overflow-hidden select-none
@@ -61,7 +67,7 @@ function Cell({ velocity, velMode, color, isPlayhead, isBeatStart, onClick, onRi
   // Split cell — expanded view: full-size sub-cells
   if (splitData && isExpanded) {
     return (
-      <div className={`step-cell-expanded-wrap ${isBeatStart ? 'ml-1.5' : 'ml-0.5'}`}>
+      <div className={`step-cell-expanded-wrap ${isBeatStart ? 'ml-1.5' : 'ml-0.5'}`} style={isBarStart ? BAR_LINE_STYLE : undefined}>
         {/* Master cell — click to collapse */}
         <button
           className={`step-cell step-cell-split-master relative w-9 h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
@@ -138,10 +144,10 @@ function Cell({ velocity, velMode, color, isPlayhead, isBeatStart, onClick, onRi
         ${isPlayhead ? 'playhead-active ring-2 ring-sky' : ''}
         ${isBeatStart ? 'ml-1.5' : 'ml-0.5'}
       `}
-      style={velocity > 0 ? {
-        backgroundColor: color,
-        opacity,
-      } : undefined}
+      style={{
+        ...(velocity > 0 ? { backgroundColor: color, opacity } : {}),
+        ...(isBarStart ? BAR_LINE_STYLE : {}),
+      }}
       onClick={onClick}
       onContextMenu={(e) => {
         e.preventDefault();

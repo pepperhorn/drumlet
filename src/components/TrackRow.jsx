@@ -11,6 +11,7 @@ function TrackRow({
   currentStep,
   stepsPerPage,
   stepsPerBeat,
+  stepsPerBar,
   expanded,
   onToggleExpand,
   colWidth,
@@ -75,6 +76,7 @@ function TrackRow({
               color={track.color}
               isPlayhead={currentStep === stepIdx}
               isBeatStart={stepIdx > 0 && stepIdx % stepsPerBeat === 0}
+              isBarStart={stepsPerBar ? stepIdx > 0 && stepIdx % stepsPerBar === 0 : false}
               splitData={split ? stepData : null}
               splitMode={splitMode}
               isExpanded={isThisExpanded}
