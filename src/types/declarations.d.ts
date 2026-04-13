@@ -2,6 +2,13 @@
 // reachable through their package.json exports field. Each boundary
 // surface is typed at the call site.
 
+declare module '*.css';
+declare module '*.json' {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const value: any;
+  export default value;
+}
+
 declare module 'midi-writer-js' {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const m: any;

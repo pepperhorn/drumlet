@@ -11,7 +11,7 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "allowJs": true,
+    "allowJs": false,
     "resolveJsonModule": true,
     "noEmit": true,
     "paths": { "@/*": ["./src/*"] }

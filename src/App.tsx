@@ -1,30 +1,32 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SequencerProvider, useSequencer } from './state/SequencerContext.jsx';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
+import { SequencerProvider, useSequencer } from './state/SequencerContext.js';
 import { useAudioEngine } from './audio/useAudioEngine.js';
 import { useTransport } from './audio/useTransport.js';
 import { exportToFile, importFromFile } from './state/projectSerializer.js';
 import { exportMidi } from './state/midiExport.js';
 import { maxLevel } from './audio/velocityConfig.js';
 import { isSplit, isMulti, effectiveStep } from './util/stepHelpers.js';
-import Grid from './components/Grid.jsx';
-import Transport, { BpmInput } from './components/Transport.jsx';
-import PageTabs from './components/PageTabs.jsx';
-import Library from './components/Library.jsx';
-import ShareModal from './components/ShareModal.jsx';
-const NotationView = lazy(() => import('./components/NotationView.jsx'));
-import MpcPads from './components/MpcPads.jsx';
-import PluginModal from './components/PluginModal.jsx';
-import SoundPicker from './components/SoundPicker.jsx';
+import Grid from './components/Grid.js';
+import Transport, { BpmInput } from './components/Transport.js';
+import PageTabs from './components/PageTabs.js';
+import Library from './components/Library.js';
+import ShareModal from './components/ShareModal.js';
+const NotationView = lazy(() => import('./components/NotationView.js'));
+import MpcPads from './components/MpcPads.js';
+import PluginModal from './components/PluginModal.js';
+import SoundPicker from './components/SoundPicker.js';
+import type { SoundSourceConfig } from './components/SoundPicker.js';
 import { isEmbedMode, loadSharedPayload } from './state/shareCodec.js';
 import { TIME_SIGNATURES, getStepConfigs } from './state/sequencerReducer.js';
+import type { SequencerState, Track, VelMode, NoteValueKey, SplitCount, Step } from './state/sequencerReducer.js';
 import { normalizeSequencerState } from './state/normalizeSequencerState.js';
 import { useUserLibrary } from './state/userLibrary.js';
 import { useLibraryActions } from './state/useLibraryActions.js';
 import { usePluginSession } from './state/usePluginSession.js';
 import { ACTION_KINDS, getFieldValue } from './plugins/librarySchema.js';
+import type { LibraryItem, LibraryAction } from './plugins/librarySchema.js';
 import { createPluginRuntime } from './plugins/runtime.js';
 import { PRACTICE_PLUGIN_ID } from './plugins/modePlugins.js';
-
 
 const PAD_KEYS = ['A', 'S', 'D', 'F', 'J', 'K', 'L', ';'];
 
@@ -37,18 +39,18 @@ function Drumlet() {
   const libraryCollections = useMemo(() => pluginRuntime.getLibraryCollections(), [pluginRuntime]);
   const modePlugins = useMemo(() => pluginRuntime.getModePlugins(), [pluginRuntime]);
   const audioFollowCore = useMemo(() => pluginRuntime.getCapability('audio-follow-core'), [pluginRuntime]);
-  const [loadingTracks, setLoadingTracks] = useState(new Set());
+  const [loadingTracks, setLoadingTracks] = useState<Set<string>>(new Set());
   const [previewMode, setPreviewMode] = useState(true);
   const audioStartedRef = useRef(false);
   const [audioStarted, setAudioStarted] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [notationView, setNotationView] = useState(false);
-  const [playMode, setPlayMode] = useState(false); // false=edit, true=MPC pads
+  const [playMode, setPlayMode] = useState(false);
   const [showFullTransport, setShowFullTransport] = useState(false);
   const activeCell = state.activeCell;
   const pendingSplit = state.pendingSplit;
-  // The split toolbar highlights the active cell's split count (or armed pendingSplit).
-  const toolbarSplit = useMemo(() => {
+
+  const toolbarSplit = useMemo<SplitCount | null>(() => {
     if (activeCell) {
       const step = state.pages[state.currentPageIndex]?.tracks[activeCell.trackIndex]?.steps[activeCell.stepIndex];
       if (isMulti(step)) return step.active ?? null;
@@ -56,7 +58,8 @@ function Drumlet() {
     }
     return pendingSplit;
   }, [activeCell, pendingSplit, state.pages, state.currentPageIndex]);
-  const handlePickSplit = useCallback((count) => {
+
+  const handlePickSplit = useCallback((count: SplitCount | null) => {
     if (count === null) {
       if (activeCell) dispatch({ type: 'UNSPLIT_CELL' });
       else dispatch({ type: 'SET_PENDING_SPLIT', count: null });
@@ -68,19 +71,20 @@ function Drumlet() {
       dispatch({ type: 'SET_PENDING_SPLIT', count });
     }
   }, [activeCell, dispatch]);
-  const [selectedStep, setSelectedStep] = useState(null); // step index for section heading targeting
-  const [soundPickerTrackIndex, setSoundPickerTrackIndex] = useState(null);
-  const [activePadTrackIds, setActivePadTrackIds] = useState(new Set());
+
+  const [selectedStep, setSelectedStep] = useState<number | null>(null);
+  const [soundPickerTrackIndex, setSoundPickerTrackIndex] = useState<number | null>(null);
+  const [activePadTrackIds, setActivePadTrackIds] = useState<Set<string>>(new Set());
   const [embed] = useState(() => isEmbedMode());
-  const customBuffersRef = useRef(new Map()); // trackId → AudioBuffer
-  const activePadTimeoutsRef = useRef(new Map());
-  const tapTimesRef = useRef([]);
+  const customBuffersRef = useRef<Map<string, AudioBuffer>>(new Map());
+  const activePadTimeoutsRef = useRef<Map<string, number>>(new Map());
+  const tapTimesRef = useRef<number[]>([]);
 
   // Keep a ref to state for the scheduler (avoids stale closures)
-  const stateRef = useRef(state);
+  const stateRef = useRef<SequencerState>(state);
   stateRef.current = {
     ...state,
-    _onPageAdvance: (nextPage) => {
+    _onPageAdvance: (nextPage: number) => {
       dispatch({ type: 'SET_CURRENT_PAGE', pageIndex: nextPage });
     },
   };
@@ -93,14 +97,14 @@ function Drumlet() {
     setLibraryOpen, setLibraryEditMode, setActivePreset, setCurrentSaveId,
     openLibrary, handleEditEntry, handleDeleteEntry, handleSaveEdit, handleSave,
     handleLoadUserEntry, handleLoadLibraryState, loadStateIntoSequencer, markClean,
-    buildActivePreset, buildActivePresetFromLibraryItem,
+    buildActivePresetFromLibraryItem,
   } = library;
 
   const currentPage = state.pages[state.currentPageIndex];
   const padKeyMap = useMemo(() => {
-    const map = {};
-    (currentPage?.tracks || []).forEach((track, index) => {
-      map[track.id] = PAD_KEYS[index] || String(index + 1);
+    const map: Record<string, string> = {};
+    (currentPage?.tracks ?? []).forEach((track, index) => {
+      map[track.id] = PAD_KEYS[index] ?? String(index + 1);
     });
     return map;
   }, [currentPage]);
@@ -109,7 +113,7 @@ function Drumlet() {
     [padKeyMap]
   );
 
-  const pulsePadTrack = useCallback((trackId) => {
+  const pulsePadTrack = useCallback((trackId: string) => {
     setActivePadTrackIds((prev) => {
       const next = new Set(prev);
       next.add(trackId);
@@ -133,20 +137,17 @@ function Drumlet() {
     activePadTimeoutsRef.current.set(trackId, timerId);
   }, []);
 
-  // Stable key for track sound config changes — derived from primitive values only
   const trackSoundKey = currentPage
     ? currentPage.tracks
         .map((t) => `${t.id}:${t.sourceType}:${t.instrument}:${t.group}:${t.soundfontName}:${t.customSampleName}:${t.kitId}:${t.kitSample}`)
         .join(',')
     : '';
 
-  // Load instruments — only after user has started audio
   const loadTrackInstrument = audioEngine.loadTrackInstrument;
   useEffect(() => {
     if (!trackSoundKey || !audioStarted) return;
     let cancelled = false;
 
-    // Snapshot tracks at effect time
     const tracks = stateRef.current.pages[stateRef.current.currentPageIndex]?.tracks;
     if (!tracks) return;
 
@@ -157,9 +158,9 @@ function Drumlet() {
           if (prev.has(track.id)) return prev;
           return new Set([...prev, track.id]);
         });
-        // Attach custom buffer if available
-        const trackWithBuffer = customBuffersRef.current.has(track.id)
-          ? { ...track, _audioBuffer: customBuffersRef.current.get(track.id) }
+        const buffer = customBuffersRef.current.get(track.id);
+        const trackWithBuffer = buffer
+          ? { ...track, _audioBuffer: buffer }
           : track;
         await loadTrackInstrument(trackWithBuffer);
         if (!cancelled) {
@@ -177,7 +178,6 @@ function Drumlet() {
     return () => { cancelled = true; };
   }, [trackSoundKey, loadTrackInstrument, audioStarted]);
 
-  // Called on first user interaction to init audio — single source of truth
   const startAudioIfNeeded = useCallback(async () => {
     if (audioStartedRef.current) return;
     await audioEngine.ensureRunning();
@@ -185,63 +185,53 @@ function Drumlet() {
     setAudioStarted(true);
   }, [audioEngine]);
 
-  const handleToggleCell = useCallback((trackIndex, stepIndex, isRightClick) => {
+  const handleToggleCell = useCallback((trackIndex: number, stepIndex: number, isRightClick?: boolean) => {
     startAudioIfNeeded();
     const page = stateRef.current.pages[stateRef.current.currentPageIndex];
     const track = page?.tracks[trackIndex];
-    const stepData = track?.steps[stepIndex];
+    const stepData: Step | undefined = track?.steps[stepIndex];
 
     if (isRightClick) {
-      // Right-click always clears (drops all split banks too)
       dispatch({ type: 'SET_CELL', trackIndex, stepIndex, velocity: 0 });
       dispatch({ type: 'SET_ACTIVE_CELL', cell: null });
       return;
     }
 
-    // Select this cell as the active target for split actions
     dispatch({ type: 'SET_ACTIVE_CELL', cell: { trackIndex, stepIndex } });
 
-    // If a split was armed, apply it to this newly-selected cell
     const armed = stateRef.current.pendingSplit;
     if (armed != null && !isMulti(stepData)) {
       dispatch({ type: 'APPLY_SPLIT', count: armed, cell: { trackIndex, stepIndex } });
       return;
     }
 
-    // For multi cells, clicking just selects (and the collapsed view also
-    // fires onExpandToggle separately). Don't cycle velocity — the user
-    // edits sub-cells via the expanded view.
     if (isMulti(stepData)) return;
 
-    // Primitive cell: cycle velocity
     dispatch({ type: 'TOGGLE_CELL', trackIndex, stepIndex });
 
-    // Preview: play the sound at the new velocity (primitive cells only)
-    if (previewMode && !isMulti(stepData) && !isSplit(stepData) && audioEngine.instrumentsRef.current.has(track?.id)) {
-      if (track) {
-        const max = maxLevel(track.velMode || 3);
-        const newVel = (stepData + 1) % (max + 1);
-        if (newVel > 0) {
-          audioEngine.triggerNote(track, newVel, audioEngine.getContext().currentTime + 0.01, track.velMode || 3);
-        }
+    if (previewMode && !isMulti(stepData) && !isSplit(stepData) && track && audioEngine.instrumentsRef.current.has(track.id)) {
+      const max = maxLevel(track.velMode || 3);
+      const newVel = (((stepData as number) ?? 0) + 1) % (max + 1);
+      if (newVel > 0) {
+        audioEngine.triggerNote(track, newVel, audioEngine.getContext().currentTime + 0.01, track.velMode || 3);
       }
     }
   }, [dispatch, previewMode, audioEngine, startAudioIfNeeded]);
 
-  const handleToggleSubStep = useCallback((trackIndex, stepIndex, subIndex) => {
+  const handleToggleSubStep = useCallback((trackIndex: number, stepIndex: number, subIndex: number) => {
     startAudioIfNeeded();
     dispatch({ type: 'TOGGLE_SUBSTEP', trackIndex, stepIndex, subIndex });
 
-    // Preview the sub-step sound
     if (previewMode) {
       const page = stateRef.current.pages[stateRef.current.currentPageIndex];
       const track = page?.tracks[trackIndex];
       if (track && audioEngine.instrumentsRef.current.has(track.id)) {
         const stepData = track.steps[stepIndex];
+        if (stepData === undefined) return;
         const effective = effectiveStep(stepData);
         if (isSplit(effective)) {
           const max = maxLevel(track.velMode || 3);
-          const newVel = (effective[subIndex] + 1) % (max + 1);
+          const newVel = ((effective[subIndex] ?? 0) + 1) % (max + 1);
           if (newVel > 0) {
             audioEngine.triggerNote(track, newVel, audioEngine.getContext().currentTime + 0.01, track.velMode || 3);
           }
@@ -250,33 +240,40 @@ function Drumlet() {
     }
   }, [dispatch, previewMode, audioEngine, startAudioIfNeeded]);
 
-  const handleClearSubStep = useCallback((trackIndex, stepIndex, subIndex) => {
+  const handleClearSubStep = useCallback((trackIndex: number, stepIndex: number, subIndex: number) => {
     dispatch({ type: 'SET_SUBSTEP', trackIndex, stepIndex, subIndex, velocity: 0 });
   }, [dispatch]);
 
-  const handleChangeProp = useCallback((trackIndex, prop, value) => {
-    dispatch({ type: 'SET_TRACK_PROP', trackIndex, prop, value });
+  const handleChangeProp = useCallback((trackIndex: number, prop: keyof Track, value: unknown) => {
+    dispatch({ type: 'SET_TRACK_PROP', trackIndex, prop, value: value as Track[keyof Track] });
 
-    // Live-update audio
     const track = stateRef.current.pages[stateRef.current.currentPageIndex]?.tracks[trackIndex];
     if (!track) return;
-    if (prop === 'volume') audioEngine.updateTrackVolume(track.id, value);
-    if (prop === 'reverb') audioEngine.updateTrackReverb(track.id, value);
+    if (prop === 'volume') audioEngine.updateTrackVolume(track.id, value as number);
+    if (prop === 'reverb') audioEngine.updateTrackReverb(track.id, value as number);
   }, [dispatch, audioEngine]);
 
-  const handleChangeSource = useCallback((trackIndex, sourceConfig) => {
-    // Only stop playback if audio context hasn't been started yet —
-    // if it's running, the new instrument will load in the background
-    // and the track will be silent until ready (no crash)
+  const handleChangeSource = useCallback((trackIndex: number, sourceConfig: SoundSourceConfig) => {
     if (isPlaying && !audioStartedRef.current) stop();
-    dispatch({ type: 'SET_TRACK_SOURCE', trackIndex, ...sourceConfig });
+    dispatch({
+      type: 'SET_TRACK_SOURCE',
+      trackIndex,
+      sourceType: sourceConfig.sourceType,
+      instrument: sourceConfig.instrument,
+      group: sourceConfig.group,
+      soundfontName: sourceConfig.soundfontName,
+      customSampleName: sourceConfig.customSampleName,
+      kitId: sourceConfig.kitId,
+      kitSample: sourceConfig.kitSample,
+      name: sourceConfig.name,
+    });
   }, [dispatch, isPlaying, stop]);
 
-  const handleChangeVelMode = useCallback((trackIndex, mode) => {
+  const handleChangeVelMode = useCallback((trackIndex: number, mode: VelMode) => {
     dispatch({ type: 'SET_TRACK_VEL_MODE', trackIndex, mode });
   }, [dispatch]);
 
-  const handleOpenSoundPicker = useCallback((trackIndex) => {
+  const handleOpenSoundPicker = useCallback((trackIndex: number) => {
     setSoundPickerTrackIndex(trackIndex);
   }, []);
 
@@ -284,13 +281,13 @@ function Drumlet() {
     setSoundPickerTrackIndex(null);
   }, []);
 
-  const handlePreviewSound = useCallback(async (sourceConfig) => {
+  const handlePreviewSound = useCallback(async (sourceConfig: SoundSourceConfig) => {
     if (soundPickerTrackIndex === null) return;
     const track = stateRef.current?.pages?.[stateRef.current.currentPageIndex]?.tracks?.[soundPickerTrackIndex];
     if (!track) return;
     const tempTrack = { ...track, ...sourceConfig };
-    await audioEngine.loadTrackInstrument(tempTrack, { force: true });
-    await audioEngine.previewSound(tempTrack);
+    await audioEngine.loadTrackInstrument(tempTrack as Track, { force: true });
+    await audioEngine.previewSound(tempTrack as Track);
   }, [audioEngine, soundPickerTrackIndex]);
 
   const handleCancelPreview = useCallback(async () => {
@@ -300,20 +297,16 @@ function Drumlet() {
     await audioEngine.loadTrackInstrument(track, { force: true });
   }, [audioEngine, soundPickerTrackIndex]);
 
-  // Play handler — always ensures audio + instruments are ready before toggling
   const handlePlay = useCallback(async () => {
     try {
       await startAudioIfNeeded();
 
-      // Always verify instruments are loaded for current tracks —
-      // loadTrackInstrument returns immediately if already cached
       if (!isPlaying) {
-        const tracks = stateRef.current.pages[stateRef.current.currentPageIndex]?.tracks || [];
+        const tracks = stateRef.current.pages[stateRef.current.currentPageIndex]?.tracks ?? [];
         console.log('[app] Verifying', tracks.length, 'instruments before play...');
         await Promise.all(tracks.map((t) => {
-          const tw = customBuffersRef.current.has(t.id)
-            ? { ...t, _audioBuffer: customBuffersRef.current.get(t.id) }
-            : t;
+          const buffer = customBuffersRef.current.get(t.id);
+          const tw = buffer ? { ...t, _audioBuffer: buffer } : t;
           return audioEngine.loadTrackInstrument(tw);
         }));
         console.log('[app] All instruments ready');
@@ -326,13 +319,13 @@ function Drumlet() {
   }, [isPlaying, audioEngine, toggle, startAudioIfNeeded]);
 
   const plugin = usePluginSession({
-    audioEngine, audioFollowCore, state, currentPage,
+    audioEngine, audioFollowCore: audioFollowCore as never, state, currentPage,
     isPlaying, stop, handlePlay, activePreset, setPlayMode,
   });
   const {
     pluginOpen, selectedModeId, pluginSourceItem, pluginStatus, pluginCountdown,
     pluginResult, pluginShareUrl, pluginInputMode, pluginLoops, pluginTargetScore,
-    pluginPerformerName, pluginTurnLengthSteps, selectedModePlugin,
+    pluginPerformerName, pluginTurnLengthSteps,
     setSelectedModeId, setPluginInputMode, setPluginLoops, setPluginTargetScore,
     setPluginPerformerName, setPluginTurnLengthSteps,
     openPluginModal, closePluginModal: closePluginModalBase, handleStartPlugin, handleRetryPlugin,
@@ -344,22 +337,20 @@ function Drumlet() {
     setActivePadTrackIds(new Set());
   }, [closePluginModalBase]);
 
-  // MPC pad trigger — play a track's sound immediately
-  const handleMpcTrigger = useCallback((track) => {
+  const handleMpcTrigger = useCallback((track: Track) => {
     startAudioIfNeeded();
     audioEngine.previewSound(track);
     pulsePadTrack(track.id);
     recordPadEvent(track.id);
   }, [audioEngine, pulsePadTrack, recordPadEvent, startAudioIfNeeded]);
 
-  const handleDrop = useCallback(async (file, trackIndex) => {
+  const handleDrop = useCallback(async (file: File, trackIndex: number) => {
     try {
       setLoadingTracks((prev) => new Set([...prev, `drop-${trackIndex}`]));
       const audioBuffer = await audioEngine.loadCustomSample(file);
       const track = stateRef.current.pages[stateRef.current.currentPageIndex]?.tracks[trackIndex];
       if (!track) return;
 
-      // Store buffer in ref map for the audio engine to pick up
       customBuffersRef.current.set(track.id, audioBuffer);
 
       const name = file.name.replace(/\.[^.]+$/, '');
@@ -371,7 +362,6 @@ function Drumlet() {
         name,
       });
 
-      // Force-load immediately (the useEffect will also fire from state change)
       await audioEngine.loadTrackInstrument({
         ...track,
         sourceType: 'custom',
@@ -404,11 +394,11 @@ function Drumlet() {
       setActivePreset(null);
       markClean(nextState);
       if (sharedPayload.pluginMeta?.modeId) {
-        initFromSharedPayload(sharedPayload.pluginMeta);
+        initFromSharedPayload(sharedPayload.pluginMeta as never);
       }
-      // Clean hash to avoid reloading on refresh
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, markClean]);
 
   const handleImport = useCallback(async () => {
@@ -422,11 +412,11 @@ function Drumlet() {
       setActivePreset(null);
       markClean(nextState);
     }
-  }, [dispatch, markClean, stop]);
+  }, [dispatch, markClean, stop, setCurrentSaveId, setActivePreset]);
 
-  const handleActivateLibraryItem = useCallback((item, action = null) => {
-    const primaryAction = action || item.actions?.[0] || null;
-    const nextState = getFieldValue(item, 'pattern_state');
+  const handleActivateLibraryItem = useCallback((item: LibraryItem, action: LibraryAction | null = null) => {
+    const primaryAction = action ?? item.actions?.[0] ?? null;
+    const nextState = getFieldValue<SequencerState | null>(item, 'pattern_state', null);
 
     if (primaryAction?.kind === ACTION_KINDS.LOAD_STATE) {
       handleLoadLibraryState(item);
@@ -438,7 +428,7 @@ function Drumlet() {
         loadStateIntoSequencer(nextState, buildActivePresetFromLibraryItem(item), null, false);
       }
       setLibraryOpen(false);
-      openPluginModal(primaryAction.targetPluginId || PRACTICE_PLUGIN_ID, item);
+      openPluginModal(primaryAction.targetPluginId ?? PRACTICE_PLUGIN_ID, item as { title?: string });
       return;
     }
 
@@ -449,14 +439,14 @@ function Drumlet() {
 
     if (item.actions?.[0]?.targetPluginId) {
       setLibraryOpen(false);
-      openPluginModal(item.actions[0].targetPluginId, item);
+      openPluginModal(item.actions[0].targetPluginId, item as { title?: string });
     }
-  }, [buildActivePresetFromLibraryItem, handleLoadLibraryState, loadStateIntoSequencer, openPluginModal]);
+  }, [buildActivePresetFromLibraryItem, handleLoadLibraryState, loadStateIntoSequencer, openPluginModal, setLibraryOpen]);
 
   // Keyboard shortcuts
   useEffect(() => {
-    const handleKey = (e) => {
-      const tagName = e.target.tagName;
+    const handleKey = (e: KeyboardEvent) => {
+      const tagName = (e.target as HTMLElement | null)?.tagName;
       if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') return;
 
       const mappedTrackId = reversePadKeyMap[e.key.toLowerCase()];
@@ -479,13 +469,12 @@ function Drumlet() {
       if (e.code === 'ArrowRight' && e.shiftKey) {
         dispatch({ type: 'SET_BPM', bpm: state.bpm + 1 });
       }
-      // Number keys 1-9 for page switching
-      const num = parseInt(e.key);
+      const num = parseInt(e.key, 10);
       if (num >= 1 && num <= state.pages.length) {
         dispatch({ type: 'SET_CURRENT_PAGE', pageIndex: num - 1 });
       }
     };
-    const handleKeyUp = (e) => {
+    const handleKeyUp = (e: KeyboardEvent) => {
       const mappedTrackId = reversePadKeyMap[e.key.toLowerCase()];
       if (!mappedTrackId) return;
       setActivePadTrackIds((prev) => {
@@ -529,7 +518,6 @@ function Drumlet() {
           <span className="drumlet-version text-[9px] md:text-xs lg:text-sm font-mono text-muted bg-gray-100 px-1.5 py-0.5 rounded-full hidden md:inline">
             v0.1
           </span>
-          {/* Library — mobile: next to title */}
           <button
             className="action-btn md:hidden px-2 py-1 rounded-lg bg-sky/10 text-[10px] font-medium text-sky cursor-pointer flex items-center gap-1"
             onClick={openLibrary}
@@ -555,7 +543,6 @@ function Drumlet() {
           </button>
         </div>
 
-        {/* Mobile mini transport — visible on small screens */}
         <div className="mobile-mini-transport flex items-center gap-1 md:hidden flex-wrap justify-end">
           <button
             className={`mobile-save-btn relative w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 border
@@ -573,7 +560,6 @@ function Drumlet() {
             {isDirty && <span className="mobile-save-dot absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-coral" />}
           </button>
 
-          {/* Play */}
           <button
             className={`mobile-play-btn w-9 h-9 rounded-xl flex items-center justify-center text-white cursor-pointer transition-all active:scale-95
               ${isPlaying ? 'bg-stop' : 'bg-play'}`}
@@ -585,27 +571,24 @@ function Drumlet() {
               <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2 L14 8 L4 14 Z" /></svg>
             )}
           </button>
-          {/* BPM compact */}
           <BpmInput bpm={state.bpm} onSetBpm={(v) => dispatch({ type: 'SET_BPM', bpm: v })} compact />
-          {/* Time signature */}
           <select
             className="mobile-time-sig h-8 px-1 rounded-lg bg-gray-100 text-[10px] font-mono font-semibold text-muted cursor-pointer border-none outline-none"
-            value={`${state.beatsPerBar}/${TIME_SIGNATURES.find(ts => ts.num === state.beatsPerBar && ts.noteValue === state.noteValue)?.denom || 4}`}
+            value={`${state.beatsPerBar}/${TIME_SIGNATURES.find(ts => ts.num === state.beatsPerBar && ts.noteValue === state.noteValue)?.denom ?? 4}`}
             onChange={(e) => {
-              const ts = TIME_SIGNATURES.find(t => t.label === e.target.value);
-              if (ts) dispatch({ type: 'SET_TIME_SIG', beatsPerBar: ts.num, noteValue: ts.noteValue });
+              const ts = TIME_SIGNATURES.find((t) => t.label === e.target.value);
+              if (ts) dispatch({ type: 'SET_TIME_SIG', beatsPerBar: ts.num, noteValue: ts.noteValue as NoteValueKey });
             }}
           >
             {TIME_SIGNATURES.map((ts) => (
               <option key={ts.label} value={ts.label}>{ts.label}</option>
             ))}
           </select>
-          {/* Step divisor — compact note glyphs */}
           <div className="mobile-step-div flex items-center h-8 rounded-lg bg-gray-100 px-0.5">
             {[
-              { key: '1/16', glyph: '\uE1D9' },
-              { key: '1/8',  glyph: '\uE1D7' },
-              { key: '1/4',  glyph: '\uE1D5' },
+              { key: '1/16' as NoteValueKey, glyph: '\uE1D9' },
+              { key: '1/8'  as NoteValueKey, glyph: '\uE1D7' },
+              { key: '1/4'  as NoteValueKey, glyph: '\uE1D5' },
             ].map((opt) => (
               <button
                 key={opt.key}
@@ -617,7 +600,6 @@ function Drumlet() {
               </button>
             ))}
           </div>
-          {/* Preview toggle */}
           <button
             className={`mobile-preview-btn w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-all active:scale-95
               ${previewMode
@@ -634,7 +616,6 @@ function Drumlet() {
               <line x1="10" y1="2" x2="10" y2="5" />
             </svg>
           </button>
-          {/* Edit/Play mode toggle */}
           <button
             className={`mobile-mode-btn w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors
               ${playMode ? 'bg-coral/15 text-coral' : 'bg-gray-100 text-muted'}`}
@@ -653,7 +634,6 @@ function Drumlet() {
               </svg>
             )}
           </button>
-          {/* More controls (swing, humanize, actions) */}
           <button
             className="mobile-more-btn w-8 h-8 rounded-lg bg-gray-100 text-muted hover:text-text flex items-center justify-center cursor-pointer"
             onClick={() => setShowFullTransport((v) => !v)}
@@ -664,7 +644,6 @@ function Drumlet() {
           </button>
         </div>
 
-        {/* Desktop actions */}
         <div className="drumlet-actions hidden md:flex items-center gap-2">
           <button
             className="action-btn px-3 py-1.5 rounded-lg bg-sky/10 text-xs lg:text-sm font-medium text-sky hover:bg-sky/20 transition-colors cursor-pointer flex items-center gap-1.5"
@@ -702,7 +681,6 @@ function Drumlet() {
           <button className="action-btn px-3 py-1.5 rounded-lg bg-gray-50 text-xs lg:text-sm font-medium text-muted hover:bg-gray-100 hover:text-text transition-colors cursor-pointer" onClick={handleImport}>Import</button>
           <button className="action-btn px-3 py-1.5 rounded-lg bg-gray-50 text-xs lg:text-sm font-medium text-muted hover:bg-gray-100 hover:text-text transition-colors cursor-pointer" onClick={handleExport}>Export</button>
           <button className="action-btn px-3 py-1.5 rounded-lg bg-gray-50 text-xs lg:text-sm font-medium text-muted hover:bg-gray-100 hover:text-text transition-colors cursor-pointer" onClick={handleMidiExport}>MIDI</button>
-          {/* Edit/Play mode toggle — desktop */}
           <button
             className={`action-btn px-3 py-1.5 rounded-lg text-xs lg:text-sm font-medium cursor-pointer transition-colors flex items-center gap-1.5
               ${playMode ? 'bg-coral/15 text-coral' : 'bg-gray-50 text-muted hover:bg-gray-100 hover:text-text'}`}
@@ -713,11 +691,9 @@ function Drumlet() {
         </div>
       </div>
 
-      {/* Mobile expanded controls — swing, humanize, actions (no duplicate transport) */}
       {showFullTransport && (
         <div className="mobile-expanded-controls md:hidden mb-3 bg-card rounded-2xl shadow-sm border border-border px-3 py-2.5">
           <div className="mobile-expanded-row flex items-center gap-3 flex-wrap">
-            {/* Swing + target */}
             <div className="mobile-swing flex items-center gap-2">
               <div className="mobile-swing-dial flex flex-col items-center gap-0.5">
                 <span className="mobile-swing-label text-[9px] text-muted font-semibold uppercase tracking-wide">Swing</span>
@@ -731,7 +707,7 @@ function Drumlet() {
                 <span className="mobile-swing-value text-[9px] font-mono text-muted">{state.swing}</span>
               </div>
               <div className="swing-target-toggle flex flex-col gap-0.5">
-                {['8th', '16th'].map((t) => (
+                {(['8th', '16th'] as const).map((t) => (
                   <button
                     key={t}
                     className={`mobile-swing-target-btn px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold cursor-pointer transition-colors leading-tight
@@ -743,7 +719,6 @@ function Drumlet() {
                 ))}
               </div>
             </div>
-            {/* Humanize */}
             <div className="mobile-humanize flex flex-col items-center gap-0.5">
               <span className="mobile-humanize-label text-[9px] text-muted font-semibold uppercase tracking-wide">Human</span>
               <input
@@ -755,28 +730,28 @@ function Drumlet() {
               />
               <span className="mobile-humanize-value text-[9px] font-mono text-muted">{state.humanize}</span>
             </div>
-            {/* Tap tempo */}
             <button
               className="mobile-tap-btn px-2 py-1 rounded-lg bg-gray-100 text-[10px] font-semibold text-muted cursor-pointer active:scale-95"
               onClick={() => {
-                // Inline tap tempo for mobile
                 const now = performance.now();
                 tapTimesRef.current.push(now);
                 if (tapTimesRef.current.length > 5) tapTimesRef.current.shift();
                 if (tapTimesRef.current.length >= 2) {
-                  const intervals = [];
-                  for (let i = 1; i < tapTimesRef.current.length; i++) intervals.push(tapTimesRef.current[i] - tapTimesRef.current[i - 1]);
+                  const intervals: number[] = [];
+                  for (let i = 1; i < tapTimesRef.current.length; i++) intervals.push(tapTimesRef.current[i]! - tapTimesRef.current[i - 1]!);
                   const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
                   const tapBpm = Math.round(60000 / avg);
                   if (tapBpm >= 20 && tapBpm <= 300) dispatch({ type: 'SET_BPM', bpm: tapBpm });
                 }
-                setTimeout(() => { if (tapTimesRef.current.length && performance.now() - tapTimesRef.current[tapTimesRef.current.length - 1] > 2000) tapTimesRef.current = []; }, 2100);
+                setTimeout(() => {
+                  const last = tapTimesRef.current[tapTimesRef.current.length - 1];
+                  if (last && performance.now() - last > 2000) tapTimesRef.current = [];
+                }, 2100);
               }}
             >
               TAP
             </button>
           </div>
-          {/* Action buttons */}
           <div className="mobile-action-btns flex items-center gap-1.5 mt-2 flex-wrap">
             <button className="action-btn px-2.5 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-muted cursor-pointer" onClick={() => { setShareOpen(true); setShowFullTransport(false); }}>Share</button>
             <button className="action-btn px-2.5 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-muted cursor-pointer" onClick={handleImport}>Import</button>
@@ -786,7 +761,6 @@ function Drumlet() {
         </div>
       )}
 
-      {/* Desktop transport — hidden on mobile */}
       <div className="desktop-transport mb-4 hidden md:block">
         <Transport
           bpm={state.bpm}
@@ -812,13 +786,12 @@ function Drumlet() {
         />
       </div>
 
-      {/* Page tabs */}
       <div className="page-tabs-wrap mb-4" style={embed ? { display: 'none' } : undefined}>
         <PageTabs
           pages={state.pages}
           currentPageIndex={state.currentPageIndex}
           stepsPerPage={state.stepsPerPage}
-          stepOptions={getStepConfigs(TIME_SIGNATURES.find(t => t.num === state.beatsPerBar && t.noteValue === state.noteValue)?.label || '4/4')}
+          stepOptions={getStepConfigs(TIME_SIGNATURES.find(t => t.num === state.beatsPerBar && t.noteValue === state.noteValue)?.label ?? '4/4')}
           chainMode={state.chainMode}
           splitMode={toolbarSplit}
           selectedStep={selectedStep}
@@ -836,7 +809,6 @@ function Drumlet() {
         />
       </div>
 
-      {/* Preset header */}
       {activePreset && (
         <div className="preset-header flex items-center gap-3 mb-4">
           {activePreset.cover && (
@@ -844,7 +816,7 @@ function Drumlet() {
               src={activePreset.cover}
               alt={activePreset.name}
               className="preset-info-cover w-12 h-12 rounded-xl object-cover shrink-0"
-              onError={(e) => { e.target.style.display = 'none'; }}
+              onError={(e: SyntheticEvent<HTMLImageElement>) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           )}
           <div className="preset-info min-w-0">
@@ -877,7 +849,6 @@ function Drumlet() {
         </div>
       )}
 
-      {/* Notation view (lazy-loaded — VexFlow code-split) */}
       {notationView && currentPage && (
         <Suspense fallback={<div className="notation-loading mb-4 flex items-center justify-center py-8"><span className="notation-loading-text text-sm text-muted">Loading notation...</span></div>}>
           <div className="notation-view-wrap mb-4">
@@ -895,7 +866,6 @@ function Drumlet() {
         </Suspense>
       )}
 
-      {/* Grid */}
       {!notationView && currentPage && (
         <div className={`grid-wrap ${playMode ? 'pb-28' : ''}`}>
           <Grid
@@ -928,7 +898,6 @@ function Drumlet() {
         </div>
       )}
 
-      {/* Preset description */}
       {activePreset?.body && (
         <div className="preset-body mt-4 bg-card rounded-2xl shadow-sm border border-border px-5 py-4">
           <p className="preset-body-text text-sm lg:text-base text-text/80 leading-relaxed">{activePreset.body}</p>
@@ -938,7 +907,6 @@ function Drumlet() {
         </div>
       )}
 
-      {/* Loading overlay */}
       {loadingTracks.size > 0 && (
         <div className="loading-indicator fixed bottom-4 right-4 bg-card rounded-xl shadow-lg border border-border px-4 py-2 flex items-center gap-2">
           <div className="loading-indicator-dot w-3 h-3 rounded-full bg-sky animate-pulse" />
@@ -946,7 +914,6 @@ function Drumlet() {
         </div>
       )}
 
-      {/* MPC Pads — play mode on mobile or desktop */}
       {playMode && currentPage && (
         <div className={`mpc-pads-wrap ${playMode ? 'pb-24' : ''}`}>
           <MpcPads
@@ -958,12 +925,10 @@ function Drumlet() {
         </div>
       )}
 
-      {/* Keyboard shortcuts hint */}
       <div className="drumlet-shortcuts mt-6 text-center text-[10px] text-muted/50 hidden md:block" style={embed ? { display: 'none' } : undefined}>
         Space: play/stop &middot; Shift+←→: BPM &middot; 1-9: switch pages &middot; Right-click cell: clear
       </div>
 
-      {/* Library sidebar */}
       <Library
         isOpen={libraryOpen}
         onClose={() => {
@@ -985,12 +950,11 @@ function Drumlet() {
         state={state}
       />
 
-      {/* Sound picker overlay */}
       <SoundPicker
         isOpen={soundPickerTrackIndex !== null}
         onClose={handleCloseSoundPicker}
-        track={soundPickerTrackIndex !== null ? currentPage?.tracks?.[soundPickerTrackIndex] : null}
-        trackIndex={soundPickerTrackIndex}
+        track={soundPickerTrackIndex !== null ? (currentPage?.tracks?.[soundPickerTrackIndex] ?? null) : null}
+        trackIndex={soundPickerTrackIndex ?? 0}
         onChangeSource={handleChangeSource}
         onChangeProp={handleChangeProp}
         onPreview={handlePreviewSound}
@@ -1001,7 +965,6 @@ function Drumlet() {
         }}
       />
 
-      {/* Share modal */}
       <ShareModal
         isOpen={shareOpen}
         onClose={() => setShareOpen(false)}
@@ -1026,15 +989,14 @@ function Drumlet() {
         onSetTurnLengthSteps={setPluginTurnLengthSteps}
         status={pluginStatus}
         countdown={pluginCountdown}
-        result={pluginResult}
-        sourceLabel={pluginSourceItem?.title || activePreset?.name || 'Current pattern'}
+        result={pluginResult as never}
+        sourceLabel={pluginSourceItem?.title ?? activePreset?.name ?? 'Current pattern'}
         onStart={handleStartPlugin}
         onRetry={handleRetryPlugin}
         shareUrl={pluginShareUrl}
         audioDisclaimer="Audio mode currently uses basic onset detection and loose alignment scoring. Pads and keyboard are the more reliable input path."
       />
 
-      {/* Audio start overlay — browsers require user gesture to init AudioContext */}
       {!audioStarted && (
         <div className="audio-start-overlay fixed inset-0 z-50 flex items-center justify-center bg-bg/80 backdrop-blur-sm">
           <button
