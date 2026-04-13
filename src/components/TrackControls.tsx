@@ -1,4 +1,18 @@
-import { memo, useState, useRef } from 'react';
+import { memo, useState, useRef, type DragEvent, type HTMLAttributes } from 'react';
+import type { Track, VelMode } from '../state/sequencerReducer.js';
+
+interface TrackControlsProps {
+  track: Track;
+  trackIndex: number;
+  expanded: boolean;
+  onToggleExpand: () => void;
+  colWidth: string;
+  onChangeProp: (trackIndex: number, prop: keyof Track, value: unknown) => void;
+  onChangeVelMode: (trackIndex: number, mode: VelMode) => void;
+  onOpenSoundPicker: (trackIndex: number) => void;
+  onDrop: (file: File, trackIndex: number) => void;
+  dragHandleProps: HTMLAttributes<HTMLButtonElement> | null;
+}
 
 function TrackControls({
   track,
@@ -11,29 +25,29 @@ function TrackControls({
   onOpenSoundPicker,
   onDrop,
   dragHandleProps,
-}) {
+}: TrackControlsProps) {
   const [isDragOver, setIsDragOver] = useState(false);
-  const dropRef = useRef(null);
+  const dropRef = useRef<HTMLDivElement | null>(null);
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(true);
   };
 
-  const handleDragLeave = (e) => {
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
     const files = [...e.dataTransfer.files].filter((f) =>
       f.type.startsWith('audio/') || /\.(wav|ogg|mp3|flac)$/i.test(f.name)
     );
-    if (files.length > 0) {
+    if (files.length > 0 && files[0]) {
       onDrop(files[0], trackIndex);
     }
   };
@@ -46,9 +60,7 @@ function TrackControls({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Row 1: chevron + name on left, M/S/Vel on right (desktop only) */}
       <div className="track-controls-row1 flex items-center gap-1">
-        {/* Drag handle — reorder tracks */}
         {dragHandleProps && (
           <button
             type="button"
@@ -64,7 +76,6 @@ function TrackControls({
             </svg>
           </button>
         )}
-        {/* Expand chevron — mobile only, left-aligned next to name */}
         <button
           className="track-expand-btn lg:hidden w-5 h-5 rounded bg-gray-100 text-muted hover:bg-gray-200 flex items-center justify-center cursor-pointer transition-colors shrink-0"
           onClick={onToggleExpand}
@@ -92,7 +103,6 @@ function TrackControls({
 
         <div className="track-controls-spacer flex-1" />
 
-        {/* M/S/Vel — always visible on lg */}
         <div className="track-msvl hidden lg:flex items-center gap-1">
           <button
             className={`track-mute-btn w-6 h-6 rounded text-xs font-bold cursor-pointer transition-colors shrink-0
@@ -117,7 +127,7 @@ function TrackControls({
               ${(track.velMode || 3) > 1 ? 'bg-lavender/20 text-lavender' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
             onClick={() => {
               const cur = track.velMode || 3;
-              const next = cur === 1 ? 3 : cur === 3 ? 7 : 1;
+              const next: VelMode = cur === 1 ? 3 : cur === 3 ? 7 : 1;
               onChangeVelMode(trackIndex, next);
             }}
             title={`Velocity: ${track.velMode || 3} levels (click to cycle)`}
@@ -127,7 +137,6 @@ function TrackControls({
         </div>
       </div>
 
-      {/* Row 2 (desktop): Volume slider — always visible on lg */}
       <div className="track-controls-row2 hidden lg:flex items-center gap-1.5 pl-1.5">
         <span className="track-volume-label text-xs text-muted font-semibold uppercase w-5 shrink-0">Vol</span>
         <input
@@ -142,10 +151,8 @@ function TrackControls({
         <span className="track-volume-value text-xs font-mono text-muted w-5 text-right shrink-0">{track.volume}</span>
       </div>
 
-      {/* Mobile expanded panel — drops down below name */}
       {expanded && (
         <div className="track-mobile-panel lg:hidden flex flex-col gap-1 pt-1 border-t border-border/50">
-          {/* M/S/Vel row */}
           <div className="track-mobile-msvl flex items-center gap-1">
             <button
               className={`track-mute-btn w-6 h-6 rounded text-xs font-bold cursor-pointer transition-colors shrink-0
@@ -168,7 +175,7 @@ function TrackControls({
                 ${(track.velMode || 3) > 1 ? 'bg-lavender/20 text-lavender' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
               onClick={() => {
                 const cur = track.velMode || 3;
-                const next = cur === 1 ? 3 : cur === 3 ? 7 : 1;
+                const next: VelMode = cur === 1 ? 3 : cur === 3 ? 7 : 1;
                 onChangeVelMode(trackIndex, next);
               }}
               title={`Velocity: ${track.velMode || 3} levels`}
@@ -178,7 +185,6 @@ function TrackControls({
             <div className="track-mobile-spacer flex-1" />
             <span className="track-mobile-volume-value text-xs font-mono text-muted">{track.volume}</span>
           </div>
-          {/* Volume slider */}
           <div className="track-mobile-volume flex items-center gap-1.5">
             <span className="track-mobile-volume-label text-xs text-muted font-semibold uppercase shrink-0">Vol</span>
             <input

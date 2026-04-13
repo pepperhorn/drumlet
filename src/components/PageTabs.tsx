@@ -1,8 +1,41 @@
 import { memo, useCallback, useRef, useState } from 'react';
-import SectionHeadingEditor from './SectionHeadingEditor.jsx';
+import SectionHeadingEditor from './SectionHeadingEditor.js';
+import type { Page, SectionHeading, SplitCount } from '../state/sequencerReducer.js';
 
-const SPLIT_OPTIONS = [null, 2, 3, 4];
-const SPLIT_LABELS = { null: '\u2014', 2: '2', 3: '3', 4: '4' };
+const SPLIT_OPTIONS: (SplitCount | null)[] = [null, 2, 3, 4];
+const SPLIT_LABELS: Record<string, string> = { 'null': '\u2014', '2': '2', '3': '3', '4': '4' };
+
+interface StepOption {
+  steps: number;
+  stepValue?: string;
+  default?: boolean;
+}
+
+interface AnchorRect {
+  left: number;
+  bottom: number;
+}
+
+interface PageTabsProps {
+  pages: Page[];
+  currentPageIndex: number;
+  stepsPerPage: number;
+  stepOptions?: StepOption[];
+  chainMode: boolean;
+  splitMode: SplitCount | null;
+  selectedStep: number | null;
+  sectionHeadings?: SectionHeading[];
+  onSetPage: (i: number) => void;
+  onAddPage: () => void;
+  onRemovePage: (i: number) => void;
+  onSetStepsPerPage: (n: number) => void;
+  onToggleChainMode: () => void;
+  onSetSplitMode: (val: SplitCount | null) => void;
+  onClearPage: () => void;
+  onAddSectionHeading?: (step: number, label: string) => void;
+  onUpdateSectionHeading?: (id: string, label: string) => void;
+  onRemoveSectionHeading?: (id: string) => void;
+}
 
 function PageTabs({
   pages,
@@ -23,13 +56,13 @@ function PageTabs({
   onAddSectionHeading,
   onUpdateSectionHeading,
   onRemoveSectionHeading,
-}) {
-  const containerRef = useRef(null);
-  const sectionBtnRef = useRef(null);
-  const [editorAnchor, setEditorAnchor] = useState(null);
+}: PageTabsProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const sectionBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [editorAnchor, setEditorAnchor] = useState<AnchorRect | null>(null);
 
-  const existingHeading = (selectedStep != null && sectionHeadings)
-    ? sectionHeadings.find(h => h.step === selectedStep) || null
+  const existingHeading: SectionHeading | null = (selectedStep != null && sectionHeadings)
+    ? sectionHeadings.find((h) => h.step === selectedStep) ?? null
     : null;
   const sectionEnabled = selectedStep != null;
 
@@ -43,7 +76,7 @@ function PageTabs({
     });
   }, [sectionEnabled]);
 
-  const handleSectionSave = useCallback((label) => {
+  const handleSectionSave = useCallback((label: string) => {
     if (selectedStep == null) return;
     if (existingHeading) onUpdateSectionHeading?.(existingHeading.id, label);
     else onAddSectionHeading?.(selectedStep, label);
@@ -57,7 +90,6 @@ function PageTabs({
 
   return (
     <div ref={containerRef} className="page-tabs relative flex items-center gap-2 lg:gap-3 bg-card rounded-2xl shadow-sm border border-border px-3 lg:px-4 py-2 lg:py-2.5 overflow-x-auto grid-scroll">
-      {/* Page tabs */}
       <div className="page-tab-list flex items-center gap-1">
         {pages.map((page, i) => (
           <button
@@ -88,10 +120,9 @@ function PageTabs({
 
       <div className="page-divider w-px h-6 bg-border shrink-0" />
 
-      {/* Steps per page */}
       <div className="steps-selector flex items-center gap-1 shrink-0">
         <span className="steps-selector-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide mr-1">Steps</span>
-        {(stepOptions || [{ steps: 16 }]).map(({ steps }) => (
+        {(stepOptions ?? [{ steps: 16 }]).map(({ steps }) => (
           <button
             key={steps}
             className={`steps-option px-2 py-0.5 rounded text-xs lg:text-sm font-mono cursor-pointer transition-colors
@@ -106,10 +137,8 @@ function PageTabs({
         ))}
       </div>
 
-
       <div className="page-divider w-px h-6 bg-border shrink-0" />
 
-      {/* Split mode */}
       <div className="split-selector flex items-center gap-1 shrink-0">
         <span className="split-selector-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide mr-1">Split</span>
         {SPLIT_OPTIONS.map((val) => (
@@ -130,7 +159,6 @@ function PageTabs({
 
       <div className="page-divider w-px h-6 bg-border shrink-0" />
 
-      {/* Chain mode */}
       <button
         className={`chain-mode-btn shrink-0 px-3 py-1 rounded-lg text-xs lg:text-sm font-semibold cursor-pointer transition-all
           ${chainMode
@@ -145,7 +173,6 @@ function PageTabs({
 
       <div className="page-divider w-px h-6 bg-border shrink-0" />
 
-      {/* Section heading button */}
       <button
         ref={sectionBtnRef}
         className={`section-btn shrink-0 px-3 py-1 rounded-lg text-xs lg:text-sm font-semibold cursor-pointer transition-all border
@@ -158,13 +185,12 @@ function PageTabs({
         onClick={openSectionEditor}
         disabled={!sectionEnabled}
         title={sectionEnabled
-          ? (existingHeading ? `Edit "${existingHeading.label}" at step ${selectedStep + 1}` : `Add section heading at step ${selectedStep + 1}`)
+          ? (existingHeading ? `Edit "${existingHeading.label}" at step ${(selectedStep ?? 0) + 1}` : `Add section heading at step ${(selectedStep ?? 0) + 1}`)
           : 'Select a step number to add a section heading'}
       >
         {existingHeading ? `§ ${existingHeading.label}` : '+ Section'}
       </button>
 
-      {/* Clear page */}
       <button
         className="clear-page-btn shrink-0 px-3 py-1 rounded-lg text-xs text-muted bg-gray-50 hover:bg-red-50 hover:text-stop cursor-pointer transition-colors"
         onClick={onClearPage}

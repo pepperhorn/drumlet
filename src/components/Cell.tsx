@@ -1,26 +1,63 @@
-import { memo, useRef, useState, useEffect } from 'react';
+import { memo, useRef, useState, useEffect, type CSSProperties } from 'react';
 import { getVelocityLabel, getVelocityOpacity } from '../audio/velocityConfig.js';
+import type { VelMode } from '../state/sequencerReducer.js';
 
-const BAR_LINE_STYLE = {
+const BAR_LINE_STYLE: CSSProperties = {
   borderLeftWidth: 2,
   borderLeftStyle: 'dashed',
   borderLeftColor: 'color-mix(in srgb, var(--color-sky) 30%, transparent)',
 };
 
-function Cell({ velocity, velMode, color, isPlayhead, isBeatStart, isBarStart, onClick, onRightClick,
-                splitData, isActive, isExpanded, onExpandToggle, onToggleSubStep, onClearSubStep }) {
+interface CellProps {
+  velocity: number;
+  velMode: VelMode;
+  color: string;
+  isPlayhead: boolean;
+  isBeatStart: boolean;
+  isBarStart: boolean;
+  onClick?: () => void;
+  onRightClick?: () => void;
+  splitData: number[] | null;
+  isActive?: boolean;
+  isExpanded?: boolean;
+  onExpandToggle?: () => void;
+  onToggleSubStep?: (i: number) => void;
+  onClearSubStep?: (i: number) => void;
+}
+
+interface SpinState {
+  from: string;
+  to: string;
+  direction: 'up' | 'down';
+}
+
+function Cell({
+  velocity,
+  velMode,
+  color,
+  isPlayhead,
+  isBeatStart,
+  isBarStart,
+  onClick,
+  onRightClick,
+  splitData,
+  isActive,
+  isExpanded,
+  onExpandToggle,
+  onToggleSubStep,
+  onClearSubStep,
+}: CellProps) {
   const label = getVelocityLabel(velocity, velMode);
   const opacity = getVelocityOpacity(velocity, velMode);
   const prevVelRef = useRef(velocity);
-  const [spin, setSpin] = useState(null); // { from, to, direction }
+  const [spin, setSpin] = useState<SpinState | null>(null);
 
   useEffect(() => {
     const prev = prevVelRef.current;
     prevVelRef.current = velocity;
     if (prev === velocity) return;
 
-    // Determine spin direction: up when increasing, down when going to 0
-    const direction = velocity === 0 ? 'down' : 'up';
+    const direction: 'up' | 'down' = velocity === 0 ? 'down' : 'up';
     setSpin({ from: getVelocityLabel(prev, velMode), to: label, direction });
 
     const timer = setTimeout(() => setSpin(null), 200);
@@ -69,7 +106,6 @@ function Cell({ velocity, velMode, color, isPlayhead, isBeatStart, isBarStart, o
   if (splitData && isExpanded) {
     return (
       <div className={`step-cell-expanded-wrap ${isBeatStart ? 'ml-1.5' : 'ml-0.5'}`} style={isBarStart ? BAR_LINE_STYLE : undefined}>
-        {/* Master cell — click to collapse */}
         <button
           className={`step-cell step-cell-split-master relative w-9 h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
             flex items-stretch overflow-hidden select-none
@@ -95,7 +131,6 @@ function Cell({ velocity, velMode, color, isPlayhead, isBeatStart, isBarStart, o
             );
           })}
         </button>
-        {/* Sub-cells below */}
         <div className="split-subcells flex flex-col gap-0.5 mt-0.5">
           {splitData.map((subVel, i) => {
             const subLabel = getVelocityLabel(subVel, velMode);
@@ -155,14 +190,12 @@ function Cell({ velocity, velMode, color, isPlayhead, isBeatStart, isBarStart, o
     >
       {spin ? (
         <span className="step-cell-spin absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          {/* Old label spinning out */}
           <span
             className="step-cell-label text-white drop-shadow-sm absolute cell-spin-out"
             style={{ animationDirection: spin.direction === 'up' ? 'normal' : 'reverse' }}
           >
             {spin.from || '\u00A0'}
           </span>
-          {/* New label spinning in */}
           <span
             className="step-cell-label text-white drop-shadow-sm absolute cell-spin-in"
             style={{

@@ -1,14 +1,20 @@
-import { memo, useRef, useCallback, useState } from 'react';
+import { memo, useRef, useCallback, useState, type KeyboardEvent } from 'react';
 import { TIME_SIGNATURES } from '../state/sequencerReducer.js';
+import type { NoteValueKey } from '../state/sequencerReducer.js';
 
-// Ensure Petaluma font is loaded (VexFlow registers it via FontFace API)
 import VexFlow from 'vexflow';
 VexFlow.setFonts('Petaluma', 'Petaluma Script');
 
-export function BpmInput({ bpm, onSetBpm, compact }) {
-  const [text, setText] = useState(null);
-  const commit = useCallback((raw) => {
-    const v = parseInt(raw, 10);
+interface BpmInputProps {
+  bpm: number;
+  onSetBpm: (bpm: number) => void;
+  compact?: boolean;
+}
+
+export function BpmInput({ bpm, onSetBpm, compact }: BpmInputProps) {
+  const [text, setText] = useState<string | null>(null);
+  const commit = useCallback((raw: string | null) => {
+    const v = parseInt(raw ?? '', 10);
     setText(null);
     if (!isNaN(v)) onSetBpm(Math.max(20, Math.min(300, v)));
   }, [onSetBpm]);
@@ -22,32 +28,37 @@ export function BpmInput({ bpm, onSetBpm, compact }) {
         : 'bpm-input w-16 h-8 lg:w-20 lg:h-9 px-2 rounded-lg bg-bg border border-border text-center font-mono font-semibold text-sm lg:text-base outline-none focus:border-sky transition-colors'
       }
       value={text !== null ? text : bpm}
-      onFocus={(e) => { setText(String(bpm)); e.target.select(); }}
+      onFocus={(e) => { setText(String(bpm)); e.currentTarget.select(); }}
       onBlur={() => commit(text)}
       onChange={(e) => setText(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') { commit(text); e.target.blur(); }
-        if (e.key === 'Escape') { setText(null); e.target.blur(); }
+      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') { commit(text); e.currentTarget.blur(); }
+        if (e.key === 'Escape') { setText(null); e.currentTarget.blur(); }
       }}
     />
   );
 }
 
-// SMuFL codepoints for Petaluma note glyphs (stem up variants)
-const STEP_OPTIONS = [
+const STEP_OPTIONS: { key: NoteValueKey; label: string; glyph: string }[] = [
   { key: '1/16', label: '16th',    glyph: '\uE1D9' },
   { key: '1/8',  label: '8th',     glyph: '\uE1D7' },
   { key: '1/4',  label: 'Quarter', glyph: '\uE1D5' },
   { key: '1/2',  label: 'Half',    glyph: '\uE1D3' },
 ];
 
-function Dial({ label, value = 0, onChange, color = 'sky' }) {
+interface DialProps {
+  label: string;
+  value?: number;
+  onChange: (value: number) => void;
+  color?: string;
+}
+
+function Dial({ label, value = 0, onChange, color = 'sky' }: DialProps) {
   const safeValue = Number(value) || 0;
   return (
     <div className="transport-dial flex flex-col items-center gap-1">
       <span className="dial-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide">{label}</span>
       <div className="dial-ring relative w-10 h-10 lg:w-12 lg:h-12">
-        {/* Background ring */}
         <svg viewBox="0 0 40 40" className="dial-ring-svg w-full h-full">
           <circle
             cx="20" cy="20" r="16"
@@ -71,11 +82,9 @@ function Dial({ label, value = 0, onChange, color = 'sky' }) {
             transform="rotate(135 20 20)"
           />
         </svg>
-        {/* Value label */}
         <span className="dial-value absolute inset-0 flex items-center justify-center text-[10px] lg:text-xs font-mono font-semibold text-text">
           {safeValue}
         </span>
-        {/* Invisible range input overlay */}
         <input
           type="range"
           className="dial-input absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -99,8 +108,52 @@ function SaveIcon() {
   );
 }
 
-function Transport({ bpm, noteValue, beatsPerBar, stepValue, swing, swingTarget = '8th', humanize, isPlaying, previewMode, isDirty, hasSaveId, onSave, onTogglePlay, onSetBpm, onSetTimeSig, onSetStepValue, onSetSwing, onSetSwingTarget, onSetHumanize, onTogglePreview }) {
-  const tapTimesRef = useRef([]);
+interface TransportProps {
+  bpm: number;
+  noteValue: NoteValueKey;
+  beatsPerBar: number;
+  stepValue: NoteValueKey;
+  swing: number;
+  swingTarget?: '8th' | '16th';
+  humanize: number;
+  isPlaying: boolean;
+  previewMode: boolean;
+  isDirty: boolean;
+  hasSaveId: boolean;
+  onSave: () => void;
+  onTogglePlay: () => void;
+  onSetBpm: (bpm: number) => void;
+  onSetTimeSig: (beatsPerBar: number, noteValue: NoteValueKey) => void;
+  onSetStepValue: (stepValue: NoteValueKey) => void;
+  onSetSwing: (swing: number) => void;
+  onSetSwingTarget: (target: '8th' | '16th') => void;
+  onSetHumanize: (humanize: number) => void;
+  onTogglePreview: () => void;
+}
+
+function Transport({
+  bpm,
+  noteValue,
+  beatsPerBar,
+  stepValue,
+  swing,
+  swingTarget = '8th',
+  humanize,
+  isPlaying,
+  previewMode,
+  isDirty,
+  hasSaveId,
+  onSave,
+  onTogglePlay,
+  onSetBpm,
+  onSetTimeSig,
+  onSetStepValue,
+  onSetSwing,
+  onSetSwingTarget,
+  onSetHumanize,
+  onTogglePreview,
+}: TransportProps) {
+  const tapTimesRef = useRef<number[]>([]);
 
   const handleTap = useCallback(() => {
     const now = performance.now();
@@ -112,9 +165,9 @@ function Transport({ bpm, noteValue, beatsPerBar, stepValue, swing, swingTarget 
 
     if (tapTimesRef.current.length >= 2) {
       const times = tapTimesRef.current;
-      const intervals = [];
+      const intervals: number[] = [];
       for (let i = 1; i < times.length; i++) {
-        intervals.push(times[i] - times[i - 1]);
+        intervals.push(times[i]! - times[i - 1]!);
       }
       const avgMs = intervals.reduce((a, b) => a + b, 0) / intervals.length;
       const tapBpm = Math.round(60000 / avgMs);
@@ -145,7 +198,6 @@ function Transport({ bpm, noteValue, beatsPerBar, stepValue, swing, swingTarget 
         {isDirty && <span className="transport-save-dot absolute top-2 right-2 w-2 h-2 rounded-full bg-coral" />}
       </button>
 
-      {/* Play / Stop */}
       <button
         className={`transport-play-btn w-11 h-11 rounded-xl flex items-center justify-center text-white text-lg cursor-pointer transition-all active:scale-95
           ${isPlaying ? 'bg-stop hover:bg-red-500' : 'bg-play hover:bg-green-600'}`}
@@ -163,7 +215,6 @@ function Transport({ bpm, noteValue, beatsPerBar, stepValue, swing, swingTarget 
         )}
       </button>
 
-      {/* BPM */}
       <div className="transport-bpm flex items-center gap-2">
         <span className="transport-bpm-label text-xs lg:text-sm text-muted font-semibold uppercase tracking-wide">BPM</span>
         <BpmInput bpm={bpm} onSetBpm={onSetBpm} />
@@ -177,7 +228,6 @@ function Transport({ bpm, noteValue, beatsPerBar, stepValue, swing, swingTarget 
         />
       </div>
 
-      {/* Tap Tempo */}
       <button
         className="transport-tap-btn px-3 py-1.5 rounded-lg bg-gray-100 text-xs lg:text-sm font-semibold text-muted hover:bg-gray-200 hover:text-text transition-colors cursor-pointer active:scale-95"
         onClick={handleTap}
@@ -185,20 +235,17 @@ function Transport({ bpm, noteValue, beatsPerBar, stepValue, swing, swingTarget 
         TAP
       </button>
 
-      {/* Divider */}
       <div className="transport-divider w-px h-8 bg-border" />
 
-      {/* Labeled controls — aligned tops */}
       <div className="transport-controls flex items-start gap-4">
-        {/* Time signature */}
         <div className="transport-time-sig flex flex-col items-center gap-1">
           <span className="transport-time-sig-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide">Time</span>
           <select
             className="transport-time-sig-select h-10 lg:h-12 px-2 rounded-lg bg-gray-100 text-xs lg:text-sm font-mono font-semibold text-muted hover:bg-gray-200 hover:text-text transition-colors cursor-pointer border-none outline-none"
-            value={`${beatsPerBar}/${TIME_SIGNATURES.find(ts => ts.num === beatsPerBar && ts.noteValue === noteValue)?.denom || 4}`}
+            value={`${beatsPerBar}/${TIME_SIGNATURES.find(ts => ts.num === beatsPerBar && ts.noteValue === noteValue)?.denom ?? 4}`}
             onChange={(e) => {
-              const ts = TIME_SIGNATURES.find(t => t.label === e.target.value);
-              if (ts) onSetTimeSig(ts.num, ts.noteValue);
+              const ts = TIME_SIGNATURES.find((t) => t.label === e.target.value);
+              if (ts) onSetTimeSig(ts.num, ts.noteValue as NoteValueKey);
             }}
           >
             {TIME_SIGNATURES.map((ts) => (
@@ -207,7 +254,6 @@ function Transport({ bpm, noteValue, beatsPerBar, stepValue, swing, swingTarget 
           </select>
         </div>
 
-        {/* Step divisor — Petaluma note glyph buttons */}
         <div className="transport-step-div flex flex-col items-center gap-1">
           <span className="transport-step-div-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide">Step Div</span>
           <div className="transport-step-btns flex items-center h-10 lg:h-12 rounded-lg bg-gray-100 px-0.5">
@@ -225,7 +271,6 @@ function Transport({ bpm, noteValue, beatsPerBar, stepValue, swing, swingTarget 
           </div>
         </div>
 
-        {/* Preview / Audition toggle */}
         <div className="transport-preview flex flex-col items-center gap-1">
           <span className="transport-preview-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide">Preview</span>
           <button
@@ -246,11 +291,10 @@ function Transport({ bpm, noteValue, beatsPerBar, stepValue, swing, swingTarget 
           </button>
         </div>
 
-        {/* Swing dial + target */}
         <div className="transport-swing flex items-end gap-1.5">
           <Dial label="Swing" value={swing} onChange={onSetSwing} color="amber" />
           <div className="swing-target-toggle flex flex-col items-center gap-0.5 pb-0.5">
-            {['8th', '16th'].map((t) => (
+            {(['8th', '16th'] as const).map((t) => (
               <button
                 key={t}
                 className={`swing-target-btn px-1.5 py-0.5 rounded text-[9px] lg:text-[10px] font-mono font-semibold cursor-pointer transition-colors leading-tight
@@ -267,11 +311,9 @@ function Transport({ bpm, noteValue, beatsPerBar, stepValue, swing, swingTarget 
           </div>
         </div>
 
-        {/* Humanize dial */}
         <Dial label="Human" value={humanize} onChange={onSetHumanize} color="lavender" />
       </div>
 
-      {/* Playing indicator */}
       {isPlaying && (
         <div className="transport-indicator flex items-center gap-1.5 ml-auto">
           <div className="transport-indicator-dot w-2 h-2 rounded-full bg-play pulse-play" />

@@ -1,11 +1,11 @@
-import { memo } from 'react';
+import { memo, type ReactElement } from 'react';
+import type { Track } from '../state/sequencerReducer.js';
 
 /**
  * Minimal SVG icons for drum/instrument types.
- * Each is a function returning fresh JSX to avoid shared element refs.
  */
 
-const icons = {
+const icons: Record<string, () => ReactElement> = {
   kick: () => (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <circle cx="8" cy="8" r="6.5" /><circle cx="8" cy="8" r="2.5" />
@@ -87,11 +87,11 @@ const icons = {
   ),
 };
 
-function getIconKey(track) {
+function getIconKey(track: Pick<Track, 'sourceType' | 'kitSample' | 'group'>): string {
   if (track.sourceType === 'custom') return 'custom';
   if (track.sourceType === 'soundfont') return 'soundfont';
 
-  const group = (track.kitSample || track.group || '').toLowerCase();
+  const group = (track.kitSample ?? track.group ?? '').toLowerCase();
 
   if (group.startsWith('kick')) return 'kick';
   if (group.startsWith('snare')) return 'snare';
@@ -109,9 +109,14 @@ function getIconKey(track) {
   return 'kick';
 }
 
-function TrackIcon({ track, className = '' }) {
+interface TrackIconProps {
+  track: Pick<Track, 'sourceType' | 'kitSample' | 'group'>;
+  className?: string;
+}
+
+function TrackIcon({ track, className = '' }: TrackIconProps) {
   const key = getIconKey(track);
-  const renderIcon = icons[key] || icons.kick;
+  const renderIcon = icons[key] ?? icons.kick!;
 
   return (
     <span className={`track-icon inline-flex items-center justify-center w-4 h-4 lg:w-5 lg:h-5 shrink-0 ${className}`}>

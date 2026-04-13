@@ -1,7 +1,15 @@
 import { memo } from 'react';
-import TrackIcon from './TrackIcon.jsx';
+import TrackIcon from './TrackIcon.js';
+import type { Track } from '../state/sequencerReducer.js';
 
-function MpcPads({ tracks, onTrigger, keyMap = {}, activeTrackIds = new Set() }) {
+interface MpcPadsProps {
+  tracks: Track[];
+  onTrigger: (track: Track) => void;
+  keyMap?: Record<string, string>;
+  activeTrackIds?: Set<string>;
+}
+
+function MpcPads({ tracks, onTrigger, keyMap = {}, activeTrackIds = new Set() }: MpcPadsProps) {
   return (
     <div className="mpc-pads fixed bottom-0 left-0 right-0 z-30 bg-card border-t border-border px-2 py-2 safe-area-bottom">
       <div className="mpc-pads-grid grid gap-1.5" style={{
@@ -12,7 +20,7 @@ function MpcPads({ tracks, onTrigger, keyMap = {}, activeTrackIds = new Set() })
             key={track.id}
             track={track}
             onTrigger={onTrigger}
-            keyHint={keyMap[track.id] || ''}
+            keyHint={keyMap[track.id] ?? ''}
             active={activeTrackIds.has(track.id)}
           />
         ))}
@@ -21,7 +29,14 @@ function MpcPads({ tracks, onTrigger, keyMap = {}, activeTrackIds = new Set() })
   );
 }
 
-function MpcPad({ track, onTrigger, keyHint, active }) {
+interface MpcPadProps {
+  track: Track;
+  onTrigger: (track: Track) => void;
+  keyHint: string;
+  active: boolean;
+}
+
+function MpcPad({ track, onTrigger, keyHint, active }: MpcPadProps) {
   return (
     <button
       className="mpc-pad relative rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer select-none

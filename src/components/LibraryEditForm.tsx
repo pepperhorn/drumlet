@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import type { SequencerState } from '../state/sequencerReducer.js';
+import type { LibraryEntry } from '../state/userLibrary.js';
+import type { ActivePreset, LibraryEditMode } from '../state/useLibraryActions.js';
 
-/**
- * Inline form for saving / editing a user library entry.
- * Replaces Library content when editMode is set.
- */
-export default function LibraryEditForm({ editMode, entry, activePreset, state, onSave, onCancel, onDelete }) {
+interface LibraryEditFormProps {
+  editMode: LibraryEditMode;
+  entry?: LibraryEntry | null;
+  activePreset?: ActivePreset | null;
+  state: SequencerState;
+  onSave: (metadata: Record<string, unknown>) => void;
+  onCancel: () => void;
+  onDelete?: () => void;
+}
+
+export default function LibraryEditForm({ editMode, entry, activePreset, state, onSave, onCancel, onDelete }: LibraryEditFormProps) {
   const isNew = editMode.isNew;
 
   const [name, setName] = useState('');
@@ -16,9 +25,9 @@ export default function LibraryEditForm({ editMode, entry, activePreset, state, 
   const [notes, setNotes] = useState('');
   const [wikipedia, setWikipedia] = useState('');
   const [spotify, setSpotify] = useState('');
-  const [youtube, setYoutube] = useState(entry?.links?.youtube || activePreset?.links?.youtube || '');
+  const [youtube, setYoutube] = useState(entry?.links?.youtube ?? activePreset?.links?.youtube ?? '');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onSave({
       name: name.trim() || 'Untitled',
@@ -33,7 +42,7 @@ export default function LibraryEditForm({ editMode, entry, activePreset, state, 
         spotify: spotify.trim(),
         youtube: youtube.trim(),
       },
-      sourcePreset: entry?.sourcePreset || activePreset?.name || null,
+      sourcePreset: entry?.sourcePreset ?? activePreset?.name ?? null,
     });
   };
 
@@ -43,13 +52,11 @@ export default function LibraryEditForm({ editMode, entry, activePreset, state, 
         {isNew ? 'Save to Your Library' : 'Edit Pattern'}
       </h3>
 
-      {/* Auto-populated info */}
       <div className="edit-form-auto-info flex gap-3 text-xs text-muted mb-5 px-1">
-        <span className="edit-form-bpm font-mono">{state?.bpm || '—'} BPM</span>
-        {(state?.swing > 0) && <span className="edit-form-swing font-mono">Swing {state.swing}</span>}
+        <span className="edit-form-bpm font-mono">{state?.bpm ?? '—'} BPM</span>
+        {(state?.swing ?? 0) > 0 && <span className="edit-form-swing font-mono">Swing {state.swing}</span>}
       </div>
 
-      {/* Name */}
       <div className="edit-field mb-4">
         <label className="edit-label block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5" htmlFor="edit-name">
           Name
@@ -65,7 +72,6 @@ export default function LibraryEditForm({ editMode, entry, activePreset, state, 
         />
       </div>
 
-      {/* In the style of toggle */}
       <div className="edit-field mb-4 flex items-center gap-3">
         <button
           type="button"
@@ -81,7 +87,6 @@ export default function LibraryEditForm({ editMode, entry, activePreset, state, 
         </label>
       </div>
 
-      {/* Credit */}
       <div className="edit-field mb-4">
         <label className="edit-label block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5" htmlFor="edit-credit">
           Credit
@@ -96,7 +101,6 @@ export default function LibraryEditForm({ editMode, entry, activePreset, state, 
         />
       </div>
 
-      {/* Credit URL */}
       <div className="edit-field mb-4">
         <label className="edit-label block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5" htmlFor="edit-credit-url">
           Credit URL
@@ -111,7 +115,6 @@ export default function LibraryEditForm({ editMode, entry, activePreset, state, 
         />
       </div>
 
-      {/* Cover Image URL */}
       <div className="edit-field mb-4">
         <label className="edit-label block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5" htmlFor="edit-cover">
           Cover Image URL
@@ -126,7 +129,6 @@ export default function LibraryEditForm({ editMode, entry, activePreset, state, 
         />
       </div>
 
-      {/* Description */}
       <div className="edit-field mb-4">
         <label className="edit-label block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5" htmlFor="edit-body">
           Description
@@ -140,7 +142,6 @@ export default function LibraryEditForm({ editMode, entry, activePreset, state, 
         />
       </div>
 
-      {/* Notes */}
       <div className="edit-field mb-4">
         <label className="edit-label block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5" htmlFor="edit-notes">
           Performance Notes
@@ -154,7 +155,6 @@ export default function LibraryEditForm({ editMode, entry, activePreset, state, 
         />
       </div>
 
-      {/* Links */}
       <div className="edit-links-section mb-6">
         <span className="edit-label block text-xs font-semibold uppercase tracking-wider text-muted mb-2">
           Reference Links
@@ -193,7 +193,6 @@ export default function LibraryEditForm({ editMode, entry, activePreset, state, 
         </div>
       </div>
 
-      {/* Actions */}
       <div className="edit-form-actions flex items-center gap-3">
         <button
           type="submit"

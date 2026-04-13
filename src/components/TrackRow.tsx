@@ -1,9 +1,38 @@
 import { memo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import Cell from './Cell.jsx';
-import TrackControls from './TrackControls.jsx';
+import Cell from './Cell.js';
+import TrackControls from './TrackControls.js';
 import { isSplit, masterVelocity, effectiveStep } from '../util/stepHelpers.js';
+import type { Track, CellRef, VelMode } from '../state/sequencerReducer.js';
+
+interface ExpandedSplitCell {
+  trackIndex: number;
+  stepIndex: number;
+}
+
+interface TrackRowProps {
+  track: Track;
+  trackIndex: number;
+  currentStep: number;
+  stepsPerPage: number;
+  stepsPerBeat: number;
+  stepsPerBar: number;
+  expanded: boolean;
+  onToggleExpand: () => void;
+  colWidth: string;
+  activeCell: CellRef | null;
+  expandedSplitCell: ExpandedSplitCell | null;
+  onExpandSplitCell: (trackIndex: number, stepIndex: number) => void;
+  onToggleCell: (trackIndex: number, stepIndex: number, isRightClick?: boolean) => void;
+  onToggleSubStep: (trackIndex: number, stepIndex: number, subIndex: number) => void;
+  onClearSubStep: (trackIndex: number, stepIndex: number, subIndex: number) => void;
+  onChangeProp: (trackIndex: number, prop: keyof Track, value: unknown) => void;
+  onChangeVelMode: (trackIndex: number, mode: VelMode) => void;
+  onOpenSoundPicker: (trackIndex: number) => void;
+  onDrop: (file: File, trackIndex: number) => void;
+  sortableEnabled: boolean;
+}
 
 function TrackRow({
   track,
@@ -26,7 +55,7 @@ function TrackRow({
   onOpenSoundPicker,
   onDrop,
   sortableEnabled,
-}) {
+}: TrackRowProps) {
   const {
     attributes,
     listeners,
@@ -68,7 +97,7 @@ function TrackRow({
           const split = isSplit(effective);
           const isThisExpanded = expandedSplitCell?.trackIndex === trackIndex && expandedSplitCell?.stepIndex === stepIdx;
           const isActive = activeCell?.trackIndex === trackIndex && activeCell?.stepIndex === stepIdx;
-          const vel = split ? masterVelocity(effective) : effective;
+          const vel = split ? masterVelocity(effective) : (typeof effective === 'number' ? effective : 0);
 
           return (
             <Cell
@@ -79,7 +108,7 @@ function TrackRow({
               isPlayhead={currentStep === stepIdx}
               isBeatStart={stepIdx > 0 && stepIdx % stepsPerBeat === 0}
               isBarStart={stepsPerBar ? stepIdx > 0 && stepIdx % stepsPerBar === 0 : false}
-              splitData={split ? effective : null}
+              splitData={split ? (effective as number[]) : null}
               isActive={isActive}
               isExpanded={isThisExpanded}
               onExpandToggle={() => onExpandSplitCell(trackIndex, stepIdx)}

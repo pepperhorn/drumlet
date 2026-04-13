@@ -1,20 +1,28 @@
 import { memo, useState, useCallback } from 'react';
 import { buildShareUrl, buildEmbedUrl, buildEmbedSnippet } from '../state/shareCodec.js';
+import type { SequencerState } from '../state/sequencerReducer.js';
 
-function ShareModal({ isOpen, onClose, state }) {
-  const [copied, setCopied] = useState(null); // 'share' | 'embed' | 'iframe'
+type CopiedKey = 'share' | 'embed' | 'iframe' | null;
 
-  const shareUrl = isOpen ? buildShareUrl(state) : '';
-  const embedUrl = isOpen ? buildEmbedUrl(state) : '';
-  const iframeSnippet = isOpen ? buildEmbedSnippet(state) : '';
+interface ShareModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  state: SequencerState;
+}
 
-  const handleCopy = useCallback(async (text, type) => {
+function ShareModal({ isOpen, onClose, state }: ShareModalProps) {
+  const [copied, setCopied] = useState<CopiedKey>(null);
+
+  const shareUrl = isOpen ? (buildShareUrl(state) ?? '') : '';
+  const embedUrl = isOpen ? (buildEmbedUrl(state) ?? '') : '';
+  const iframeSnippet = isOpen ? (buildEmbedSnippet(state) ?? '') : '';
+
+  const handleCopy = useCallback(async (text: string, type: CopiedKey) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(type);
       setTimeout(() => setCopied(null), 2000);
     } catch {
-      // Fallback
       const ta = document.createElement('textarea');
       ta.value = text;
       document.body.appendChild(ta);
@@ -32,7 +40,6 @@ function ShareModal({ isOpen, onClose, state }) {
     <>
       <div className="share-backdrop fixed inset-0 bg-black/20 z-40" onClick={onClose} />
       <div className="share-modal fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-card rounded-2xl shadow-2xl border border-border w-[480px] max-w-[90vw] p-6">
-        {/* Header */}
         <div className="share-header flex items-center justify-between mb-5">
           <h3 className="share-title text-lg lg:text-xl font-display font-bold text-text">Share</h3>
           <button
@@ -45,7 +52,6 @@ function ShareModal({ isOpen, onClose, state }) {
           </button>
         </div>
 
-        {/* Share link */}
         <div className="share-section mb-4">
           <label className="share-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide block mb-1.5">
             Share Link
@@ -56,7 +62,7 @@ function ShareModal({ isOpen, onClose, state }) {
               readOnly
               value={shareUrl}
               className="share-url-input flex-1 px-3 py-2 rounded-xl bg-bg border border-border text-xs lg:text-sm font-mono text-text truncate outline-none focus:border-sky"
-              onClick={(e) => e.target.select()}
+              onClick={(e) => (e.target as HTMLInputElement).select()}
             />
             <button
               className={`share-copy-btn px-3 py-2 rounded-xl text-xs lg:text-sm font-semibold cursor-pointer transition-all shrink-0
@@ -71,7 +77,6 @@ function ShareModal({ isOpen, onClose, state }) {
           </p>
         </div>
 
-        {/* Embed link */}
         <div className="share-section mb-4">
           <label className="share-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide block mb-1.5">
             Embed URL
@@ -82,7 +87,7 @@ function ShareModal({ isOpen, onClose, state }) {
               readOnly
               value={embedUrl}
               className="share-embed-input flex-1 px-3 py-2 rounded-xl bg-bg border border-border text-xs lg:text-sm font-mono text-text truncate outline-none focus:border-sky"
-              onClick={(e) => e.target.select()}
+              onClick={(e) => (e.target as HTMLInputElement).select()}
             />
             <button
               className={`share-copy-btn px-3 py-2 rounded-xl text-xs lg:text-sm font-semibold cursor-pointer transition-all shrink-0
@@ -97,7 +102,6 @@ function ShareModal({ isOpen, onClose, state }) {
           </p>
         </div>
 
-        {/* iframe snippet */}
         <div className="share-section mb-2">
           <label className="share-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide block mb-1.5">
             Embed HTML
@@ -108,7 +112,7 @@ function ShareModal({ isOpen, onClose, state }) {
               value={iframeSnippet}
               rows={3}
               className="share-iframe-input flex-1 px-3 py-2 rounded-xl bg-bg border border-border text-[10px] lg:text-xs font-mono text-text resize-none outline-none focus:border-sky"
-              onClick={(e) => e.target.select()}
+              onClick={(e) => (e.target as HTMLTextAreaElement).select()}
             />
             <button
               className={`share-copy-btn px-3 py-2 rounded-xl text-xs lg:text-sm font-semibold cursor-pointer transition-all shrink-0 self-start

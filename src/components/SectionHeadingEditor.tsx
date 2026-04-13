@@ -1,4 +1,5 @@
-import { memo, useState, useRef, useEffect } from 'react';
+import { memo, useState, useRef, useEffect, type FormEvent } from 'react';
+import type { SectionHeading } from '../state/sequencerReducer.js';
 
 const PRESET_LABELS = [
   'Intro', 'Verse', 'Pre-Chorus', 'Chorus',
@@ -6,25 +7,32 @@ const PRESET_LABELS = [
   'Solos', 'Repeat',
 ];
 
-/**
- * Overlay editor for section headings.
- * Shows preset label buttons + custom text input.
- * Position is anchored to the step cell it's attached to.
- */
-function SectionHeadingEditor({ heading, anchorRect, onSave, onDelete, onClose }) {
-  const [text, setText] = useState(heading?.label || '');
-  const inputRef = useRef(null);
-  const panelRef = useRef(null);
+interface AnchorRect {
+  left: number;
+  bottom: number;
+}
+
+interface SectionHeadingEditorProps {
+  heading: SectionHeading | null;
+  anchorRect: AnchorRect | null;
+  onSave: (label: string) => void;
+  onDelete: () => void;
+  onClose: () => void;
+}
+
+function SectionHeadingEditor({ heading, anchorRect, onSave, onDelete, onClose }: SectionHeadingEditorProps) {
+  const [text, setText] = useState(heading?.label ?? '');
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
     inputRef.current?.select();
   }, []);
 
-  // Close on outside click
   useEffect(() => {
-    const handler = (e) => {
-      if (panelRef.current && !panelRef.current.contains(e.target)) {
+    const handler = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
         onClose();
       }
     };
@@ -32,11 +40,11 @@ function SectionHeadingEditor({ heading, anchorRect, onSave, onDelete, onClose }
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
-  const handleSelect = (label) => {
+  const handleSelect = (label: string) => {
     onSave(label);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (text.trim()) onSave(text.trim());
   };
@@ -50,7 +58,6 @@ function SectionHeadingEditor({ heading, anchorRect, onSave, onDelete, onClose }
         top: (anchorRect?.bottom ?? 0) + 4,
       }}
     >
-      {/* Custom input */}
       <form onSubmit={handleSubmit} className="flex gap-1.5 mb-2.5">
         <input
           ref={inputRef}
@@ -70,7 +77,6 @@ function SectionHeadingEditor({ heading, anchorRect, onSave, onDelete, onClose }
         </button>
       </form>
 
-      {/* Preset grid */}
       <div className="section-heading-presets flex flex-wrap gap-1">
         {PRESET_LABELS.map((label) => (
           <button
@@ -87,7 +93,6 @@ function SectionHeadingEditor({ heading, anchorRect, onSave, onDelete, onClose }
         ))}
       </div>
 
-      {/* Delete */}
       {heading && (
         <button
           className="section-heading-delete mt-2.5 text-xs text-stop hover:underline cursor-pointer"
