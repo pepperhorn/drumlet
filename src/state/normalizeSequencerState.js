@@ -24,6 +24,10 @@ export function normalizeSequencerState(rawState) {
   if (!parsed.swingTarget) parsed.swingTarget = fallbackState.swingTarget;
   if (parsed.humanize == null || !isFinite(parsed.humanize)) parsed.humanize = fallbackState.humanize;
   if (parsed.chainMode == null) parsed.chainMode = fallbackState.chainMode;
+  if (parsed.activeCell === undefined) parsed.activeCell = null;
+  if (parsed.pendingSplit === undefined) parsed.pendingSplit = null;
+  // Drop legacy top-level splitMode if present — replaced by per-cell active.
+  delete parsed.splitMode;
 
   const globalVel = parsed.velocityLevels;
   delete parsed.velocityLevels;
@@ -54,6 +58,28 @@ export function normalizeSequencerState(rawState) {
       if (track.steps.length < parsed.stepsPerPage) {
         track.steps = [...track.steps, ...new Array(parsed.stepsPerPage - track.steps.length).fill(0)];
       }
+      // Migrate legacy array split steps into the per-cell multi format.
+      // Also ensure any pre-existing multi objects without `active` get one.
+      track.steps = track.steps.map((step) => {
+        if (Array.isArray(step)) {
+          const count = step.length;
+          const v = Math.max(...step, 0);
+          return { v, active: count, s: { [count]: [...step] } };
+        }
+        if (step !== null && typeof step === 'object') {
+          if (step.active == null) {
+            const keys = Object.keys(step.s || {}).map(Number).filter((n) => n === 2 || n === 3 || n === 4);
+            step.active = keys[0] ?? 2;
+            if (!step.s?.[step.active]) {
+              step.s = step.s || {};
+              const bank = new Array(step.active).fill(0);
+              bank[0] = step.v ?? 0;
+              step.s[step.active] = bank;
+            }
+          }
+        }
+        return step;
+      });
     }
   }
 

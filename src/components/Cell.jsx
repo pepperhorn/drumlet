@@ -8,7 +8,7 @@ const BAR_LINE_STYLE = {
 };
 
 function Cell({ velocity, velMode, color, isPlayhead, isBeatStart, isBarStart, onClick, onRightClick,
-                splitData, splitMode, isExpanded, onExpandToggle, onToggleSubStep, onClearSubStep }) {
+                splitData, isActive, isExpanded, onExpandToggle, onToggleSubStep, onClearSubStep }) {
   const label = getVelocityLabel(velocity, velMode);
   const opacity = getVelocityOpacity(velocity, velMode);
   const prevVelRef = useRef(velocity);
@@ -35,9 +35,10 @@ function Cell({ velocity, velMode, color, isPlayhead, isBeatStart, isBarStart, o
           className={`step-cell step-cell-split relative w-9 h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
             flex items-stretch overflow-hidden select-none
             border-violet/40
+            ${isActive ? 'cell-active ring-2 ring-violet/60' : ''}
             ${isPlayhead ? 'playhead-active ring-2 ring-sky' : ''}
           `}
-          onClick={onExpandToggle}
+          onClick={() => { onClick?.(); onExpandToggle?.(); }}
           onContextMenu={(e) => {
             e.preventDefault();
             onRightClick?.();
@@ -130,17 +131,15 @@ function Cell({ velocity, velMode, color, isPlayhead, isBeatStart, isBarStart, o
   }
 
   // Normal cell (non-split)
-  // Show a subtle indicator when splitMode is active
-  const splitModeIndicator = splitMode && velocity === 0;
-
   return (
     <button
       className={`step-cell cell-hit relative w-9 h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
         flex items-center justify-center text-[10px] md:text-xs lg:text-sm font-mono font-semibold select-none overflow-hidden
         ${velocity === 0
-          ? `bg-white border-border hover:bg-gray-50 ${splitModeIndicator ? 'border-dashed border-violet/30' : ''}`
-          : `border-transparent ${splitMode ? 'hover:ring-1 hover:ring-violet/40' : ''}`
+          ? 'bg-white border-border hover:bg-gray-50'
+          : 'border-transparent'
         }
+        ${isActive ? 'cell-active ring-2 ring-violet/60' : ''}
         ${isPlayhead ? 'playhead-active ring-2 ring-sky' : ''}
         ${isBeatStart ? 'ml-1.5' : 'ml-0.5'}
       `}

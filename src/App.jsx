@@ -5,7 +5,7 @@ import { useTransport } from './audio/useTransport.js';
 import { exportToFile, importFromFile } from './state/projectSerializer.js';
 import { exportMidi } from './state/midiExport.js';
 import { maxLevel } from './audio/velocityConfig.js';
-import { isSplit } from './util/stepHelpers.js';
+import { isSplit, isMulti, effectiveStep } from './util/stepHelpers.js';
 import Grid from './components/Grid.jsx';
 import Transport, { BpmInput } from './components/Transport.jsx';
 import PageTabs from './components/PageTabs.jsx';
@@ -45,7 +45,29 @@ function Drumlet() {
   const [notationView, setNotationView] = useState(false);
   const [playMode, setPlayMode] = useState(false); // false=edit, true=MPC pads
   const [showFullTransport, setShowFullTransport] = useState(false);
-  const [splitMode, setSplitMode] = useState(null); // null, 2, 3, or 4
+  const activeCell = state.activeCell;
+  const pendingSplit = state.pendingSplit;
+  // The split toolbar highlights the active cell's split count (or armed pendingSplit).
+  const toolbarSplit = useMemo(() => {
+    if (activeCell) {
+      const step = state.pages[state.currentPageIndex]?.tracks[activeCell.trackIndex]?.steps[activeCell.stepIndex];
+      if (isMulti(step)) return step.active ?? null;
+      return null;
+    }
+    return pendingSplit;
+  }, [activeCell, pendingSplit, state.pages, state.currentPageIndex]);
+  const handlePickSplit = useCallback((count) => {
+    if (count === null) {
+      if (activeCell) dispatch({ type: 'UNSPLIT_CELL' });
+      else dispatch({ type: 'SET_PENDING_SPLIT', count: null });
+      return;
+    }
+    if (activeCell) {
+      dispatch({ type: 'APPLY_SPLIT', count });
+    } else {
+      dispatch({ type: 'SET_PENDING_SPLIT', count });
+    }
+  }, [activeCell, dispatch]);
   const [selectedStep, setSelectedStep] = useState(null); // step index for section heading targeting
   const [soundPickerTrackIndex, setSoundPickerTrackIndex] = useState(null);
   const [activePadTrackIds, setActivePadTrackIds] = useState(new Set());
@@ -170,31 +192,41 @@ function Drumlet() {
     const stepData = track?.steps[stepIndex];
 
     if (isRightClick) {
-      // Right-click always clears (removes split too)
+      // Right-click always clears (drops all split banks too)
       dispatch({ type: 'SET_CELL', trackIndex, stepIndex, velocity: 0 });
-    } else if (splitMode && !isSplit(stepData)) {
-      // Split mode active + clicking a non-split cell → apply split
-      dispatch({ type: 'SPLIT_CELL', trackIndex, stepIndex, splitCount: splitMode });
-    } else if (splitMode && isSplit(stepData) && stepData.length !== splitMode) {
-      // Split mode active + different split count → re-split
-      dispatch({ type: 'SPLIT_CELL', trackIndex, stepIndex, splitCount: splitMode });
-    } else if (!isSplit(stepData)) {
-      // Normal toggle
-      dispatch({ type: 'TOGGLE_CELL', trackIndex, stepIndex });
+      dispatch({ type: 'SET_ACTIVE_CELL', cell: null });
+      return;
+    }
 
-      // Preview: play the sound at the new velocity
-      if (previewMode && audioEngine.instrumentsRef.current.has(track?.id)) {
-        if (track) {
-          const max = maxLevel(track.velMode || 3);
-          const newVel = (stepData + 1) % (max + 1);
-          if (newVel > 0) {
-            audioEngine.triggerNote(track, newVel, audioEngine.getContext().currentTime + 0.01, track.velMode || 3);
-          }
+    // Select this cell as the active target for split actions
+    dispatch({ type: 'SET_ACTIVE_CELL', cell: { trackIndex, stepIndex } });
+
+    // If a split was armed, apply it to this newly-selected cell
+    const armed = stateRef.current.pendingSplit;
+    if (armed != null && !isMulti(stepData)) {
+      dispatch({ type: 'APPLY_SPLIT', count: armed, cell: { trackIndex, stepIndex } });
+      return;
+    }
+
+    // For multi cells, clicking just selects (and the collapsed view also
+    // fires onExpandToggle separately). Don't cycle velocity — the user
+    // edits sub-cells via the expanded view.
+    if (isMulti(stepData)) return;
+
+    // Primitive cell: cycle velocity
+    dispatch({ type: 'TOGGLE_CELL', trackIndex, stepIndex });
+
+    // Preview: play the sound at the new velocity (primitive cells only)
+    if (previewMode && !isMulti(stepData) && !isSplit(stepData) && audioEngine.instrumentsRef.current.has(track?.id)) {
+      if (track) {
+        const max = maxLevel(track.velMode || 3);
+        const newVel = (stepData + 1) % (max + 1);
+        if (newVel > 0) {
+          audioEngine.triggerNote(track, newVel, audioEngine.getContext().currentTime + 0.01, track.velMode || 3);
         }
       }
     }
-    // If split cell clicked without splitMode → handled by Cell's onExpandToggle
-  }, [dispatch, previewMode, audioEngine, splitMode, startAudioIfNeeded]);
+  }, [dispatch, previewMode, audioEngine, startAudioIfNeeded]);
 
   const handleToggleSubStep = useCallback((trackIndex, stepIndex, subIndex) => {
     startAudioIfNeeded();
@@ -206,9 +238,10 @@ function Drumlet() {
       const track = page?.tracks[trackIndex];
       if (track && audioEngine.instrumentsRef.current.has(track.id)) {
         const stepData = track.steps[stepIndex];
-        if (isSplit(stepData)) {
+        const effective = effectiveStep(stepData);
+        if (isSplit(effective)) {
           const max = maxLevel(track.velMode || 3);
-          const newVel = (stepData[subIndex] + 1) % (max + 1);
+          const newVel = (effective[subIndex] + 1) % (max + 1);
           if (newVel > 0) {
             audioEngine.triggerNote(track, newVel, audioEngine.getContext().currentTime + 0.01, track.velMode || 3);
           }
@@ -787,7 +820,7 @@ function Drumlet() {
           stepsPerPage={state.stepsPerPage}
           stepOptions={getStepConfigs(TIME_SIGNATURES.find(t => t.num === state.beatsPerBar && t.noteValue === state.noteValue)?.label || '4/4')}
           chainMode={state.chainMode}
-          splitMode={splitMode}
+          splitMode={toolbarSplit}
           selectedStep={selectedStep}
           sectionHeadings={currentPage?.sectionHeadings}
           onSetPage={(i) => { setSelectedStep(null); dispatch({ type: 'SET_CURRENT_PAGE', pageIndex: i }); }}
@@ -795,7 +828,7 @@ function Drumlet() {
           onRemovePage={(i) => dispatch({ type: 'REMOVE_PAGE', pageIndex: i })}
           onSetStepsPerPage={(n) => dispatch({ type: 'SET_STEPS_PER_PAGE', stepsPerPage: n })}
           onToggleChainMode={() => dispatch({ type: 'TOGGLE_CHAIN_MODE' })}
-          onSetSplitMode={setSplitMode}
+          onSetSplitMode={handlePickSplit}
           onClearPage={() => dispatch({ type: 'CLEAR_PAGE' })}
           onAddSectionHeading={(step, label) => dispatch({ type: 'ADD_SECTION_HEADING', step, label })}
           onUpdateSectionHeading={(id, label) => dispatch({ type: 'UPDATE_SECTION_HEADING', id, label })}
@@ -875,7 +908,7 @@ function Drumlet() {
             selectedStep={selectedStep}
             onSelectStep={playMode ? undefined : setSelectedStep}
             sectionHeadings={currentPage.sectionHeadings}
-            splitMode={splitMode}
+            activeCell={activeCell}
             notationView={notationView}
             onToggleNotation={() => setNotationView((v) => !v)}
             onAddSectionHeading={(step, label) => dispatch({ type: 'ADD_SECTION_HEADING', step, label })}

@@ -55,7 +55,7 @@ function Grid({
   selectedStep,
   onSelectStep,
   sectionHeadings,
-  splitMode,
+  activeCell,
   notationView,
   onToggleNotation,
   onAddSectionHeading,
@@ -232,6 +232,16 @@ function Grid({
         </div>
       </div>
 
+      {/* Section title hint */}
+      {onSelectStep && selectedStep == null && (
+        <div className="step-numbers-hint flex items-center gap-5 mb-0.5">
+          <div className={`step-numbers-hint-spacer ${colWidth}`} />
+          <div className="step-numbers-hint-text text-[10px] lg:text-xs text-muted/70 italic">
+            click a count to add a Section title
+          </div>
+        </div>
+      )}
+
       {/* Step numbers header */}
       <div className="step-numbers flex items-center gap-3 mb-1">
         {/* Spacer for track controls + count mode toggle */}
@@ -342,7 +352,7 @@ function Grid({
               expanded={expandedTracks.has(i)}
               onToggleExpand={() => toggleTrackExpand(i)}
               colWidth={colWidth}
-              splitMode={splitMode}
+              activeCell={activeCell}
               expandedSplitCell={expandedSplitCell}
               onExpandSplitCell={handleExpandSplitCell}
               onToggleCell={onToggleCell}

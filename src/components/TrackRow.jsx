@@ -3,7 +3,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import Cell from './Cell.jsx';
 import TrackControls from './TrackControls.jsx';
-import { isSplit, masterVelocity } from '../util/stepHelpers.js';
+import { isSplit, masterVelocity, effectiveStep } from '../util/stepHelpers.js';
 
 function TrackRow({
   track,
@@ -15,7 +15,7 @@ function TrackRow({
   expanded,
   onToggleExpand,
   colWidth,
-  splitMode,
+  activeCell,
   expandedSplitCell,
   onExpandSplitCell,
   onToggleCell,
@@ -64,9 +64,11 @@ function TrackRow({
 
       <div className="track-steps flex items-start mt-0.5">
         {track.steps.slice(0, stepsPerPage).map((stepData, stepIdx) => {
-          const split = isSplit(stepData);
+          const effective = effectiveStep(stepData);
+          const split = isSplit(effective);
           const isThisExpanded = expandedSplitCell?.trackIndex === trackIndex && expandedSplitCell?.stepIndex === stepIdx;
-          const vel = split ? masterVelocity(stepData) : stepData;
+          const isActive = activeCell?.trackIndex === trackIndex && activeCell?.stepIndex === stepIdx;
+          const vel = split ? masterVelocity(effective) : effective;
 
           return (
             <Cell
@@ -77,8 +79,8 @@ function TrackRow({
               isPlayhead={currentStep === stepIdx}
               isBeatStart={stepIdx > 0 && stepIdx % stepsPerBeat === 0}
               isBarStart={stepsPerBar ? stepIdx > 0 && stepIdx % stepsPerBar === 0 : false}
-              splitData={split ? stepData : null}
-              splitMode={splitMode}
+              splitData={split ? effective : null}
+              isActive={isActive}
               isExpanded={isThisExpanded}
               onExpandToggle={() => onExpandSplitCell(trackIndex, stepIdx)}
               onToggleSubStep={(subIdx) => onToggleSubStep(trackIndex, stepIdx, subIdx)}

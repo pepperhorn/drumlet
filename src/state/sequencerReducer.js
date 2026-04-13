@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import { maxLevel, convertStep } from '../audio/velocityConfig.js';
-import { isSplit, masterVelocity } from '../util/stepHelpers.js';
+import { isSplit, isMulti, masterVelocity } from '../util/stepHelpers.js';
 
 // Note value options — each step represents this many quarter-note beats
 export const NOTE_VALUES = [
@@ -152,19 +152,34 @@ export function createInitialState() {
     swingTarget: '8th', // '8th' or '16th' — which note values swing applies to
     humanize: 0,        // 0-100, random timing variation in ms
     chainMode: false,
+    activeCell: null,   // { trackIndex, stepIndex } — which cell split actions target
+    pendingSplit: null, // null | 2 | 3 | 4 — armed split awaiting a cell click
   };
 }
 
 export function sequencerReducer(state, action) {
   switch (action.type) {
     case 'TOGGLE_CELL': {
+      // Cycle master velocity for the clicked cell. Split state is unchanged.
       const { trackIndex, stepIndex } = action;
       const pages = structuredClone(state.pages);
       const track = pages[state.currentPageIndex].tracks[trackIndex];
       const max = maxLevel(track.velMode || 3);
       const cur = track.steps[stepIndex];
-      // For split cells, toggle cycles the master velocity (first sub-step)
-      if (isSplit(cur)) {
+
+      if (isMulti(cur)) {
+        // Cycle v; mirror into the active bank's first slot so the visible
+        // split preview updates together with the master velocity.
+        const newV = ((cur.v ?? 0) + 1) % (max + 1);
+        cur.v = newV;
+        if (cur.active && cur.s) {
+          const existing = cur.s[cur.active];
+          const bank = existing ? [...existing] : new Array(cur.active).fill(0);
+          bank[0] = newV;
+          cur.s[cur.active] = bank;
+        }
+      } else if (isSplit(cur)) {
+        // Legacy array step — cycle master (first slot)
         cur[0] = (cur[0] + 1) % (max + 1);
       } else {
         track.steps[stepIndex] = (cur + 1) % (max + 1);
@@ -175,6 +190,7 @@ export function sequencerReducer(state, action) {
     case 'SET_CELL': {
       const { trackIndex, stepIndex, velocity } = action;
       const pages = structuredClone(state.pages);
+      // Setting velocity fully replaces the step — drops any split banks.
       pages[state.currentPageIndex].tracks[trackIndex].steps[stepIndex] = velocity;
       return { ...state, pages };
     }
@@ -307,8 +323,16 @@ export function sequencerReducer(state, action) {
       const stashed = { ...(track._stashedSteps || {}) };
       stashed[oldMode] = structuredClone(track.steps);
 
-      // Convert a step value (plain or split array) between modes
+      // Convert a step value (plain, legacy array, or multi) between modes
       const convertStepValue = (v) => {
+        if (isMulti(v)) {
+          const nextV = convertStep(v.v ?? 0, oldMode, mode);
+          const nextS = {};
+          for (const [k, bank] of Object.entries(v.s || {})) {
+            nextS[k] = bank.map(sv => convertStep(sv, oldMode, mode));
+          }
+          return { v: nextV, active: v.active, s: nextS };
+        }
         if (isSplit(v)) return v.map(sv => convertStep(sv, oldMode, mode));
         return convertStep(v, oldMode, mode);
       };
@@ -393,25 +417,73 @@ export function sequencerReducer(state, action) {
       return { ...state, pages };
     }
 
-    case 'SPLIT_CELL': {
-      const { trackIndex, stepIndex, splitCount } = action;
+    case 'SET_ACTIVE_CELL': {
+      // Mark a cell as the active target for split actions. Does not modify
+      // step data; that happens via APPLY_SPLIT/TOGGLE_CELL.
+      const cell = action.cell || null;
+      return { ...state, activeCell: cell };
+    }
+
+    case 'SET_PENDING_SPLIT': {
+      // Arm a split count to apply on the next cell click.
+      const count = action.count;
+      if (count !== null && count !== 2 && count !== 3 && count !== 4) return state;
+      return { ...state, pendingSplit: count };
+    }
+
+    case 'APPLY_SPLIT': {
+      // Apply a split count to a specific cell (target or active). Primitive
+      // cells are promoted to multi; multi cells switch their active bank
+      // (creating the bank from master velocity if missing).
+      const count = action.count;
+      if (count !== 2 && count !== 3 && count !== 4) return state;
+      const target = action.cell || state.activeCell;
+      if (!target) return { ...state, pendingSplit: count };
+
+      const { trackIndex, stepIndex } = target;
       const pages = structuredClone(state.pages);
       const track = pages[state.currentPageIndex].tracks[trackIndex];
+      if (!track) return state;
       const cur = track.steps[stepIndex];
-      const baseVel = isSplit(cur) ? cur[0] : cur;
-      const arr = new Array(splitCount).fill(0);
-      arr[0] = baseVel;
-      track.steps[stepIndex] = arr;
-      return { ...state, pages };
+
+      let multi;
+      if (isMulti(cur)) {
+        multi = cur;
+      } else {
+        const baseVel = isSplit(cur) ? Math.max(...cur, 0) : cur;
+        multi = { v: baseVel, active: count, s: {} };
+        if (isSplit(cur) && (cur.length === 2 || cur.length === 3 || cur.length === 4)) {
+          multi.s[cur.length] = [...cur];
+        }
+        track.steps[stepIndex] = multi;
+      }
+      if (!multi.s) multi.s = {};
+      if (!multi.s[count]) {
+        const bank = new Array(count).fill(0);
+        bank[0] = multi.v ?? 0;
+        multi.s[count] = bank;
+      }
+      multi.active = count;
+
+      return {
+        ...state,
+        pages,
+        activeCell: target,
+        pendingSplit: null,
+      };
     }
 
     case 'UNSPLIT_CELL': {
-      const { trackIndex, stepIndex } = action;
+      // Demote the active (or specified) cell back to a primitive — drops banks.
+      const target = action.cell || state.activeCell;
+      if (!target) return state;
+      const { trackIndex, stepIndex } = target;
       const pages = structuredClone(state.pages);
       const track = pages[state.currentPageIndex].tracks[trackIndex];
+      if (!track) return state;
       const cur = track.steps[stepIndex];
-      track.steps[stepIndex] = isSplit(cur) ? masterVelocity(cur) : cur;
-      return { ...state, pages };
+      track.steps[stepIndex] = masterVelocity(cur);
+      return { ...state, pages, pendingSplit: null };
     }
 
     case 'TOGGLE_SUBSTEP': {
@@ -419,8 +491,23 @@ export function sequencerReducer(state, action) {
       const pages = structuredClone(state.pages);
       const track = pages[state.currentPageIndex].tracks[trackIndex];
       const cur = track.steps[stepIndex];
-      if (isSplit(cur)) {
-        const max = maxLevel(track.velMode || 3);
+      const max = maxLevel(track.velMode || 3);
+
+      if (isMulti(cur)) {
+        if (!cur.s) cur.s = {};
+        const active = cur.active;
+        if (!active) return state;
+        const existing = cur.s[active];
+        const bank = existing
+          ? [...existing]
+          : (() => {
+              const a = new Array(active).fill(0);
+              a[0] = cur.v ?? 0;
+              return a;
+            })();
+        bank[subIndex] = (bank[subIndex] + 1) % (max + 1);
+        cur.s[active] = bank;
+      } else if (isSplit(cur)) {
         cur[subIndex] = (cur[subIndex] + 1) % (max + 1);
       }
       return { ...state, pages };
@@ -431,7 +518,22 @@ export function sequencerReducer(state, action) {
       const pages = structuredClone(state.pages);
       const track = pages[state.currentPageIndex].tracks[trackIndex];
       const cur = track.steps[stepIndex];
-      if (isSplit(cur)) {
+
+      if (isMulti(cur)) {
+        if (!cur.s) cur.s = {};
+        const active = cur.active;
+        if (!active) return state;
+        const existing = cur.s[active];
+        const bank = existing
+          ? [...existing]
+          : (() => {
+              const a = new Array(active).fill(0);
+              a[0] = cur.v ?? 0;
+              return a;
+            })();
+        bank[subIndex] = velocity;
+        cur.s[active] = bank;
+      } else if (isSplit(cur)) {
         cur[subIndex] = velocity;
       }
       return { ...state, pages };

@@ -1,4 +1,5 @@
 import { v4 as uuid } from 'uuid';
+import { effectiveStep } from '../util/stepHelpers.js';
 
 /**
  * Serialize sequencer state to dottl-spec v5 compatible JSON
@@ -37,7 +38,8 @@ export function serializeProject(state) {
       const layer = layers.find((l) => l.id === track.id);
       if (!layer) continue;
 
-      track.steps.slice(0, state.stepsPerPage).forEach((stepData, col) => {
+      track.steps.slice(0, state.stepsPerPage).forEach((rawStep, col) => {
+        const stepData = effectiveStep(rawStep);
         if (Array.isArray(stepData)) {
           stepData.forEach((subVel, subIdx) => {
             if (subVel > 0) {
@@ -100,6 +102,14 @@ export function serializeProject(state) {
         noteValue: state.noteValue || '1/4',
         swingTarget: state.swingTarget || '8th',
         chainMode: state.chainMode,
+        // Raw step data (preserves multi-step banks across save/load).
+        // Structure: { [pageId]: { [trackId]: rawSteps[] } }
+        rawPageSteps: Object.fromEntries(
+          state.pages.map((p) => [
+            p.id,
+            Object.fromEntries(p.tracks.map((t) => [t.id, t.steps])),
+          ])
+        ),
         pages: state.pages.map((p) => ({
           id: p.id,
           name: p.name,
@@ -133,20 +143,27 @@ export function deserializeProject(json) {
       const pageOffset = pageIdx * stepsPerPage;
       const tracks = ext.trackSources.map((src) => {
         const layer = json.layers.find((l) => l.id === src.id);
-        const steps = new Array(stepsPerPage).fill(0);
-
-        if (layer) {
-          for (const note of layer.notes) {
-            const localCol = note.col - pageOffset;
-            if (localCol >= 0 && localCol < stepsPerPage) {
-              if (note.subCount > 0 && note.subCol != null) {
-                // Split note — reconstruct array
-                if (!Array.isArray(steps[localCol])) {
-                  steps[localCol] = new Array(note.subCount).fill(0);
+        // Prefer raw steps (preserves multi-step banks) if sidecar is present.
+        const rawSteps = ext.rawPageSteps?.[pageRef.id]?.[src.id];
+        let steps;
+        if (Array.isArray(rawSteps)) {
+          steps = rawSteps.slice(0, stepsPerPage);
+          while (steps.length < stepsPerPage) steps.push(0);
+        } else {
+          steps = new Array(stepsPerPage).fill(0);
+          if (layer) {
+            for (const note of layer.notes) {
+              const localCol = note.col - pageOffset;
+              if (localCol >= 0 && localCol < stepsPerPage) {
+                if (note.subCount > 0 && note.subCol != null) {
+                  // Split note — reconstruct array
+                  if (!Array.isArray(steps[localCol])) {
+                    steps[localCol] = new Array(note.subCount).fill(0);
+                  }
+                  steps[localCol][note.subCol] = note.velocity || 2;
+                } else {
+                  steps[localCol] = note.velocity || 2;
                 }
-                steps[localCol][note.subCol] = note.velocity || 2;
-              } else {
-                steps[localCol] = note.velocity || 2;
               }
             }
           }

@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
+import { effectiveStep } from '../util/stepHelpers.js';
 
 const LOOKAHEAD = 0.1; // seconds
 const SCHEDULE_INTERVAL = 25; // ms
@@ -74,7 +75,7 @@ export function useTransport(stateRef, audioEngine) {
         if (track.mute) continue;
         if (hasSolo && !track.solo) continue;
 
-        const stepData = track.steps[step];
+        const stepData = effectiveStep(track.steps[step]);
 
         if (Array.isArray(stepData)) {
           // Split step: schedule sub-steps at evenly-spaced intervals

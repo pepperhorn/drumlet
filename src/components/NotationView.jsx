@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
 import { renderDrumStaff } from '../notation/renderStaff.js';
 import { downloadSVG, downloadPNG } from '../notation/notationExport.js';
+import { effectiveStep } from '../util/stepHelpers.js';
 import { v4 as uuid } from 'uuid';
 
 const SIZE_CYCLE = ['sm', 'md', 'lg', 'xl', '2xl'];
@@ -52,7 +53,7 @@ function mergePages(pages, stepsPerPage) {
       const t = page.tracks[trackIdx];
       if (t) {
         // Use only visible steps (stepsPerPage), not the full array
-        allSteps.push(...t.steps.slice(0, stepsPerPage));
+        allSteps.push(...t.steps.slice(0, stepsPerPage).map(s => effectiveStep(s)));
       }
     }
     return { ...track, steps: allSteps };

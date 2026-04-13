@@ -1,5 +1,6 @@
 import MidiWriter from 'midi-writer-js';
 import { getMidiVelocity } from '../audio/velocityConfig.js';
+import { effectiveStep } from '../util/stepHelpers.js';
 
 /**
  * General MIDI Percussion Map (Channel 10)
@@ -108,7 +109,8 @@ export function exportMidi(state) {
 
       const gmNote = getGMNote(track);
 
-      for (const stepData of track.steps.slice(0, state.stepsPerPage)) {
+      for (const rawStep of track.steps.slice(0, state.stepsPerPage)) {
+        const stepData = effectiveStep(rawStep);
         if (Array.isArray(stepData)) {
           // Split step — emit sub-notes at shorter durations
           const subDuration = stepData.length === 2 ? '32' : stepData.length === 3 ? '32t' : '64';

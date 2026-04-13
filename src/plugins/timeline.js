@@ -1,4 +1,5 @@
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
+import { effectiveStep } from '../util/stepHelpers.js';
 
 export const DEFAULT_SCORE_POLICY = {
   perfectMs: 25,
@@ -55,7 +56,8 @@ export function buildExpectedHits(state, { trackIds = null, loops = 1 } = {}) {
         if (activeTrackIds && !activeTrackIds.has(track.id)) return;
         if (track.mute) return;
 
-        track.steps.slice(0, pageStepCount).forEach((stepData, stepIndex) => {
+        track.steps.slice(0, pageStepCount).forEach((rawStep, stepIndex) => {
+          const stepData = effectiveStep(rawStep);
           const stepOffset = pageOffset + (stepIndex * stepDuration);
           const swingOffset = getSwingOffsetMs(state, stepIndex, stepsPerBeat, stepDuration);
 
