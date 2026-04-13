@@ -1,5 +1,41 @@
 import { memo } from 'react';
 import { TELEPHONE_PLUGIN_ID } from '../plugins/modePlugins.js';
+import type { ModePlugin } from '../plugins/runtime.js';
+
+interface PluginResult {
+  accuracy: number;
+  totalScore: number;
+  maxScore: number;
+  matches: unknown[];
+  misses: unknown[];
+  extras: unknown[];
+}
+
+interface PluginModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  modePlugins: ModePlugin[];
+  selectedModeId: string;
+  onSelectMode: (id: string) => void;
+  inputMode: string;
+  onSetInputMode: (mode: string) => void;
+  loops: number;
+  onSetLoops: (loops: number) => void;
+  targetScore: number;
+  onSetTargetScore: (score: number) => void;
+  performerName: string;
+  onSetPerformerName: (name: string) => void;
+  turnLengthSteps: number;
+  onSetTurnLengthSteps: (steps: number) => void;
+  status: string;
+  countdown: number;
+  result: PluginResult | null;
+  sourceLabel?: string;
+  onStart: () => void;
+  onRetry: () => void;
+  shareUrl?: string;
+  audioDisclaimer?: string;
+}
 
 function PluginModal({
   isOpen,
@@ -25,10 +61,10 @@ function PluginModal({
   onRetry,
   shareUrl,
   audioDisclaimer,
-}) {
+}: PluginModalProps) {
   if (!isOpen) return null;
 
-  const selectedMode = modePlugins.find((plugin) => plugin.manifest.id === selectedModeId) || modePlugins[0];
+  const selectedMode = modePlugins.find((plugin) => plugin.manifest.id === selectedModeId) ?? modePlugins[0];
   const isTelephone = selectedMode?.manifest.id === TELEPHONE_PLUGIN_ID;
   const isRunning = status === 'countdown' || status === 'running';
 

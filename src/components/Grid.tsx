@@ -1,16 +1,16 @@
-import { memo, useState, useCallback, useRef, useSyncExternalStore, useMemo } from 'react';
-import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
+import { memo, useState, useCallback, useRef, useSyncExternalStore, useMemo, type DragEvent, type MouseEvent, type CSSProperties } from 'react';
+import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import TrackRow from './TrackRow.jsx';
-import SectionHeadingEditor from './SectionHeadingEditor.jsx';
+import TrackRow from './TrackRow.js';
+import SectionHeadingEditor from './SectionHeadingEditor.js';
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
+import type { Track, SectionHeading, CellRef, NoteValueKey, VelMode } from '../state/sequencerReducer.js';
 
 const lgQuery = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : null;
-function subscribeToLg(cb) { lgQuery?.addEventListener('change', cb); return () => lgQuery?.removeEventListener('change', cb); }
-function getIsLg() { return lgQuery?.matches ?? false; }
+function subscribeToLg(cb: () => void) { lgQuery?.addEventListener('change', cb); return () => lgQuery?.removeEventListener('change', cb); }
+function getIsLg(): boolean { return lgQuery?.matches ?? false; }
 
-/** Beat subdivision labels per step within a beat */
-const BEAT_LABELS = {
+const BEAT_LABELS: Record<number, string[]> = {
   1: [''],
   2: ['', '&'],
   3: ['', '&', 'a'],
@@ -19,31 +19,70 @@ const BEAT_LABELS = {
   8: ['', 'e', '&', 'a', 'e', '&', 'a', 'e'],
 };
 
-function buildDivisorLabels(stepsPerPage, stepsPerBeat) {
-  const labels = [];
-  const subLabels = BEAT_LABELS[stepsPerBeat] || BEAT_LABELS[1];
+function buildDivisorLabels(stepsPerPage: number, stepsPerBeat: number): string[] {
+  const labels: string[] = [];
+  const subLabels = BEAT_LABELS[stepsPerBeat] ?? BEAT_LABELS[1]!;
   for (let i = 0; i < stepsPerPage; i++) {
     const beatNum = Math.floor(i / stepsPerBeat) + 1;
     const subIdx = i % stepsPerBeat;
-    labels.push(subIdx === 0 ? String(beatNum) : subLabels[subIdx] || '');
+    labels.push(subIdx === 0 ? String(beatNum) : (subLabels[subIdx] ?? ''));
   }
   return labels;
 }
 
-const SIZE_CYCLE = ['sm', 'md', 'lg'];
-const SIZE_LABELS = { sm: 'S', md: 'M', lg: 'L' };
-// [mobile, desktop] font sizes in px
-const SIZE_PX = {
+type SizeKey = 'sm' | 'md' | 'lg';
+const SIZE_CYCLE: SizeKey[] = ['sm', 'md', 'lg'];
+const SIZE_LABELS: Record<SizeKey, string> = { sm: 'S', md: 'M', lg: 'L' };
+const SIZE_PX: Record<SizeKey, [number, number]> = {
   sm: [9, 11],
   md: [11, 13],
   lg: [13, 15],
 };
 
-const BAR_LINE_STYLE = {
+const BAR_LINE_STYLE: CSSProperties = {
   borderLeftWidth: 2,
   borderLeftStyle: 'dashed',
   borderLeftColor: 'color-mix(in srgb, var(--color-sky) 30%, transparent)',
 };
+
+interface ExpandedSplitCell {
+  trackIndex: number;
+  stepIndex: number;
+}
+
+interface EditingHeading {
+  step: number;
+  heading: SectionHeading | null;
+  anchorRect: { left: number; bottom: number };
+}
+
+interface GridProps {
+  tracks: Track[];
+  currentStep: number;
+  stepsPerPage: number;
+  noteValue: NoteValueKey;
+  stepValue: NoteValueKey;
+  beatsPerBar?: number;
+  selectedStep: number | null;
+  onSelectStep?: (step: number | null) => void;
+  sectionHeadings?: SectionHeading[];
+  activeCell: CellRef | null;
+  notationView: boolean;
+  onToggleNotation?: () => void;
+  onAddSectionHeading: (step: number, label: string) => void;
+  onUpdateSectionHeading: (id: string, label: string) => void;
+  onMoveSectionHeading: (id: string, step: number) => void;
+  onRemoveSectionHeading: (id: string) => void;
+  onToggleCell: (trackIndex: number, stepIndex: number, isRightClick?: boolean) => void;
+  onToggleSubStep: (trackIndex: number, stepIndex: number, subIndex: number) => void;
+  onClearSubStep: (trackIndex: number, stepIndex: number, subIndex: number) => void;
+  onChangeProp: (trackIndex: number, prop: keyof Track, value: unknown) => void;
+  onChangeVelMode: (trackIndex: number, mode: VelMode) => void;
+  onAddTrack?: () => void;
+  onReorderTracks?: (fromIndex: number, toIndex: number) => void;
+  onOpenSoundPicker: (trackIndex: number) => void;
+  onDrop: (file: File, trackIndex: number) => void;
+}
 
 function Grid({
   tracks,
@@ -71,30 +110,29 @@ function Grid({
   onReorderTracks,
   onOpenSoundPicker,
   onDrop,
-}) {
-  const [countMode, setCountMode] = useState('step'); // 'step' | 'beat'
-  const [countSize, setCountSize] = useState('sm');
-  const [expandedTracks, setExpandedTracks] = useState(new Set());
-  const [expandedSplitCell, setExpandedSplitCell] = useState(null); // { trackIndex, stepIndex } | null
-  const [editingHeading, setEditingHeading] = useState(null); // { step, heading?, anchorRect }
-  const [dragHeading, setDragHeading] = useState(null); // heading being dragged
-  const stepRefs = useRef([]); // refs for step cells in heading row
+}: GridProps) {
+  const [countMode, setCountMode] = useState<'step' | 'beat'>('step');
+  const [countSize, setCountSize] = useState<SizeKey>('sm');
+  const [expandedTracks, setExpandedTracks] = useState<Set<number>>(new Set());
+  const [expandedSplitCell, setExpandedSplitCell] = useState<ExpandedSplitCell | null>(null);
+  const [editingHeading, setEditingHeading] = useState<EditingHeading | null>(null);
+  const [dragHeading, setDragHeading] = useState<SectionHeading | null>(null);
+  const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
   const isLg = useSyncExternalStore(subscribeToLg, getIsLg);
   const fontSize = SIZE_PX[countSize][isLg ? 1 : 0];
 
-  const nv = NOTE_VALUES.find((n) => n.key === noteValue) || NOTE_VALUES[3];
+  const nv = NOTE_VALUES.find((n) => n.key === noteValue) ?? NOTE_VALUES[3];
   const stepsPerBeat = Math.round(1 / nv.beatsPerStep) || 1;
   const divisorLabels = buildDivisorLabels(stepsPerPage, stepsPerBeat);
 
-  // True steps-per-bar from time sig + step value (independent of the buggy beat-grouping calc above)
-  const stepNv = NOTE_VALUES.find((n) => n.key === stepValue) || nv;
+  const stepNv = NOTE_VALUES.find((n) => n.key === stepValue) ?? nv;
   const realStepsPerBeat = Math.max(1, Math.round(nv.beatsPerStep / stepNv.beatsPerStep));
   const stepsPerBar = beatsPerBar * realStepsPerBeat;
 
   const anyExpanded = expandedTracks.size > 0;
 
-  const toggleTrackExpand = useCallback((trackIdx) => {
-    setExpandedTracks(prev => {
+  const toggleTrackExpand = useCallback((trackIdx: number) => {
+    setExpandedTracks((prev) => {
       const next = new Set(prev);
       if (next.has(trackIdx)) next.delete(trackIdx);
       else next.add(trackIdx);
@@ -102,38 +140,37 @@ function Grid({
     });
   }, []);
 
-  const handleExpandSplitCell = useCallback((trackIndex, stepIndex) => {
-    setExpandedSplitCell(prev => {
+  const handleExpandSplitCell = useCallback((trackIndex: number, stepIndex: number) => {
+    setExpandedSplitCell((prev) => {
       if (prev && prev.trackIndex === trackIndex && prev.stepIndex === stepIndex) return null;
       return { trackIndex, stepIndex };
     });
   }, []);
 
-  // Controls column width: narrow on mobile (collapsed), wide when any expanded, always wide on lg
   const colWidth = `${anyExpanded ? 'w-[180px]' : 'w-24'} lg:w-[220px] shrink-0 transition-[width] duration-200 overflow-hidden`;
 
-  // Build heading lookup: step → heading
-  const headings = useMemo(() => sectionHeadings || [], [sectionHeadings]);
+  const headings = useMemo(() => sectionHeadings ?? [], [sectionHeadings]);
   const headingByStep = useMemo(() => {
-    const next = {};
+    const next: Record<number, SectionHeading> = {};
     for (const h of headings) {
       if (h.step < stepsPerPage) next[h.step] = h;
     }
     return next;
   }, [headings, stepsPerPage]);
-  // Section heading click handler
-  const handleHeadingClick = useCallback((step, e) => {
+
+  const handleHeadingClick = useCallback((step: number, e: MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const gridRect = e.currentTarget.closest('.sequencer-grid')?.getBoundingClientRect();
+    const gridRect = (e.currentTarget.closest('.sequencer-grid') as HTMLElement | null)?.getBoundingClientRect();
     const anchorRect = {
-      left: rect.left - (gridRect?.left || 0),
-      bottom: rect.bottom - (gridRect?.top || 0),
+      left: rect.left - (gridRect?.left ?? 0),
+      bottom: rect.bottom - (gridRect?.top ?? 0),
     };
     const existing = headingByStep[step];
-    setEditingHeading({ step, heading: existing || null, anchorRect });
+    setEditingHeading({ step, heading: existing ?? null, anchorRect });
   }, [headingByStep]);
 
-  const handleHeadingSave = useCallback((label) => {
+  const handleHeadingSave = useCallback((label: string) => {
+    if (!editingHeading) return;
     if (editingHeading.heading) {
       onUpdateSectionHeading(editingHeading.heading.id, label);
     } else {
@@ -149,21 +186,20 @@ function Grid({
     setEditingHeading(null);
   }, [editingHeading, onRemoveSectionHeading]);
 
-  // Drag handlers for section headings
-  const handleDragStart = useCallback((heading, e) => {
+  const handleDragStart = useCallback((heading: SectionHeading, e: DragEvent<HTMLSpanElement>) => {
     setDragHeading(heading);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', heading.id);
   }, []);
 
-  const handleDragOverStep = useCallback((e) => {
+  const handleDragOverStep = useCallback((e: DragEvent<HTMLDivElement>) => {
     if (dragHeading) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
     }
   }, [dragHeading]);
 
-  const handleDropOnStep = useCallback((step) => {
+  const handleDropOnStep = useCallback((step: number) => {
     if (dragHeading) {
       onMoveSectionHeading(dragHeading.id, step);
       setDragHeading(null);
@@ -174,24 +210,22 @@ function Grid({
     setDragHeading(null);
   }, []);
 
-  // Track reordering (dnd-kit)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-  const trackIds = useMemo(() => tracks.map(t => t.id), [tracks]);
-  const handleTrackDragEnd = useCallback((event) => {
+  const trackIds = useMemo(() => tracks.map((t) => t.id), [tracks]);
+  const handleTrackDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id || !onReorderTracks) return;
-    const fromIndex = trackIds.indexOf(active.id);
-    const toIndex = trackIds.indexOf(over.id);
+    const fromIndex = trackIds.indexOf(active.id as string);
+    const toIndex = trackIds.indexOf(over.id as string);
     if (fromIndex < 0 || toIndex < 0) return;
     onReorderTracks(fromIndex, toIndex);
   }, [trackIds, onReorderTracks]);
 
   return (
     <div className="sequencer-grid bg-card rounded-2xl shadow-sm border border-border p-4 overflow-x-auto grid-scroll relative">
-      {/* Section headings row — above step numbers */}
       <div className="section-headings flex items-center gap-3 mb-0.5">
         <div className={`section-headings-spacer ${colWidth}`} />
         <div className="section-headings-cells flex items-center">
@@ -201,7 +235,7 @@ function Grid({
             return (
               <div
                 key={i}
-                ref={el => stepRefs.current[i] = el}
+                ref={(el) => { stepRefs.current[i] = el; }}
                 className={`section-heading-slot w-9 h-6 md:w-10 md:h-6 lg:w-11 lg:h-6 flex items-center justify-start
                   border border-transparent rounded-md cursor-pointer select-none
                   ${i > 0 && i % stepsPerBeat === 0 ? 'ml-1.5' : 'ml-0.5'}
@@ -232,7 +266,6 @@ function Grid({
         </div>
       </div>
 
-      {/* Section title hint */}
       {onSelectStep && selectedStep == null && (
         <div className="step-numbers-hint flex items-center gap-5 mb-0.5">
           <div className={`step-numbers-hint-spacer ${colWidth}`} />
@@ -242,9 +275,7 @@ function Grid({
         </div>
       )}
 
-      {/* Step numbers header */}
       <div className="step-numbers flex items-center gap-3 mb-1">
-        {/* Spacer for track controls + count mode toggle */}
         <div className={`grid-count-toggle ${colWidth} flex justify-end gap-1`}>
           {onToggleNotation && (
             <button
@@ -269,14 +300,14 @@ function Grid({
           )}
           <button
             className="count-mode-btn px-2.5 py-1 rounded-lg text-xs lg:text-sm font-mono font-medium cursor-pointer transition-colors bg-gray-100 text-muted hover:bg-gray-200"
-            onClick={() => setCountMode(m => m === 'step' ? 'beat' : 'step')}
+            onClick={() => setCountMode((m) => m === 'step' ? 'beat' : 'step')}
             title={countMode === 'step' ? 'Switch to beat count' : 'Switch to step count'}
           >
             {countMode === 'step' ? 'Steps' : 'Count'}
           </button>
           <button
             className="count-size-btn px-2.5 py-1 rounded-lg text-xs lg:text-sm font-mono font-medium cursor-pointer transition-colors bg-gray-100 text-muted hover:bg-gray-200"
-            onClick={() => setCountSize(s => SIZE_CYCLE[(SIZE_CYCLE.indexOf(s) + 1) % SIZE_CYCLE.length])}
+            onClick={() => setCountSize((s) => SIZE_CYCLE[(SIZE_CYCLE.indexOf(s) + 1) % SIZE_CYCLE.length]!)}
             title={`Count size: ${countSize}`}
           >
             {SIZE_LABELS[countSize]}
@@ -314,7 +345,6 @@ function Grid({
         </div>
       </div>
 
-      {/* Beat group markers */}
       <div className="beat-markers flex items-center gap-3 mb-2">
         <div className={`beat-markers-spacer ${colWidth}`} />
         <div className="beat-markers-cells flex items-center">
@@ -337,7 +367,6 @@ function Grid({
         </div>
       </div>
 
-      {/* Track rows */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTrackDragEnd}>
         <SortableContext items={trackIds} strategy={verticalListSortingStrategy}>
           {tracks.map((track, i) => (
@@ -368,7 +397,6 @@ function Grid({
         </SortableContext>
       </DndContext>
 
-      {/* Add track button */}
       {onAddTrack && (
         <div className="add-track mt-2">
           <button
@@ -380,7 +408,6 @@ function Grid({
         </div>
       )}
 
-      {/* Section heading editor overlay */}
       {editingHeading && (
         <SectionHeadingEditor
           heading={editingHeading.heading}

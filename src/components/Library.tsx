@@ -1,10 +1,14 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useState, type MouseEvent } from 'react';
 import { getFieldValue } from '../plugins/librarySchema.js';
-import LibraryEditForm from './LibraryEditForm.jsx';
+import type { LibraryItem, LibraryCollection, LibraryAction } from '../plugins/librarySchema.js';
+import LibraryEditForm from './LibraryEditForm.js';
+import type { SequencerState, Track } from '../state/sequencerReducer.js';
+import type { LibraryEntry } from '../state/userLibrary.js';
+import type { ActivePreset, LibraryEditMode } from '../state/useLibraryActions.js';
 
 const COVER_COLORS = ['#FF6B6B', '#FFB347', '#A8E06C', '#5BC0EB', '#B39DDB', '#FFAB91', '#66D9A0', '#F48FB1'];
 
-function HeartIcon({ filled }) {
+function HeartIcon({ filled }: { filled: boolean }) {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? '#EF4444' : 'none'} stroke={filled ? '#EF4444' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -12,20 +16,21 @@ function HeartIcon({ filled }) {
   );
 }
 
-function getPreviewSteps(item) {
+function getPreviewSteps(item: LibraryItem): unknown[] | null {
   const cardPreview = item.card?.previewSteps;
   if (Array.isArray(cardPreview)) return cardPreview;
-  return getFieldValue(item, 'pattern_state')?.pages?.[0]?.tracks?.[0]?.steps || null;
+  const patternState = getFieldValue<SequencerState | null>(item, 'pattern_state', null);
+  return patternState?.pages?.[0]?.tracks?.[0]?.steps ?? null;
 }
 
-function getCardMeta(item) {
+function getCardMeta(item: LibraryItem): string[] {
   if (item.card?.meta?.length) return item.card.meta;
 
-  const bpm = getFieldValue(item, 'bpm');
-  const swing = getFieldValue(item, 'swing');
-  const credit = getFieldValue(item, 'credit');
-  const duration = getFieldValue(item, 'duration');
-  const difficulty = getFieldValue(item, 'difficulty');
+  const bpm = getFieldValue<number | null>(item, 'bpm', null);
+  const swing = getFieldValue<number | null>(item, 'swing', null);
+  const credit = getFieldValue<string>(item, 'credit', '');
+  const duration = getFieldValue<string>(item, 'duration', '');
+  const difficulty = getFieldValue<string>(item, 'difficulty', '');
 
   return [
     bpm ? `${bpm} BPM${swing ? ` · swing ${swing}` : ''}` : '',
@@ -35,11 +40,16 @@ function getCardMeta(item) {
   ].filter(Boolean);
 }
 
-function CoverImage({ item, index }) {
+interface CoverImageProps {
+  item: { title?: string; card?: { cover?: string; title?: string } };
+  index: number;
+}
+
+function CoverImage({ item, index }: CoverImageProps) {
   const [failed, setFailed] = useState(false);
-  const cover = item.card?.cover || getFieldValue(item, 'cover', '');
-  const title = item.card?.title || item.title || 'Item';
-  const color = COVER_COLORS[index % COVER_COLORS.length];
+  const cover = item.card?.cover ?? '';
+  const title = item.card?.title ?? item.title ?? 'Item';
+  const color = COVER_COLORS[index % COVER_COLORS.length]!;
   const initials = title.split(' ').map((word) => word[0]).join('').slice(0, 2).toUpperCase();
 
   if (!cover || failed) {
@@ -63,12 +73,21 @@ function CoverImage({ item, index }) {
   );
 }
 
-function GenericLibraryCard({ item, index, onActivate, bookmarked, onToggleBookmark }) {
-  const title = item.card?.title || item.title;
-  const subtitle = item.card?.subtitle || '';
+interface GenericLibraryCardProps {
+  item: LibraryItem;
+  index: number;
+  onActivate: (item: LibraryItem, action?: LibraryAction) => void;
+  bookmarked: boolean;
+  onToggleBookmark: (id: string) => void;
+}
+
+function GenericLibraryCard({ item, index, onActivate, bookmarked, onToggleBookmark }: GenericLibraryCardProps) {
+  const title = item.card?.title ?? item.title;
+  const subtitle = item.card?.subtitle ?? '';
   const meta = getCardMeta(item);
   const previewSteps = getPreviewSteps(item);
-  const previewTrack = getFieldValue(item, 'pattern_state')?.pages?.[0]?.tracks?.[0];
+  const patternState = getFieldValue<SequencerState | null>(item, 'pattern_state', null);
+  const previewTrack: Track | undefined = patternState?.pages?.[0]?.tracks?.[0];
 
   return (
     <div className="preset-card-row flex items-center">
@@ -103,18 +122,18 @@ function GenericLibraryCard({ item, index, onActivate, bookmarked, onToggleBookm
                   className="preset-preview-step w-1 h-4 rounded-sm"
                   style={{
                     backgroundColor: Array.isArray(value)
-                      ? value.some((subValue) => subValue > 0) ? previewTrack.color : 'var(--color-border)'
-                      : value > 0 ? previewTrack.color : 'var(--color-border)',
+                      ? (value as number[]).some((subValue) => subValue > 0) ? previewTrack.color : 'var(--color-border)'
+                      : (typeof value === 'number' && value > 0) ? previewTrack.color : 'var(--color-border)',
                     opacity: Array.isArray(value)
-                      ? value.some((subValue) => subValue > 0) ? 0.75 : 1
-                      : value > 0 ? 0.4 + value * 0.2 : 1,
+                      ? (value as number[]).some((subValue) => subValue > 0) ? 0.75 : 1
+                      : (typeof value === 'number' && value > 0) ? 0.4 + value * 0.2 : 1,
                   }}
                 />
               ))}
             </div>
           )}
         </button>
-        {item.actions?.length > 1 && (
+        {item.actions && item.actions.length > 1 && (
           <div className="preset-actions flex flex-wrap gap-1.5 mt-2 ml-[60px]">
             {item.actions.slice(0, 3).map((action) => (
               <button
@@ -130,7 +149,7 @@ function GenericLibraryCard({ item, index, onActivate, bookmarked, onToggleBookm
       </div>
       <button
         className="preset-heart-btn shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-muted/50 hover:text-red-400 transition-colors cursor-pointer"
-        onClick={(event) => {
+        onClick={(event: MouseEvent<HTMLButtonElement>) => {
           event.stopPropagation();
           onToggleBookmark(item.id);
         }}
@@ -142,7 +161,15 @@ function GenericLibraryCard({ item, index, onActivate, bookmarked, onToggleBookm
   );
 }
 
-function UserSaveCard({ entry, index, onLoad, onEdit, onDelete }) {
+interface UserSaveCardProps {
+  entry: LibraryEntry;
+  index: number;
+  onLoad: (entry: LibraryEntry) => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+function UserSaveCard({ entry, index, onLoad, onEdit, onDelete }: UserSaveCardProps) {
   return (
     <div className="user-save-card-row flex items-center">
       <button
@@ -168,26 +195,29 @@ function UserSaveCard({ entry, index, onLoad, onEdit, onDelete }) {
         </div>
         {entry.state?.pages?.[0]?.tracks?.[0] && (
           <div className="preset-preview flex gap-px shrink-0">
-            {entry.state.pages[0].tracks[0].steps.map((value, stepIndex) => (
-              <div
-                key={stepIndex}
-                className="preset-preview-step w-1 h-4 rounded-sm"
-                style={{
-                  backgroundColor: Array.isArray(value)
-                    ? value.some((subValue) => subValue > 0) ? entry.state.pages[0].tracks[0].color : 'var(--color-border)'
-                    : value > 0 ? entry.state.pages[0].tracks[0].color : 'var(--color-border)',
-                  opacity: Array.isArray(value)
-                    ? value.some((subValue) => subValue > 0) ? 0.75 : 1
-                    : value > 0 ? 0.4 + value * 0.2 : 1,
-                }}
-              />
-            ))}
+            {entry.state.pages[0].tracks[0].steps.map((value, stepIndex) => {
+              const trackColor = entry.state.pages[0]!.tracks[0]!.color;
+              return (
+                <div
+                  key={stepIndex}
+                  className="preset-preview-step w-1 h-4 rounded-sm"
+                  style={{
+                    backgroundColor: Array.isArray(value)
+                      ? (value as number[]).some((subValue) => subValue > 0) ? trackColor : 'var(--color-border)'
+                      : (typeof value === 'number' && value > 0) ? trackColor : 'var(--color-border)',
+                    opacity: Array.isArray(value)
+                      ? (value as number[]).some((subValue) => subValue > 0) ? 0.75 : 1
+                      : (typeof value === 'number' && value > 0) ? 0.4 + value * 0.2 : 1,
+                  }}
+                />
+              );
+            })}
           </div>
         )}
       </button>
       <button
         className="user-save-edit-btn shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-muted/50 hover:text-sky transition-colors cursor-pointer"
-        onClick={(event) => { event.stopPropagation(); onEdit(entry.id); }}
+        onClick={(event: MouseEvent<HTMLButtonElement>) => { event.stopPropagation(); onEdit(entry.id); }}
         title="Edit"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -197,7 +227,7 @@ function UserSaveCard({ entry, index, onLoad, onEdit, onDelete }) {
       </button>
       <button
         className="user-save-delete-btn shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-muted/50 hover:text-red-400 transition-colors cursor-pointer"
-        onClick={(event) => { event.stopPropagation(); onDelete(entry.id); }}
+        onClick={(event: MouseEvent<HTMLButtonElement>) => { event.stopPropagation(); onDelete(entry.id); }}
         title="Delete"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -207,6 +237,24 @@ function UserSaveCard({ entry, index, onLoad, onEdit, onDelete }) {
       </button>
     </div>
   );
+}
+
+interface LibraryProps {
+  isOpen: boolean;
+  onClose: () => void;
+  libraryCollections?: LibraryCollection[];
+  userEntries?: LibraryEntry[];
+  bookmarks?: string[];
+  onToggleBookmark: (id: string) => void;
+  onEditEntry: (id: string) => void;
+  onDeleteEntry: (id: string) => void;
+  onLoadUserEntry: (entry: LibraryEntry) => void;
+  onActivateLibraryItem: (item: LibraryItem, action?: LibraryAction) => void;
+  editMode: LibraryEditMode | null;
+  onSaveEdit: (metadata: Record<string, unknown>) => void;
+  onCancelEdit: () => void;
+  activePreset: ActivePreset | null;
+  state: SequencerState;
 }
 
 function Library({
@@ -225,14 +273,14 @@ function Library({
   onCancelEdit,
   activePreset,
   state,
-}) {
+}: LibraryProps) {
   const { bookmarkedItems, unbookmarkedCollections } = useMemo(() => {
-    const bookmarked = [];
-    const collections = [];
+    const bookmarked: { item: LibraryItem; collection: LibraryCollection }[] = [];
+    const collections: LibraryCollection[] = [];
 
     for (const collection of libraryCollections) {
-      const unbookmarkedItems = [];
-      for (const item of collection.items || []) {
+      const unbookmarkedItems: LibraryItem[] = [];
+      for (const item of collection.items ?? []) {
         if (bookmarks.includes(item.id)) {
           bookmarked.push({ item, collection });
         } else {
@@ -279,14 +327,14 @@ function Library({
           <div className="library-grid max-w-5xl mx-auto">
             {editMode ? (
               <LibraryEditForm
-                key={editMode.id || activePreset?.sourceEntryId || activePreset?.sourcePreset || activePreset?.name || 'new-entry'}
+                key={editMode.id ?? activePreset?.sourceEntryId ?? activePreset?.sourcePreset ?? activePreset?.name ?? 'new-entry'}
                 editMode={editMode}
                 entry={editMode.id ? userEntries.find((entry) => entry.id === editMode.id) : null}
                 activePreset={activePreset}
                 state={state}
                 onSave={onSaveEdit}
                 onCancel={onCancelEdit}
-                onDelete={editMode.id ? () => onDeleteEntry(editMode.id) : null}
+                onDelete={editMode.id ? () => onDeleteEntry(editMode.id!) : undefined}
               />
             ) : (
               <>

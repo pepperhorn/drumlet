@@ -1,18 +1,26 @@
 import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
-import { renderDrumStaff } from '../notation/renderStaff.js';
+import type { Page, Track, NoteValueKey } from '../state/sequencerReducer.js';
+import { renderDrumStaff, type RenderDrumStaffResult, type StepPosition, type MergedTrack } from '../notation/renderStaff.js';
 import { downloadSVG, downloadPNG } from '../notation/notationExport.js';
 import { effectiveStep } from '../util/stepHelpers.js';
 import { v4 as uuid } from 'uuid';
 
-const SIZE_CYCLE = ['sm', 'md', 'lg', 'xl', '2xl'];
-const SIZE_LABELS = { sm: 'S', md: 'M', lg: 'L', xl: 'XL', '2xl': '2X' };
-const SIZE_FONT = { sm: 9, md: 11, lg: 14, xl: 18, '2xl': 24 };
+type SizeKey = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+
+const SIZE_CYCLE: SizeKey[] = ['sm', 'md', 'lg', 'xl', '2xl'];
+const SIZE_LABELS: Record<SizeKey, string> = { sm: 'S', md: 'M', lg: 'L', xl: 'XL', '2xl': '2X' };
+const SIZE_FONT: Record<SizeKey, number> = { sm: 9, md: 11, lg: 14, xl: 18, '2xl': 24 };
 
 const BARS_PER_LINE_OPTIONS = [0, 2, 3, 4]; // 0 = ∞ (single scrolling line)
 
-/** Subdivision options — perBeat is how many labels per beat */
-const SUBDIVISIONS = [
+interface SubdivisionDef {
+  key: string;
+  label: string;
+  perBeat: number;
+}
+
+const SUBDIVISIONS: SubdivisionDef[] = [
   { key: '1/4',  label: '1/4',  perBeat: 1 },
   { key: '1/8',  label: '1/8',  perBeat: 2 },
   { key: '1/8T', label: '1/8T', perBeat: 3 },
@@ -20,7 +28,7 @@ const SUBDIVISIONS = [
   { key: '1/16T', label: '1/16T', perBeat: 6 },
 ];
 
-const BEAT_LABELS = {
+const BEAT_LABELS: Record<string, (b: number) => string[]> = {
   '1/4':  (b) => [`${b}`],
   '1/8':  (b) => [`${b}`, '&'],
   '1/8T': (b) => [`${b}`, '&', 'a'],
@@ -28,32 +36,32 @@ const BEAT_LABELS = {
   '1/16T': (b) => [`${b}`, 'ta', 'ta', '&', 'ta', 'ta'],
 };
 
-function interpolateX(positions, stepFloat) {
+function interpolateX(positions: StepPosition[], stepFloat: number): number {
   if (positions.length === 0) return 0;
-  if (stepFloat <= 0) return positions[0]?.x || 0;
-  if (stepFloat >= positions.length - 1) return positions[positions.length - 1]?.x || 0;
+  if (stepFloat <= 0) return positions[0]?.x ?? 0;
+  if (stepFloat >= positions.length - 1) return positions[positions.length - 1]?.x ?? 0;
   const lo = Math.floor(stepFloat);
   const hi = Math.ceil(stepFloat);
-  if (lo === hi) return positions[lo]?.x || 0;
+  if (lo === hi) return positions[lo]?.x ?? 0;
   const frac = stepFloat - lo;
-  return (positions[lo]?.x || 0) * (1 - frac) + (positions[hi]?.x || 0) * frac;
+  return (positions[lo]?.x ?? 0) * (1 - frac) + (positions[hi]?.x ?? 0) * frac;
 }
 
-/**
- * Merge all pages' tracks into flat step arrays.
- * Returns tracks with concatenated steps + totalSteps.
- */
-function mergePages(pages, stepsPerPage) {
+interface MergedResult {
+  mergedTracks: MergedTrack[];
+  totalSteps: number;
+}
+
+function mergePages(pages: Page[] | undefined, stepsPerPage: number): MergedResult {
   if (!pages || pages.length === 0) return { mergedTracks: [], totalSteps: 0 };
 
-  const firstPage = pages[0];
-  const mergedTracks = firstPage.tracks.map((track, trackIdx) => {
-    const allSteps = [];
+  const firstPage = pages[0]!;
+  const mergedTracks: MergedTrack[] = firstPage.tracks.map((track, trackIdx) => {
+    const allSteps: (number | number[])[] = [];
     for (const page of pages) {
       const t = page.tracks[trackIdx];
       if (t) {
-        // Use only visible steps (stepsPerPage), not the full array
-        allSteps.push(...t.steps.slice(0, stepsPerPage).map(s => effectiveStep(s)));
+        allSteps.push(...t.steps.slice(0, stepsPerPage).map((s) => effectiveStep(s)));
       }
     }
     return { ...track, steps: allSteps };
@@ -62,57 +70,80 @@ function mergePages(pages, stepsPerPage) {
   return { mergedTracks, totalSteps: pages.length * stepsPerPage };
 }
 
-function makePart(name, trackIds) {
+interface Part {
+  id: string;
+  name: string;
+  trackIds: Set<string>;
+}
+
+function makePart(name: string, trackIds: string[]): Part {
   return { id: uuid(), name, trackIds: new Set(trackIds) };
 }
 
-function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, noteValue, beatsPerBar = 4, stepValue, onClose }) {
-  const containerRef = useRef(null);
-  const prevDataRef = useRef(null);
-  const [layout, setLayout] = useState(null);
-  const [layoutInfo, setLayoutInfo] = useState(null);
-  const [useColor, setUseColor] = useState(true);
-  const [countSize, setCountSize] = useState('lg');
-  const [subdivIdx, setSubdivIdx] = useState(0);
-  const [barsPerLine, setBarsPerLine] = useState(0); // 0 = ∞
-  const scrollRef = useRef(null);
+interface NotationViewProps {
+  pages: Page[];
+  stepsPerPage: number;
+  currentStep: number;
+  currentPageIndex: number;
+  noteValue: NoteValueKey;
+  beatsPerBar?: number;
+  stepValue: NoteValueKey;
+  onClose?: () => void;
+}
 
-  // Parts state
+interface CountLabel {
+  text: string;
+  x: number;
+  y: number;
+  line: number;
+  isBeatNum: boolean;
+}
+
+function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, noteValue, beatsPerBar = 4, stepValue, onClose }: NotationViewProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const prevDataRef = useRef<string | null>(null);
+  const [layout, setLayout] = useState<RenderDrumStaffResult | null>(null);
+  const [layoutInfo, setLayoutInfo] = useState<{ stepPositions: StepPosition[]; svgWidth: number; svgHeight: number } | null>(null);
+  const [useColor, setUseColor] = useState(true);
+  const [countSize, setCountSize] = useState<SizeKey>('lg');
+  const [subdivIdx, setSubdivIdx] = useState(0);
+  const [barsPerLine, setBarsPerLine] = useState(0);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
   const allTrackIds = useMemo(
-    () => (pages?.[0]?.tracks || []).map(t => t.id),
+    () => (pages?.[0]?.tracks ?? []).map((t) => t.id),
     [pages],
   );
-  const [parts, setParts] = useState(() => [makePart('Part 1', allTrackIds)]);
+  const [parts, setParts] = useState<Part[]>(() => [makePart('Part 1', allTrackIds)]);
   const [activePartIdx, setActivePartIdx] = useState(0);
 
-  const displayParts = useMemo(() => {
-    if (parts.length !== 1 || parts[0].name !== 'Part 1') return parts;
+  const displayParts = useMemo<Part[]>(() => {
+    if (parts.length !== 1 || parts[0]!.name !== 'Part 1') return parts;
 
-    const current = parts[0].trackIds;
-    const shouldSync = allTrackIds.every(id => current.has(id)) || current.size === 0;
+    const current = parts[0]!.trackIds;
+    const shouldSync = allTrackIds.every((id) => current.has(id)) || current.size === 0;
     if (!shouldSync) return parts;
 
-    return [{ ...parts[0], trackIds: new Set(allTrackIds) }];
+    return [{ ...parts[0]!, trackIds: new Set(allTrackIds) }];
   }, [allTrackIds, parts]);
 
-  const activePart = displayParts[Math.min(activePartIdx, displayParts.length - 1)];
+  const activePart = displayParts[Math.min(activePartIdx, displayParts.length - 1)]!;
 
   const handleAddPart = useCallback(() => {
-    setParts(prev => [...prev, makePart(`Part ${prev.length + 1}`, [])]);
-    setActivePartIdx(prev => prev + 1);
+    setParts((prev) => [...prev, makePart(`Part ${prev.length + 1}`, [])]);
+    setActivePartIdx((prev) => prev + 1);
   }, []);
 
-  const handleRemovePart = useCallback((idx) => {
-    setParts(prev => {
+  const handleRemovePart = useCallback((idx: number) => {
+    setParts((prev) => {
       if (prev.length <= 1) return prev;
-      const next = prev.filter((_, i) => i !== idx);
-      return next;
+      return prev.filter((_, i) => i !== idx);
     });
-    setActivePartIdx(prev => Math.min(prev, parts.length - 2));
+    setActivePartIdx((prev) => Math.min(prev, parts.length - 2));
   }, [parts.length]);
 
-  const handleToggleTrack = useCallback((partIdx, trackId) => {
-    setParts(prev => prev.map((p, i) => {
+  const handleToggleTrack = useCallback((partIdx: number, trackId: string) => {
+    setParts((prev) => prev.map((p, i) => {
       if (i !== partIdx) return p;
       const next = new Set(p.trackIds);
       if (next.has(trackId)) next.delete(trackId);
@@ -121,14 +152,13 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
     }));
   }, []);
 
-  const beatNv = NOTE_VALUES.find((n) => n.key === noteValue) || NOTE_VALUES[3];
-  const stepNv = NOTE_VALUES.find((n) => n.key === (stepValue || noteValue)) || beatNv;
+  const beatNv = NOTE_VALUES.find((n) => n.key === noteValue) ?? NOTE_VALUES[3];
+  const stepNv = NOTE_VALUES.find((n) => n.key === (stepValue || noteValue)) ?? beatNv;
   const stepsPerBeat = Math.round(beatNv.beatsPerStep / stepNv.beatsPerStep) || 1;
 
   const { mergedTracks: allMergedTracks, totalSteps } = mergePages(pages, stepsPerPage);
 
-  // Filter tracks by active part selection
-  const mergedTracks = allMergedTracks.filter(t => activePart.trackIds.has(t.id));
+  const mergedTracks = allMergedTracks.filter((t) => activePart.trackIds.has(t.id));
   const partTrackCount = mergedTracks.length;
   const numStaffLines = partTrackCount <= 1 ? 1 : partTrackCount === 2 ? 2 : 5;
 
@@ -137,14 +167,12 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
   const totalBeats = Math.ceil(totalSteps / stepsPerBeat);
   const effectiveBarsPerLine = barsPerLine === 0 ? totalBars : barsPerLine;
 
-  // Filter subdivisions to current resolution
-  const availableSubdivs = SUBDIVISIONS.filter(s => s.perBeat <= stepsPerBeat);
+  const availableSubdivs = SUBDIVISIONS.filter((s) => s.perBeat <= stepsPerBeat);
   const safeIdx = Math.min(subdivIdx, availableSubdivs.length - 1);
-  const subdiv = availableSubdivs[safeIdx] || SUBDIVISIONS[0];
+  const subdiv = availableSubdivs[safeIdx] ?? SUBDIVISIONS[0]!;
 
-  // Fingerprint — includes all pages
-  const stepsFingerprint = mergedTracks.map(t => t.steps.join(',')).join('|');
-  const tracksFingerprint = mergedTracks.map(t => `${t.id}:${t.color}:${t.group}:${t.kitSample}:${t.velMode}`).join('|');
+  const stepsFingerprint = mergedTracks.map((t) => t.steps.join(',')).join('|');
+  const tracksFingerprint = mergedTracks.map((t) => `${t.id}:${t.color}:${t.group}:${t.kitSample}:${t.velMode}`).join('|');
   const dataKey = `${stepsFingerprint}|${tracksFingerprint}|${totalSteps}|${noteValue}|${stepValue}|${beatsPerBar}|${effectiveBarsPerLine}|${useColor}|${numStaffLines}`;
 
   useEffect(() => {
@@ -183,22 +211,19 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
     }
   }, [dataKey, mergedTracks, totalSteps, noteValue, stepValue, stepsPerBeat, beatsPerBar, effectiveBarsPerLine, useColor, numStaffLines]);
 
-  // Playhead: compute global step from currentPageIndex + currentStep
   const globalStep = (currentPageIndex || 0) * stepsPerPage + (currentStep >= 0 ? currentStep : -1);
-  let playhead = null;
+  let playhead: { x: number; y: number; line: number } | null = null;
   if (layout && globalStep >= 0 && globalStep < layout.stepPositions.length) {
-    const pos = layout.stepPositions[globalStep];
+    const pos = layout.stepPositions[globalStep]!;
     playhead = { x: pos.x, y: pos.y, line: pos.line };
   }
 
-  // Auto-scroll in ∞ mode to keep playhead visible with 2.5 bars of context
   useEffect(() => {
     if (barsPerLine !== 0 || !playhead || !scrollRef.current) return;
     const el = scrollRef.current;
-    const barWidthPx = stepsPerBar * (layout?.stepWidth || 28);
+    const barWidthPx = stepsPerBar * (layout?.stepWidth ?? 28);
     const contextPx = barWidthPx * 2.5;
     const targetScroll = playhead.x - contextPx;
-    // Smooth scroll only if moving forward; snap if jumping back (loop restart)
     if (targetScroll > el.scrollLeft) {
       el.scrollLeft = targetScroll;
     } else if (el.scrollLeft - targetScroll > barWidthPx * 2) {
@@ -206,21 +231,22 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
     }
   });
 
-  // Build count labels per line
-  const countLabels = [];
+  const countLabels: CountLabel[] = [];
   const fontSize = SIZE_FONT[countSize];
   if (layoutInfo && layoutInfo.stepPositions.length > 0) {
     const labelFn = BEAT_LABELS[subdiv.key];
-    for (let beat = 0; beat < totalBeats; beat++) {
-      const labels = labelFn(beat + 1);
-      const beatStartStep = beat * stepsPerBeat;
-      for (let j = 0; j < labels.length; j++) {
-        const stepFloat = beatStartStep + (j / labels.length) * stepsPerBeat;
-        const stepIdx = Math.min(Math.floor(stepFloat), layoutInfo.stepPositions.length - 1);
-        if (stepIdx < 0) continue;
-        const pos = layoutInfo.stepPositions[stepIdx];
-        const x = interpolateX(layoutInfo.stepPositions, stepFloat) + fontSize * 0.4;
-        countLabels.push({ text: labels[j], x, y: pos.y, line: pos.line, isBeatNum: j === 0 });
+    if (labelFn) {
+      for (let beat = 0; beat < totalBeats; beat++) {
+        const labels = labelFn(beat + 1);
+        const beatStartStep = beat * stepsPerBeat;
+        for (let j = 0; j < labels.length; j++) {
+          const stepFloat = beatStartStep + (j / labels.length) * stepsPerBeat;
+          const stepIdx = Math.min(Math.floor(stepFloat), layoutInfo.stepPositions.length - 1);
+          if (stepIdx < 0) continue;
+          const pos = layoutInfo.stepPositions[stepIdx]!;
+          const x = interpolateX(layoutInfo.stepPositions, stepFloat) + fontSize * 0.4;
+          countLabels.push({ text: labels[j]!, x, y: pos.y, line: pos.line, isBeatNum: j === 0 });
+        }
       }
     }
   }
@@ -235,16 +261,14 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
     if (svg) downloadPNG(svg);
   }, []);
 
-  const playheadWidth = layout?.stepWidth || 28;
-  const lineHeight = layout?.lineHeight || 100;
-  const lineGap = layout?.lineGap || 10;
+  const playheadWidth = layout?.stepWidth ?? 28;
+  const lineHeight = layout?.lineHeight ?? 100;
+  const lineGap = layout?.lineGap ?? 10;
 
-  // All tracks from first page (for checkbox display)
-  const allTracks = pages?.[0]?.tracks || [];
+  const allTracks: Track[] = pages?.[0]?.tracks ?? [];
 
   return (
     <div ref={scrollRef} className="notation-view bg-card rounded-2xl shadow-sm border border-border px-4 py-2 overflow-x-auto grid-scroll">
-      {/* Parts tab bar */}
       <div className="notation-parts flex items-center gap-1.5 mb-2 flex-wrap">
         {displayParts.map((part, idx) => (
           <button
@@ -272,7 +296,6 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
           +
         </button>
 
-        {/* Track checkboxes for active part */}
         <div className="notation-part-tracks flex items-center gap-2 ml-3 pl-3 border-l border-border">
           {allTracks.map((track) => (
             <label
@@ -299,7 +322,6 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
         </div>
       </div>
 
-      {/* Toolbar */}
       <div className="notation-toolbar flex items-center gap-1.5 mb-2 flex-wrap">
         {onClose && (
           <button
@@ -320,7 +342,7 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
               ? 'bg-sky/12 text-sky'
               : 'bg-gray-100 text-muted hover:bg-gray-200'
             }`}
-          onClick={() => setUseColor(c => !c)}
+          onClick={() => setUseColor((c) => !c)}
           title={useColor ? 'Turn off note colors' : 'Turn on note colors'}
         >
           Color {useColor ? 'On' : 'Off'}
@@ -328,7 +350,7 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
 
         <button
           className="notation-count-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-xs font-mono font-semibold cursor-pointer transition-colors"
-          onClick={() => setCountSize(prev => SIZE_CYCLE[(SIZE_CYCLE.indexOf(prev) + 1) % SIZE_CYCLE.length])}
+          onClick={() => setCountSize((prev) => SIZE_CYCLE[(SIZE_CYCLE.indexOf(prev) + 1) % SIZE_CYCLE.length]!)}
           title={`Beat count size: ${countSize}`}
         >
           Size: {SIZE_LABELS[countSize]}
@@ -337,17 +359,16 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
         {availableSubdivs.length > 1 && (
           <button
             className="notation-subdiv-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-xs font-mono font-semibold cursor-pointer transition-colors"
-            onClick={() => setSubdivIdx(prev => (prev + 1) % availableSubdivs.length)}
+            onClick={() => setSubdivIdx((prev) => (prev + 1) % availableSubdivs.length)}
             title={`Count subdivision: ${subdiv.label}`}
           >
             Count: {subdiv.label}
           </button>
         )}
 
-        {/* Bars per line toggle */}
         <div className="notation-bpl flex items-center gap-0.5">
           <span className="notation-bpl-label text-[10px] text-muted font-semibold mr-0.5">Bars/line</span>
-          {BARS_PER_LINE_OPTIONS.map(n => (
+          {BARS_PER_LINE_OPTIONS.map((n) => (
             <button
               key={n}
               className={`notation-bpl-btn px-1.5 py-0.5 rounded text-xs font-mono cursor-pointer transition-colors
@@ -359,7 +380,6 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
           ))}
         </div>
 
-        {/* Export buttons */}
         <div className="notation-export-btns flex items-center gap-1.5 ml-auto">
           <button
             className="notation-svg-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-xs font-semibold cursor-pointer transition-colors"
@@ -397,7 +417,6 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
           />
         )}
 
-        {/* Count labels — overlay each system line */}
         {layoutInfo && countLabels.length > 0 && layout && (
           <div
             className="notation-count-labels"
@@ -411,7 +430,7 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
             }}
           >
             {Array.from({ length: layout.numLines }, (_, lineIdx) => {
-              const lineLabels = countLabels.filter(cl => cl.line === lineIdx);
+              const lineLabels = countLabels.filter((cl) => cl.line === lineIdx);
               if (lineLabels.length === 0) return null;
               const topOffset = (lineIdx + 1) * (lineHeight + lineGap) - lineGap + 10;
               return (

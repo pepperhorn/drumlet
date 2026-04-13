@@ -1,6 +1,7 @@
 import { memo, useState, useEffect, useCallback } from 'react';
 import { MACHINE_GROUPS } from '../audio/drumGroups.js';
-import { CUSTOM_KIT_IDS, loadKitManifest, getKitSampleNames } from '../audio/customKits.js';
+import { CUSTOM_KIT_IDS, loadKitManifest, getKitSampleNames, type KitManifest } from '../audio/customKits.js';
+import type { Track } from '../state/sequencerReducer.js';
 
 const DRUM_MACHINES = Object.keys(MACHINE_GROUPS);
 const SOUNDFONTS = [
@@ -9,13 +10,40 @@ const SOUNDFONTS = [
   'glockenspiel', 'marimba',
 ];
 
-/** Build a key string for a source config to compare selections */
-function sourceKey(cfg) {
+export interface SoundSourceConfig {
+  sourceType: 'drumMachine' | 'soundfont' | 'kit' | 'custom';
+  instrument?: string | null;
+  group?: string | null;
+  soundfontName?: string | null;
+  kitId?: string | null;
+  kitSample?: string | null;
+  customSampleName?: string | null;
+  name?: string;
+}
+
+interface CustomKitEntry {
+  id: string;
+  manifest: KitManifest;
+}
+
+function sourceKey(cfg: SoundSourceConfig | Track | null): string {
   if (!cfg) return '';
   if (cfg.sourceType === 'drumMachine') return `dm:${cfg.instrument}:${cfg.group}`;
   if (cfg.sourceType === 'soundfont') return `sf:${cfg.soundfontName}`;
   if (cfg.sourceType === 'kit') return `kit:${cfg.kitId}:${cfg.kitSample}`;
   return '';
+}
+
+interface SoundPickerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  track: Track | null;
+  trackIndex: number;
+  onChangeSource: (trackIndex: number, cfg: SoundSourceConfig) => void;
+  onChangeProp: (trackIndex: number, prop: keyof Track, value: unknown) => void;
+  onPreview?: (cfg: SoundSourceConfig) => void;
+  onCancelPreview?: () => void;
+  onRemove: (trackIndex: number) => void;
 }
 
 function SoundPicker({
@@ -28,28 +56,27 @@ function SoundPicker({
   onPreview,
   onCancelPreview,
   onRemove,
-}) {
-  const [customKits, setCustomKits] = useState([]);
-  const [pendingSelection, setPendingSelection] = useState(null);
+}: SoundPickerProps) {
+  const [customKits, setCustomKits] = useState<CustomKitEntry[]>([]);
+  const [pendingSelection, setPendingSelection] = useState<SoundSourceConfig | null>(null);
 
   useEffect(() => {
     if (!isOpen || customKits.length > 0) return;
     Promise.all(
-      CUSTOM_KIT_IDS.map(async (id) => {
+      CUSTOM_KIT_IDS.map(async (id): Promise<CustomKitEntry | null> => {
         try {
           const manifest = await loadKitManifest(id);
           return { id, manifest };
         } catch { return null; }
       })
-    ).then((results) => setCustomKits(results.filter(Boolean)));
+    ).then((results) => setCustomKits(results.filter((r): r is CustomKitEntry => r !== null)));
   }, [isOpen, customKits.length]);
 
-  // Clear pending selection when picker opens/closes
   useEffect(() => {
     if (!isOpen) setPendingSelection(null);
   }, [isOpen]);
 
-  const handlePreview = useCallback((cfg) => {
+  const handlePreview = useCallback((cfg: SoundSourceConfig) => {
     setPendingSelection(cfg);
     onPreview?.(cfg);
   }, [onPreview]);
@@ -72,8 +99,7 @@ function SoundPicker({
   const currentKey = sourceKey(track);
   const pendingKey = sourceKey(pendingSelection);
 
-  /** Get style for a sound option button */
-  const optionClass = (cfg, activeColor) => {
+  const optionClass = (cfg: SoundSourceConfig, activeColor: string) => {
     const key = sourceKey(cfg);
     const isCurrent = key === currentKey;
     const isPreviewing = key === pendingKey;
@@ -114,7 +140,6 @@ function SoundPicker({
         <div className={`sound-picker-content flex-1 overflow-y-auto px-6 py-6 ${pendingSelection ? 'pb-24' : ''}`}>
           <div className="sound-picker-grid max-w-5xl mx-auto">
 
-            {/* Drum Machines */}
             <div className="sound-picker-section mb-8">
               <h3 className="sound-picker-section-heading text-sm font-display font-bold uppercase tracking-wider text-muted px-1 mb-3">
                 Drum Machines
@@ -127,8 +152,8 @@ function SoundPicker({
                     </div>
                     <div className="sound-machine-groups bg-white rounded-2xl border border-border shadow-sm p-3">
                       <div className="sound-machine-options flex flex-wrap gap-1.5">
-                        {MACHINE_GROUPS[dm].map((g) => {
-                          const cfg = { sourceType: 'drumMachine', instrument: dm, group: g, name: g };
+                        {(MACHINE_GROUPS[dm] ?? []).map((g) => {
+                          const cfg: SoundSourceConfig = { sourceType: 'drumMachine', instrument: dm, group: g, name: g };
                           return (
                             <button
                               key={`${dm}-${g}`}
@@ -146,7 +171,6 @@ function SoundPicker({
               </div>
             </div>
 
-            {/* Soundfonts */}
             <div className="sound-picker-section mb-8">
               <h3 className="sound-picker-section-heading text-sm font-display font-bold uppercase tracking-wider text-muted px-1 mb-3">
                 Soundfonts
@@ -154,7 +178,7 @@ function SoundPicker({
               <div className="sound-picker-soundfonts bg-white rounded-2xl border border-border shadow-sm p-3">
                 <div className="sound-soundfont-options flex flex-wrap gap-1.5">
                   {SOUNDFONTS.map((sf) => {
-                    const cfg = { sourceType: 'soundfont', soundfontName: sf, name: sf.replace(/_/g, ' ') };
+                    const cfg: SoundSourceConfig = { sourceType: 'soundfont', soundfontName: sf, name: sf.replace(/_/g, ' ') };
                     return (
                       <button
                         key={sf}
@@ -169,7 +193,6 @@ function SoundPicker({
               </div>
             </div>
 
-            {/* Sample Kits */}
             {customKits.length > 0 && (
               <div className="sound-picker-section mb-8">
                 <h3 className="sound-picker-section-heading text-sm font-display font-bold uppercase tracking-wider text-muted px-1 mb-3">
@@ -187,7 +210,7 @@ function SoundPicker({
                       <div className="sound-kit-samples bg-white rounded-2xl border border-border shadow-sm p-3">
                         <div className="sound-kit-options flex flex-wrap gap-1.5">
                           {getKitSampleNames(manifest).map(({ key, label }) => {
-                            const cfg = { sourceType: 'kit', kitId: id, kitSample: key, name: label };
+                            const cfg: SoundSourceConfig = { sourceType: 'kit', kitId: id, kitSample: key, name: label };
                             return (
                               <button
                                 key={`${id}-${key}`}
@@ -206,13 +229,11 @@ function SoundPicker({
               </div>
             )}
 
-            {/* Track settings */}
             <div className="sound-picker-section mb-8">
               <h3 className="sound-picker-section-heading text-sm font-display font-bold uppercase tracking-wider text-muted px-1 mb-3">
                 Track Settings
               </h3>
               <div className="sound-picker-settings bg-white rounded-2xl border border-border shadow-sm p-4">
-                {/* Reverb */}
                 <div className="sound-picker-reverb mb-4">
                   <div className="sound-picker-reverb-header flex items-center justify-between mb-2">
                     <span className="sound-picker-reverb-label text-xs font-semibold uppercase tracking-wide text-muted">Reverb Send</span>
@@ -228,12 +249,10 @@ function SoundPicker({
                   />
                 </div>
 
-                {/* Drop hint */}
                 <div className="sound-drop-hint text-xs text-muted italic">
                   Drag & drop a .wav/.mp3/.ogg file onto the track name to load a custom sample.
                 </div>
 
-                {/* Remove track */}
                 <button
                   className="sound-picker-remove-btn mt-4 text-xs text-stop hover:underline cursor-pointer"
                   onClick={() => {
@@ -249,7 +268,6 @@ function SoundPicker({
           </div>
         </div>
 
-        {/* Sticky confirm bar */}
         {pendingSelection && (
           <div className="sound-picker-confirm-bar fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border shadow-lg px-6 py-4">
             <div className="sound-picker-confirm-inner max-w-5xl mx-auto flex items-center gap-3">
