@@ -3,6 +3,73 @@ import { normalizeSequencerState } from './normalizeSequencerState.js';
 import { buildShareUrl } from './shareCodec.js';
 import { getModePlugin, PRACTICE_PLUGIN_ID } from '../plugins/modePlugins.js';
 import { DEFAULT_SCORE_POLICY } from '../plugins/timeline.js';
+import type { SequencerState, Page } from './sequencerReducer.js';
+import type { ActivePreset } from './useLibraryActions.js';
+
+// Plugin runtime + audio engine types stay loose until phase 2 / phase 4.
+type ModePlugin = {
+  manifest: { id: string };
+  defaults?: {
+    inputMode?: string;
+    loops?: number;
+    targetScore?: number;
+    performerName?: string;
+    turnLengthSteps?: number;
+    countInBars?: number;
+  };
+};
+const getModePluginFn = getModePlugin as (id: string) => ModePlugin | null;
+const PRACTICE_ID = PRACTICE_PLUGIN_ID as string;
+
+interface AudioEngine {
+  ensureRunning: () => Promise<AudioContext>;
+  getContext: () => AudioContext;
+}
+
+interface SessionHandle {
+  startCountIn: (bars: number) => Promise<number>;
+  startAudioCapture: () => Promise<{ stop?: () => void }>;
+  recordEvent: (event: { source: string; trackId: string; timeSec: number; confidence: number }) => void;
+  setReferenceTime?: (time: number) => void;
+  getDurationSeconds: () => number;
+  score: () => unknown;
+}
+
+interface AudioFollowCore {
+  createSession: (opts: {
+    state: SequencerState;
+    mode: string;
+    trackIds: string[] | null;
+    loops: number;
+    scorePolicy: typeof DEFAULT_SCORE_POLICY;
+    audioEngine: AudioEngine;
+  }) => SessionHandle;
+}
+
+export interface PluginMeta {
+  modeId: string;
+  inputMode: string;
+  loops: number;
+  targetScore: number;
+  performerName: string;
+  turnLengthSteps: number;
+  sourceTitle: string;
+  result: unknown;
+}
+
+interface UsePluginSessionParams {
+  audioEngine: AudioEngine;
+  audioFollowCore: AudioFollowCore | null;
+  state: SequencerState;
+  currentPage: Page | undefined;
+  isPlaying: boolean;
+  stop: () => void;
+  handlePlay: () => Promise<void> | void;
+  activePreset: ActivePreset | null;
+  setPlayMode: (mode: boolean) => void;
+}
+
+type PluginStatus = 'setup' | 'countdown' | 'running' | 'results';
 
 export function usePluginSession({
   audioEngine,
@@ -14,38 +81,38 @@ export function usePluginSession({
   handlePlay,
   activePreset,
   setPlayMode,
-}) {
+}: UsePluginSessionParams) {
   const [pluginOpen, setPluginOpen] = useState(false);
-  const [selectedModeId, setSelectedModeId] = useState(PRACTICE_PLUGIN_ID);
-  const [pluginSourceItem, setPluginSourceItem] = useState(null);
-  const [pluginStatus, setPluginStatus] = useState('setup');
+  const [selectedModeId, setSelectedModeId] = useState<string>(PRACTICE_ID);
+  const [pluginSourceItem, setPluginSourceItem] = useState<{ title?: string } | null>(null);
+  const [pluginStatus, setPluginStatus] = useState<PluginStatus>('setup');
   const [pluginCountdown, setPluginCountdown] = useState(0);
-  const [pluginResult, setPluginResult] = useState(null);
+  const [pluginResult, setPluginResult] = useState<unknown>(null);
   const [pluginShareUrl, setPluginShareUrl] = useState('');
-  const [pluginInputMode, setPluginInputMode] = useState('pads');
+  const [pluginInputMode, setPluginInputMode] = useState<string>('pads');
   const [pluginLoops, setPluginLoops] = useState(1);
   const [pluginTargetScore, setPluginTargetScore] = useState(85);
   const [pluginPerformerName, setPluginPerformerName] = useState('');
   const [pluginTurnLengthSteps, setPluginTurnLengthSteps] = useState(32);
 
-  const pluginSessionRef = useRef(null);
-  const pluginCaptureRef = useRef(null);
-  const pluginTimerRefs = useRef([]);
+  const pluginSessionRef = useRef<SessionHandle | null>(null);
+  const pluginCaptureRef = useRef<{ stop?: () => void } | null>(null);
+  const pluginTimerRefs = useRef<number[]>([]);
   const pluginReferenceTimeRef = useRef(0);
 
-  const selectedModePlugin = useMemo(
-    () => getModePlugin(selectedModeId) || null,
+  const selectedModePlugin = useMemo<ModePlugin | null>(
+    () => getModePluginFn(selectedModeId),
     [selectedModeId]
   );
 
   // Reset defaults when mode changes during setup
   useEffect(() => {
     if (!pluginOpen || pluginStatus !== 'setup' || !selectedModePlugin) return;
-    setPluginInputMode(selectedModePlugin.defaults?.inputMode || 'pads');
-    setPluginLoops(selectedModePlugin.defaults?.loops || 1);
-    setPluginTargetScore(selectedModePlugin.defaults?.targetScore || 85);
-    setPluginPerformerName(selectedModePlugin.defaults?.performerName || '');
-    setPluginTurnLengthSteps(selectedModePlugin.defaults?.turnLengthSteps || 32);
+    setPluginInputMode(selectedModePlugin.defaults?.inputMode ?? 'pads');
+    setPluginLoops(selectedModePlugin.defaults?.loops ?? 1);
+    setPluginTargetScore(selectedModePlugin.defaults?.targetScore ?? 85);
+    setPluginPerformerName(selectedModePlugin.defaults?.performerName ?? '');
+    setPluginTurnLengthSteps(selectedModePlugin.defaults?.turnLengthSteps ?? 32);
   }, [pluginOpen, pluginStatus, selectedModePlugin]);
 
   const clearPluginTimers = useCallback(() => {
@@ -53,16 +120,16 @@ export function usePluginSession({
     pluginTimerRefs.current = [];
   }, []);
 
-  const openPluginModal = useCallback((modeId = PRACTICE_PLUGIN_ID, sourceItem = null) => {
-    const modePlugin = getModePlugin(modeId) || getModePlugin(PRACTICE_PLUGIN_ID);
+  const openPluginModal = useCallback((modeId: string = PRACTICE_ID, sourceItem: { title?: string } | null = null) => {
+    const modePlugin = getModePluginFn(modeId) ?? getModePluginFn(PRACTICE_ID);
     if (!modePlugin) return;
 
     setSelectedModeId(modePlugin.manifest.id);
-    setPluginInputMode(modePlugin.defaults?.inputMode || 'pads');
-    setPluginLoops(modePlugin.defaults?.loops || 1);
-    setPluginTargetScore(modePlugin.defaults?.targetScore || 85);
-    setPluginPerformerName(modePlugin.defaults?.performerName || '');
-    setPluginTurnLengthSteps(modePlugin.defaults?.turnLengthSteps || 32);
+    setPluginInputMode(modePlugin.defaults?.inputMode ?? 'pads');
+    setPluginLoops(modePlugin.defaults?.loops ?? 1);
+    setPluginTargetScore(modePlugin.defaults?.targetScore ?? 85);
+    setPluginPerformerName(modePlugin.defaults?.performerName ?? '');
+    setPluginTurnLengthSteps(modePlugin.defaults?.turnLengthSteps ?? 32);
     setPluginResult(null);
     setPluginShareUrl('');
     setPluginCountdown(0);
@@ -83,7 +150,7 @@ export function usePluginSession({
     if (isPlaying) stop();
   }, [clearPluginTimers, isPlaying, stop]);
 
-  const finalizePluginRun = useCallback((modeId) => {
+  const finalizePluginRun = useCallback((modeId: string) => {
     const session = pluginSessionRef.current;
     if (!session) return;
 
@@ -95,14 +162,14 @@ export function usePluginSession({
     }
 
     const result = session.score();
-    const pluginMeta = {
+    const pluginMeta: PluginMeta = {
       modeId,
       inputMode: pluginInputMode,
       loops: pluginLoops,
       targetScore: pluginTargetScore,
       performerName: pluginPerformerName,
       turnLengthSteps: pluginTurnLengthSteps,
-      sourceTitle: pluginSourceItem?.title || activePreset?.name || 'Current pattern',
+      sourceTitle: pluginSourceItem?.title ?? activePreset?.name ?? 'Current pattern',
       result,
     };
 
@@ -110,7 +177,7 @@ export function usePluginSession({
     setPluginStatus('results');
     setPluginCountdown(0);
     setPluginShareUrl(
-      buildShareUrl(state, window.location.origin, pluginMeta)
+      buildShareUrl(state, window.location.origin, pluginMeta as unknown as Record<string, unknown>) ?? ''
     );
     pluginSessionRef.current = null;
     pluginReferenceTimeRef.current = 0;
@@ -147,14 +214,14 @@ export function usePluginSession({
     const session = audioFollowCore.createSession({
       state: sessionState,
       mode: pluginInputMode,
-      trackIds: currentPage?.tracks?.filter((track) => !track.mute).map((track) => track.id) || null,
+      trackIds: currentPage?.tracks?.filter((track) => !track.mute).map((track) => track.id) ?? null,
       loops: pluginLoops,
       scorePolicy: DEFAULT_SCORE_POLICY,
       audioEngine,
     });
     pluginSessionRef.current = session;
 
-    const countInBeats = (selectedModePlugin.defaults?.countInBars || 1) * (state.beatsPerBar || 4);
+    const countInBeats = (selectedModePlugin.defaults?.countInBars ?? 1) * (state.beatsPerBar || 4);
     setPluginCountdown(countInBeats);
     setPluginStatus('countdown');
     if (pluginInputMode === 'pads') {
@@ -168,7 +235,7 @@ export function usePluginSession({
       pluginTimerRefs.current.push(timerId);
     }
 
-    const countInDuration = await session.startCountIn(selectedModePlugin.defaults?.countInBars || 1);
+    const countInDuration = await session.startCountIn(selectedModePlugin.defaults?.countInBars ?? 1);
     const startTimerId = window.setTimeout(async () => {
       setPluginStatus('running');
       const ctx = await audioEngine.ensureRunning();
@@ -213,8 +280,7 @@ export function usePluginSession({
     handleStartPlugin();
   }, [handleStartPlugin]);
 
-  // Record a pad event during a running plugin session
-  const recordPadEvent = useCallback((trackId) => {
+  const recordPadEvent = useCallback((trackId: string) => {
     if (pluginStatus !== 'running' || pluginInputMode !== 'pads' || !pluginSessionRef.current) return;
     const ctx = audioEngine.getContext();
     pluginSessionRef.current.recordEvent({
@@ -225,9 +291,8 @@ export function usePluginSession({
     });
   }, [audioEngine, pluginInputMode, pluginStatus]);
 
-  // Initialize plugin state from a shared URL payload
-  const initFromSharedPayload = useCallback((pluginMeta) => {
-    const sharedMode = getModePlugin(pluginMeta.modeId);
+  const initFromSharedPayload = useCallback((pluginMeta: PluginMeta) => {
+    const sharedMode = getModePluginFn(pluginMeta.modeId);
     if (!sharedMode) return;
     setSelectedModeId(sharedMode.manifest.id);
     setPluginInputMode(pluginMeta.inputMode || sharedMode.defaults?.inputMode || 'pads');
@@ -235,7 +300,7 @@ export function usePluginSession({
     setPluginTargetScore(pluginMeta.targetScore || sharedMode.defaults?.targetScore || 85);
     setPluginPerformerName(pluginMeta.performerName || '');
     setPluginTurnLengthSteps(pluginMeta.turnLengthSteps || sharedMode.defaults?.turnLengthSteps || 32);
-    setPluginResult(pluginMeta.result || null);
+    setPluginResult(pluginMeta.result ?? null);
     setPluginStatus(pluginMeta.result ? 'results' : 'setup');
     setPluginSourceItem(null);
     setPluginOpen(true);
@@ -248,7 +313,6 @@ export function usePluginSession({
   }, [clearPluginTimers]);
 
   return {
-    // State
     pluginOpen,
     selectedModeId,
     pluginSourceItem,
@@ -262,16 +326,12 @@ export function usePluginSession({
     pluginPerformerName,
     pluginTurnLengthSteps,
     selectedModePlugin,
-
-    // Setters (for PluginModal props)
     setSelectedModeId,
     setPluginInputMode,
     setPluginLoops,
     setPluginTargetScore,
     setPluginPerformerName,
     setPluginTurnLengthSteps,
-
-    // Actions
     openPluginModal,
     closePluginModal,
     handleStartPlugin,

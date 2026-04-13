@@ -1,21 +1,18 @@
 import MidiWriter from 'midi-writer-js';
 import { getMidiVelocity } from '../audio/velocityConfig.js';
 import { effectiveStep } from '../util/stepHelpers.js';
+import type { SequencerState, Step, Track } from './sequencerReducer.js';
 
-/**
- * General MIDI Percussion Map (Channel 10)
- * Maps our common group names to GM drum note numbers.
- */
-const GM_DRUM_MAP = {
-  // Kicks
+const getMidiVelocityFn = getMidiVelocity as (vel: number, mode: number) => number;
+const effectiveStepFn = effectiveStep as (s: Step) => number | number[];
+
+const GM_DRUM_MAP: Record<string, number> = {
   'kick': 36,
   'kick-alt': 36,
-  // Snares
   'snare': 38,
   'snare-h': 38,
   'snare-m': 38,
   'snare-l': 38,
-  // Hi-hats
   'hihat-close': 42,
   'hihat-closed': 42,
   'hhclosed': 42,
@@ -23,9 +20,7 @@ const GM_DRUM_MAP = {
   'hhclosed-short': 42,
   'hihat-open': 46,
   'hhopen': 46,
-  // Clap
   'clap': 39,
-  // Toms
   'tom-hi': 50,
   'tom-high': 50,
   'tom-hh': 50,
@@ -38,18 +33,14 @@ const GM_DRUM_MAP = {
   'tom-l': 43,
   'tom-ll': 41,
   'tom-3': 43,
-  // Cowbell
   'cowbell': 56,
-  // Cymbal / Crash / Ride
   'cymbal': 49,
   'cymball': 49,
   'crash': 49,
   'ride': 51,
-  // Rimshot / Clave
   'rimshot': 37,
   'rim': 37,
   'clave': 75,
-  // Latin
   'conga-hi': 63,
   'conga-high': 63,
   'conga-hh': 63,
@@ -66,7 +57,6 @@ const GM_DRUM_MAP = {
   'stick-h': 31,
   'stick-m': 31,
   'stick-l': 31,
-  // Soundfonts / custom — default to a generic hit
   'agogo': 67,
   'tinkle_bell': 72,
   'woodblock': 76,
@@ -81,27 +71,35 @@ const GM_DRUM_MAP = {
   'marimba': 36,
 };
 
-function getGMNote(track) {
+function getGMNote(track: Track): number {
   const group = track.group || track.soundfontName || track.name;
-  return GM_DRUM_MAP[group] || GM_DRUM_MAP[group?.toLowerCase()] || 36;
+  return (group ? GM_DRUM_MAP[group] : undefined)
+    ?? (group ? GM_DRUM_MAP[group.toLowerCase()] : undefined)
+    ?? 36;
+}
+
+// midi-writer-js has no bundled types — use shallow declarations.
+interface MidiTrack {
+  _trackId?: string;
+  addTrackName: (name: string) => void;
+  addEvent: (event: unknown) => void;
+  setTempo: (bpm: number) => void;
 }
 
 /**
  * Export the current sequencer state as a MIDI file.
  * All tracks go on channel 10 (GM percussion).
  */
-export function exportMidi(state) {
-  const tracks = [];
+export function exportMidi(state: SequencerState): void {
+  const tracks: MidiTrack[] = [];
 
-  // Process all pages sequentially
   for (const page of state.pages) {
     for (const track of page.tracks) {
       if (track.mute) continue;
 
-      // Find or create MIDI track for this instrument
       let midiTrack = tracks.find((t) => t._trackId === track.id);
       if (!midiTrack) {
-        midiTrack = new MidiWriter.Track();
+        midiTrack = new MidiWriter.Track() as MidiTrack;
         midiTrack._trackId = track.id;
         midiTrack.addTrackName(track.name);
         tracks.push(midiTrack);
@@ -110,12 +108,11 @@ export function exportMidi(state) {
       const gmNote = getGMNote(track);
 
       for (const rawStep of track.steps.slice(0, state.stepsPerPage)) {
-        const stepData = effectiveStep(rawStep);
+        const stepData = effectiveStepFn(rawStep);
         if (Array.isArray(stepData)) {
-          // Split step — emit sub-notes at shorter durations
           const subDuration = stepData.length === 2 ? '32' : stepData.length === 3 ? '32t' : '64';
           for (const subVel of stepData) {
-            const midiVelocity = subVel > 0 ? getMidiVelocity(subVel, track.velMode || 3) : 0;
+            const midiVelocity = subVel > 0 ? getMidiVelocityFn(subVel, track.velMode || 3) : 0;
             midiTrack.addEvent(
               new MidiWriter.NoteEvent({
                 pitch: [gmNote],
@@ -126,7 +123,7 @@ export function exportMidi(state) {
             );
           }
         } else if (stepData > 0) {
-          const midiVelocity = getMidiVelocity(stepData, track.velMode || 3);
+          const midiVelocity = getMidiVelocityFn(stepData, track.velMode || 3);
           midiTrack.addEvent(
             new MidiWriter.NoteEvent({
               pitch: [gmNote],
@@ -136,7 +133,6 @@ export function exportMidi(state) {
             })
           );
         } else {
-          // Rest
           midiTrack.addEvent(
             new MidiWriter.NoteEvent({
               pitch: [gmNote],
@@ -152,9 +148,8 @@ export function exportMidi(state) {
 
   if (tracks.length === 0) return;
 
-  const writer = new MidiWriter.Writer(tracks);
+  const writer = new MidiWriter.Writer(tracks as never);
 
-  // Set tempo
   if (tracks[0]) {
     tracks[0].setTempo(state.bpm);
   }
