@@ -1,11 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * VexFlow drum notation renderer.
  *
- * Renders a multi-system score: all pages concatenated, wrapped into lines
- * of N bars each. First system gets clef + time sig, subsequent systems
- * get just the clef.
- *
- * Returns per-step layout info for playhead and beat labels.
+ * Per migration brief: VexFlow is escape-hatch territory. Type around it,
+ * not into it. Internals stay any-typed; the public renderDrumStaff
+ * surface is properly typed.
  */
 import VexFlow, {
   Renderer,
@@ -21,19 +20,20 @@ import VexFlow, {
 
 import { getNotation, toVexKey } from './drumMap.js';
 import { getVelocityOpacity } from '../audio/velocityConfig.js';
+import type { Track, Step } from '../state/sequencerReducer.js';
 
 VexFlow.setFonts('Petaluma', 'Petaluma Script');
 
 const TEXT_COLOR = '#1A1A2E';
 
-function hexToRGBA(hex, opacity) {
+function hexToRGBA(hex: string, opacity: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${opacity.toFixed(2)})`;
 }
 
-const DURATION_MAP = {
+const DURATION_MAP: Record<string, string> = {
   '1/32': '32',
   '1/16': '16',
   '1/8':  '8',
@@ -42,7 +42,7 @@ const DURATION_MAP = {
   '1/2':  'h',
 };
 
-const BEAT_VALUE_MAP = {
+const BEAT_VALUE_MAP: Record<string, number> = {
   '32': 32,
   '16': 16,
   '8':  8,
@@ -50,11 +50,11 @@ const BEAT_VALUE_MAP = {
   'h':  2,
 };
 
-function isDotted(noteValueKey) {
+function isDotted(noteValueKey: string): boolean {
   return noteValueKey.startsWith('d');
 }
 
-function beamGroupSize(noteValueKey) {
+function beamGroupSize(noteValueKey: string): number {
   switch (noteValueKey) {
     case '1/32': return 4;
     case '1/16': return 4;
@@ -64,10 +64,14 @@ function beamGroupSize(noteValueKey) {
 }
 
 /**
- * After VexFlow renders notes with stems + flags, draw flat beam bars
- * as SVG rects and hide flags on beamed notes.
+ * MergedTrack is a Track with `steps` flattened across all pages and
+ * (where needed) effective-form arrays substituted in for split cells.
  */
-function drawManualBeams(svg, notes, noteValueKey, useColor) {
+export interface MergedTrack extends Omit<Track, 'steps'> {
+  steps: (number | number[] | Step)[];
+}
+
+function drawManualBeams(svg: SVGElement, notes: any[], noteValueKey: string, useColor: boolean): void {
   const groupSize = beamGroupSize(noteValueKey);
   if (groupSize === 0) return;
 
@@ -76,35 +80,35 @@ function drawManualBeams(svg, notes, noteValueKey, useColor) {
   const beamGap = 3;
   const beamStackHeight = beamCount * beamHeight + (beamCount - 1) * beamGap;
 
-  const beamedRanges = [];
+  const beamedRanges: { x1: number; x2: number }[] = [];
 
   for (let i = 0; i < notes.length; i += groupSize) {
     const group = notes.slice(i, i + groupSize);
-    const staveNotes = group.filter(n => n instanceof StaveNote);
+    const staveNotes = group.filter((n: any) => n instanceof StaveNote);
     if (staveNotes.length < 2) continue;
 
-    const stemPositions = [];
+    const stemPositions: { x: number; baseY: number; tipY: number }[] = [];
     for (const note of staveNotes) {
       const ext = note.getStem().getExtents();
       stemPositions.push({ x: note.getStemX(), baseY: ext.baseY, tipY: ext.topY });
     }
 
-    const highestTipY = Math.min(...stemPositions.map(s => s.tipY));
+    const highestTipY = Math.min(...stemPositions.map((s) => s.tipY));
     const beamBottomY = highestTipY;
 
-    const firstX = stemPositions[0].x;
-    const lastX = stemPositions[stemPositions.length - 1].x;
+    const firstX = stemPositions[0]!.x;
+    const lastX = stemPositions[stemPositions.length - 1]!.x;
     beamedRanges.push({ x1: firstX - 5, x2: lastX + 20 });
 
     let beamColor = TEXT_COLOR;
     if (useColor) {
-      const colorCounts = {};
+      const colorCounts: Record<string, number> = {};
       for (const note of staveNotes) {
-        const fill = note._primaryColor || TEXT_COLOR;
+        const fill = (note as any)._primaryColor || TEXT_COLOR;
         colorCounts[fill] = (colorCounts[fill] || 0) + 1;
       }
       const sorted = Object.entries(colorCounts).sort((a, b) => b[1] - a[1]);
-      if (sorted.length > 0) beamColor = sorted[0][0];
+      if (sorted.length > 0 && sorted[0]) beamColor = sorted[0][0];
     }
 
     for (let b = 0; b < beamCount; b++) {
@@ -135,8 +139,8 @@ function drawManualBeams(svg, notes, noteValueKey, useColor) {
 
   // NOTE: `.vf-stem` and `.vf-flag` are VexFlow 5.x class names —
   // verify these still exist if upgrading VexFlow.
-  svg.querySelectorAll('.vf-stem, .vf-flag').forEach(el => {
-    const bbox = el.getBBox?.();
+  svg.querySelectorAll('.vf-stem, .vf-flag').forEach((el) => {
+    const bbox = (el as SVGGraphicsElement).getBBox?.();
     if (!bbox) return;
     const cx = bbox.x + bbox.width / 2;
     for (const range of beamedRanges) {
@@ -148,18 +152,14 @@ function drawManualBeams(svg, notes, noteValueKey, useColor) {
   });
 }
 
-/**
- * Build VexFlow notes for a slice of steps.
- */
-function buildNotes(mergedTracks, startStep, count, duration, dotted, useColor) {
-  const notes = [];
+function buildNotes(mergedTracks: MergedTrack[], startStep: number, count: number, duration: string, dotted: boolean, useColor: boolean): any[] {
+  const notes: any[] = [];
   for (let i = 0; i < count; i++) {
     const step = startStep + i;
-    const active = [];
+    const active: { track: MergedTrack; vel: number }[] = [];
     for (const mt of mergedTracks) {
       const raw = mt.steps[step];
-      // Handle split steps: use the max sub-step velocity for notation
-      const vel = Array.isArray(raw) ? Math.max(...raw) : raw;
+      const vel = Array.isArray(raw) ? Math.max(...raw) : (typeof raw === 'number' ? raw : 0);
       if (vel > 0) active.push({ track: mt, vel });
     }
 
@@ -176,7 +176,7 @@ function buildNotes(mergedTracks, startStep, count, duration, dotted, useColor) 
 
       const note = new StaveNote({
         clef: 'percussion',
-        keys: entries.map(e => e.key),
+        keys: entries.map((e) => e.key),
         duration,
         stemDirection: Stem.UP,
       });
@@ -189,11 +189,11 @@ function buildNotes(mergedTracks, startStep, count, duration, dotted, useColor) 
           const color = hexToRGBA(entry.track.color, opacity);
           note.setKeyStyle(idx, { fillStyle: color, strokeStyle: color });
         });
-        const topEntry = entries[entries.length - 1];
+        const topEntry = entries[entries.length - 1]!;
         const primaryColor = hexToRGBA(topEntry.track.color, getVelocityOpacity(topEntry.vel, topEntry.track.velMode || 3));
         note.setStemStyle({ fillStyle: primaryColor, strokeStyle: primaryColor });
         note.setFlagStyle({ fillStyle: primaryColor, strokeStyle: primaryColor });
-        note._primaryColor = primaryColor;
+        (note as any)._primaryColor = primaryColor;
       }
 
       notes.push(note);
@@ -202,22 +202,35 @@ function buildNotes(mergedTracks, startStep, count, duration, dotted, useColor) 
   return notes;
 }
 
-/**
- * Render a multi-system drum score into a container element.
- *
- * @param {HTMLElement} container
- * @param {Object} opts
- * @param {Array} opts.mergedTracks - tracks with concatenated steps across all pages
- * @param {number} opts.totalSteps - total step count across all pages
- * @param {string} opts.noteValueKey - step value key (e.g. '1/16')
- * @param {string} opts.beatNoteValue - beat unit key (e.g. '1/4')
- * @param {number} opts.stepsPerBeat
- * @param {number} opts.beatsPerBar
- * @param {number} opts.barsPerLine - max bars per system line (2-4)
- * @param {boolean} opts.useColor
- * @returns {{ stepPositions: Array<{x,y,line}>, svgWidth, svgHeight, stepWidth }}
- */
-export function renderDrumStaff(container, {
+export interface RenderDrumStaffOptions {
+  mergedTracks: MergedTrack[];
+  totalSteps: number;
+  noteValueKey: string;
+  beatNoteValue: string;
+  stepsPerBeat: number;
+  beatsPerBar?: number;
+  barsPerLine?: number;
+  useColor?: boolean;
+  numStaffLines?: number;
+}
+
+export interface StepPosition {
+  x: number;
+  y: number;
+  line: number;
+}
+
+export interface RenderDrumStaffResult {
+  stepPositions: StepPosition[];
+  svgWidth: number;
+  svgHeight: number;
+  stepWidth: number;
+  numLines: number;
+  lineHeight: number;
+  lineGap: number;
+}
+
+export function renderDrumStaff(container: HTMLElement, {
   mergedTracks,
   totalSteps,
   noteValueKey,
@@ -227,29 +240,26 @@ export function renderDrumStaff(container, {
   barsPerLine = 4,
   useColor = true,
   numStaffLines = 5,
-}) {
-  const duration = DURATION_MAP[noteValueKey] || 'q';
+}: RenderDrumStaffOptions): RenderDrumStaffResult {
+  const duration = DURATION_MAP[noteValueKey] ?? 'q';
   const dotted = isDotted(noteValueKey);
-  const beatDuration = DURATION_MAP[beatNoteValue] || DURATION_MAP[noteValueKey] || 'q';
-  const timeSigDenom = BEAT_VALUE_MAP[beatDuration] || 4;
-  const stepBeatValue = BEAT_VALUE_MAP[duration] || 4;
+  const beatDuration = DURATION_MAP[beatNoteValue] ?? DURATION_MAP[noteValueKey] ?? 'q';
+  const timeSigDenom = BEAT_VALUE_MAP[beatDuration] ?? 4;
+  const stepBeatValue = BEAT_VALUE_MAP[duration] ?? 4;
 
   const stepsPerBar = beatsPerBar * stepsPerBeat;
   const totalBars = Math.ceil(totalSteps / stepsPerBar);
   const numLines = Math.ceil(totalBars / barsPerLine);
 
-  // Layout constants
   const stepWidth = 28;
-  const leftMarginFirst = 80; // first line: clef + time sig
-  const leftMarginRest = 50;  // subsequent lines: clef only
+  const leftMarginFirst = 80;
+  const leftMarginRest = 50;
   const rightMargin = 20;
-  const hasHighNotes = mergedTracks.some(t => getNotation(t).pos >= 5);
-  // Adjust line height for reduced staff lines
+  const hasHighNotes = mergedTracks.some((t) => getNotation(t).pos >= 5);
   const baseLineHeight = numStaffLines <= 2 ? 70 : (hasHighNotes ? 105 : 90);
   const lineHeight = baseLineHeight;
   const lineGap = 10;
 
-  // SVG dimensions — widest line determines width
   const maxStepsPerLine = Math.min(barsPerLine * stepsPerBar, totalSteps);
   const svgWidth = leftMarginFirst + maxStepsPerLine * stepWidth + rightMargin;
   const svgHeight = numLines * lineHeight + (numLines - 1) * lineGap + 20;
@@ -258,7 +268,7 @@ export function renderDrumStaff(container, {
   renderer.resize(svgWidth, svgHeight);
   const context = renderer.getContext();
 
-  const stepPositions = []; // {x, y, line} per global step
+  const stepPositions: StepPosition[] = [];
 
   let stepOffset = 0;
   for (let line = 0; line < numLines; line++) {
@@ -279,7 +289,6 @@ export function renderDrumStaff(container, {
     }
     stave.setContext(context).draw();
 
-    // Build and render notes for this line
     const notes = buildNotes(mergedTracks, stepOffset, stepsThisLine, duration, dotted, useColor);
 
     const voice = new Voice({ numBeats: stepsThisLine, beatValue: stepBeatValue });
@@ -291,7 +300,6 @@ export function renderDrumStaff(container, {
 
     drawManualBeams(context.svg, notes, noteValueKey, useColor);
 
-    // Collect step positions for this line
     for (let i = 0; i < notes.length; i++) {
       stepPositions.push({
         x: notes[i].getAbsoluteX(),
@@ -300,7 +308,6 @@ export function renderDrumStaff(container, {
       });
     }
 
-    // Beat and bar lines
     const staveLineTop = stave.getYForLine(0);
     const staveBottom = stave.getYForLine(4);
     for (let i = 1; i < Math.ceil(stepsThisLine / stepsPerBeat); i++) {

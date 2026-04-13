@@ -9,33 +9,35 @@
  *   Legacy array: [v1, v2, ...] — still accepted for backwards compat.
  */
 
-export function isMulti(step) {
+import type { Step, MultiStep, SplitCount } from '../state/sequencerReducer.js';
+
+export function isMulti(step: unknown): step is MultiStep {
   return step !== null && typeof step === 'object' && !Array.isArray(step);
 }
 
-export function isSplit(step) {
+export function isSplit(step: unknown): step is number[] {
   return Array.isArray(step);
 }
 
-export function splitCount(step) {
+export function splitCount(step: Step): number {
   if (Array.isArray(step)) return step.length;
   if (isMulti(step)) return step.active;
   return 0;
 }
 
 /** Master velocity: v for multi, the number for primitive, max for legacy arrays. */
-export function masterVelocity(step) {
+export function masterVelocity(step: Step): number {
   if (Array.isArray(step)) return Math.max(...step, 0);
   if (isMulti(step)) return step.v ?? 0;
   return step;
 }
 
 /** Always returns an array — wraps plain steps in a single-element array. */
-export function subSteps(step) {
+export function subSteps(step: Step): number[] {
   if (Array.isArray(step)) return step;
   if (isMulti(step)) {
     const bank = step.s?.[step.active];
-    return bank || [step.v ?? 0];
+    return bank ?? [step.v ?? 0];
   }
   return [step];
 }
@@ -48,13 +50,14 @@ export function subSteps(step) {
  *   multi     → array (bank[active], or [v,0,...] preview if missing)
  *   legacy    → array (pass-through)
  */
-export function effectiveStep(step) {
+export function effectiveStep(step: Step): number | number[] {
   if (isMulti(step)) {
     const bank = step.s?.[step.active];
     if (bank) return bank;
-    const arr = new Array(step.active || 2).fill(0);
+    const arr = new Array<number>((step.active as SplitCount | undefined) ?? 2).fill(0);
     arr[0] = step.v ?? 0;
     return arr;
   }
+  if (Array.isArray(step)) return step;
   return step;
 }

@@ -2,7 +2,7 @@
  * Actual group names per drum machine as reported by smplr's getGroupNames().
  * These vary across machines — "hihat" doesn't exist on any of them.
  */
-export const MACHINE_GROUPS = {
+export const MACHINE_GROUPS: Record<string, string[]> = {
   'TR-808': [
     'kick', 'snare', 'clap', 'hihat-close', 'hihat-open',
     'tom-hi', 'mid-tom', 'tom-low', 'cowbell', 'conga-hi',
@@ -32,11 +32,12 @@ export const MACHINE_GROUPS = {
   ],
 };
 
-/**
- * Friendly display names for common drum sounds.
- * Used in the UI — these map to different actual group names per machine.
- */
-export const COMMON_GROUPS = [
+export interface CommonGroup {
+  label: string;
+  key: string;
+}
+
+export const COMMON_GROUPS: CommonGroup[] = [
   { label: 'Kick', key: 'kick' },
   { label: 'Snare', key: 'snare' },
   { label: 'Hi-hat (C)', key: 'hihat-closed' },
@@ -49,36 +50,33 @@ export const COMMON_GROUPS = [
   { label: 'Clave', key: 'clave' },
 ];
 
+const ALIASES: Record<string, string[]> = {
+  'hihat-closed': ['hihat-closed', 'hihat-close', 'hhclosed'],
+  'hihat-open': ['hihat-open', 'hhopen'],
+  'hihat': ['hihat-closed', 'hihat-close', 'hhclosed'],
+  'tom': ['tom-hi', 'tom-high', 'tom-1', 'tom-hh', 'mid-tom'],
+  'cymbal': ['cymbal', 'cymball', 'crash'],
+  'rimshot': ['rimshot', 'rim'],
+  'snare': ['snare', 'snare-h', 'snare-m'],
+};
+
 /**
  * Resolve a common group key to the actual group name for a specific machine.
- * Falls back to the first partial match or returns null.
+ * Falls back to the first partial match or returns the original key.
  */
-export function resolveGroup(machine, groupKey) {
+export function resolveGroup(machine: string, groupKey: string): string {
   const groups = MACHINE_GROUPS[machine];
   if (!groups) return groupKey;
 
-  // Exact match
   if (groups.includes(groupKey)) return groupKey;
 
-  // Alias mappings for known inconsistencies
-  const aliases = {
-    'hihat-closed': ['hihat-closed', 'hihat-close', 'hhclosed'],
-    'hihat-open': ['hihat-open', 'hhopen'],
-    'hihat': ['hihat-closed', 'hihat-close', 'hhclosed'],
-    'tom': ['tom-hi', 'tom-high', 'tom-1', 'tom-hh', 'mid-tom'],
-    'cymbal': ['cymbal', 'cymball', 'crash'],
-    'rimshot': ['rimshot', 'rim'],
-    'snare': ['snare', 'snare-h', 'snare-m'],
-  };
-
-  const candidates = aliases[groupKey];
+  const candidates = ALIASES[groupKey];
   if (candidates) {
     for (const c of candidates) {
       if (groups.includes(c)) return c;
     }
   }
 
-  // Prefix match as last resort
   const prefixMatch = groups.find((g) => g.startsWith(groupKey));
   if (prefixMatch) return prefixMatch;
 

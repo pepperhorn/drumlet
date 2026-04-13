@@ -1,17 +1,46 @@
-import { useRef, useCallback, useMemo } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useRef, useCallback, useMemo, type MutableRefObject } from 'react';
 import { DrumMachine, Soundfont, Sampler, Reverb } from 'smplr';
 import { resolveGroup } from './drumGroups.js';
 import { getMidiVelocity } from './velocityConfig.js';
 import { loadKitManifest, loadKitSample } from './customKits.js';
+import type { Track, VelMode } from '../state/sequencerReducer.js';
 
-export function useAudioEngine() {
-  const ctxRef = useRef(null);
-  const reverbRef = useRef(null);
-  const instrumentsRef = useRef(new Map()); // trackId → { instrument, type, key }
-  const loadingRef = useRef(new Set());
+// Audio internals stay loosely typed — smplr has no bundled types and the
+// audio loop is timing-critical (per migration brief: boundary types only).
+type AudioInstrument = any;
 
-  // Only create AudioContext when explicitly requested — never on import/mount
-  const getContext = useCallback(() => {
+interface InstrumentEntry {
+  instrument: AudioInstrument;
+  type: string;
+  key: string;
+}
+
+// Track may be decorated with a runtime _audioBuffer for custom samples.
+interface AudioTrack extends Track {
+  _audioBuffer?: AudioBuffer;
+}
+
+export interface AudioEngineApi {
+  getContext: () => AudioContext;
+  ensureRunning: () => Promise<AudioContext>;
+  loadTrackInstrument: (track: AudioTrack, opts?: { force?: boolean }) => Promise<AudioInstrument | null>;
+  triggerNote: (track: AudioTrack, velocityLevel: number, time: number, velMode?: VelMode) => void;
+  updateTrackVolume: (trackId: string, volume: number) => void;
+  updateTrackReverb: (trackId: string, reverb: number) => void;
+  previewSound: (track: AudioTrack) => Promise<void>;
+  loadCustomSample: (file: File) => Promise<AudioBuffer>;
+  testAudio: () => Promise<void>;
+  instrumentsRef: MutableRefObject<Map<string, InstrumentEntry>>;
+}
+
+export function useAudioEngine(): AudioEngineApi {
+  const ctxRef = useRef<AudioContext | null>(null);
+  const reverbRef = useRef<AudioInstrument | null>(null);
+  const instrumentsRef = useRef<Map<string, InstrumentEntry>>(new Map());
+  const loadingRef = useRef<Set<string>>(new Set());
+
+  const getContext = useCallback((): AudioContext => {
     if (!ctxRef.current) {
       ctxRef.current = new AudioContext();
       console.log('[audio] Created AudioContext, state:', ctxRef.current.state);
@@ -19,8 +48,7 @@ export function useAudioEngine() {
     return ctxRef.current;
   }, []);
 
-  // Resume context — must be called from a user gesture handler
-  const ensureRunning = useCallback(async () => {
+  const ensureRunning = useCallback(async (): Promise<AudioContext> => {
     const ctx = getContext();
     if (ctx.state === 'suspended') {
       console.log('[audio] Resuming suspended AudioContext...');
@@ -30,7 +58,7 @@ export function useAudioEngine() {
     return ctx;
   }, [getContext]);
 
-  const getReverb = useCallback(async () => {
+  const getReverb = useCallback(async (): Promise<AudioInstrument> => {
     if (reverbRef.current) return reverbRef.current;
     const ctx = getContext();
     const reverb = new Reverb(ctx);
@@ -39,7 +67,7 @@ export function useAudioEngine() {
     return reverb;
   }, [getContext]);
 
-  const trackSoundKey = useCallback((track) => {
+  const trackSoundKey = useCallback((track: AudioTrack): string => {
     if (track.sourceType === 'drumMachine') return `dm:${track.instrument}:${track.group}`;
     if (track.sourceType === 'soundfont') return `sf:${track.soundfontName}`;
     if (track.sourceType === 'kit') return `kit:${track.kitId}:${track.kitSample}`;
@@ -47,7 +75,7 @@ export function useAudioEngine() {
     return `unknown:${track.id}`;
   }, []);
 
-  const loadTrackInstrument = useCallback(async (track, { force = false } = {}) => {
+  const loadTrackInstrument = useCallback(async (track: AudioTrack, { force = false }: { force?: boolean } = {}): Promise<AudioInstrument | null> => {
     const ctx = getContext();
     const key = trackSoundKey(track);
 
@@ -64,7 +92,7 @@ export function useAudioEngine() {
         try { existing.instrument.disconnect(); } catch { /* ok */ }
       }
 
-      let instrument;
+      let instrument: AudioInstrument;
 
       if (track.sourceType === 'drumMachine') {
         instrument = new DrumMachine(ctx, { instrument: track.instrument });
@@ -108,7 +136,7 @@ export function useAudioEngine() {
     }
   }, [getContext, getReverb, trackSoundKey]);
 
-  const triggerNote = useCallback((track, velocityLevel, time, velMode = 3) => {
+  const triggerNote = useCallback((track: AudioTrack, velocityLevel: number, time: number, velMode: VelMode = 3): void => {
     const entry = instrumentsRef.current.get(track.id);
     if (!entry) {
       console.warn('[audio] triggerNote: no instrument for track', track.name, track.id);
@@ -124,19 +152,19 @@ export function useAudioEngine() {
 
     try {
       if (type === 'drumMachine') {
-        const note = resolveGroup(track.instrument, track.group);
+        const note = resolveGroup(track.instrument ?? '', track.group ?? '');
         instrument.start({ note, velocity, time });
       } else if (type === 'soundfont') {
         instrument.start({ note: 60, velocity, time, duration: 0.3 });
       } else if (type === 'kit' || type === 'custom') {
         instrument.start({ note: 'hit', velocity, time });
       }
-    } catch (e) {
-      console.warn('[audio] triggerNote error:', e.message);
+    } catch (e: unknown) {
+      console.warn('[audio] triggerNote error:', (e as Error)?.message);
     }
   }, []);
 
-  const updateTrackVolume = useCallback((trackId, volume) => {
+  const updateTrackVolume = useCallback((trackId: string, volume: number): void => {
     const entry = instrumentsRef.current.get(trackId);
     if (entry) {
       const vol = Math.round((volume ?? 80) * 1.27);
@@ -144,7 +172,7 @@ export function useAudioEngine() {
     }
   }, []);
 
-  const updateTrackReverb = useCallback((trackId, reverb) => {
+  const updateTrackReverb = useCallback((trackId: string, reverb: number): void => {
     const entry = instrumentsRef.current.get(trackId);
     if (entry) {
       const send = (reverb ?? 20) / 100;
@@ -152,16 +180,13 @@ export function useAudioEngine() {
     }
   }, []);
 
-  const previewSound = useCallback(async (track) => {
-    // Ensure context is running first
+  const previewSound = useCallback(async (track: AudioTrack): Promise<void> => {
     const ctx = await ensureRunning();
-    // Wait a tick for currentTime to advance past 0
     if (ctx.currentTime === 0) {
       await new Promise((r) => setTimeout(r, 50));
     }
 
     let entry = instrumentsRef.current.get(track.id);
-    // If no instrument loaded yet, try loading now
     if (!entry) {
       await loadTrackInstrument(track);
       entry = instrumentsRef.current.get(track.id);
@@ -172,21 +197,20 @@ export function useAudioEngine() {
     const { instrument, type } = entry;
     try {
       if (type === 'drumMachine') {
-        instrument.start({ note: resolveGroup(track.instrument, track.group), velocity: 100, time });
+        instrument.start({ note: resolveGroup(track.instrument ?? '', track.group ?? ''), velocity: 100, time });
       } else if (type === 'soundfont') {
         instrument.start({ note: 60, velocity: 100, time, duration: 0.3 });
       } else if (type === 'kit' || type === 'custom') {
         instrument.start({ note: 'hit', velocity: 100, time });
       }
     } catch {
-      // Instrument may have stale internal state from suspended context — force reload and retry
       await loadTrackInstrument(track, { force: true });
       entry = instrumentsRef.current.get(track.id);
       if (!entry) return;
       try {
         const retryTime = ctx.currentTime + 0.05;
         if (entry.type === 'drumMachine') {
-          entry.instrument.start({ note: resolveGroup(track.instrument, track.group), velocity: 100, time: retryTime });
+          entry.instrument.start({ note: resolveGroup(track.instrument ?? '', track.group ?? ''), velocity: 100, time: retryTime });
         } else if (entry.type === 'soundfont') {
           entry.instrument.start({ note: 60, velocity: 100, time: retryTime, duration: 0.3 });
         } else {
@@ -196,14 +220,13 @@ export function useAudioEngine() {
     }
   }, [ensureRunning, loadTrackInstrument]);
 
-  const loadCustomSample = useCallback(async (file) => {
+  const loadCustomSample = useCallback(async (file: File): Promise<AudioBuffer> => {
     const ctx = getContext();
     const arrayBuf = await file.arrayBuffer();
     return ctx.decodeAudioData(arrayBuf);
   }, [getContext]);
 
-  // Standalone audio test — bypasses all hooks/caching, raw smplr
-  const testAudio = useCallback(async () => {
+  const testAudio = useCallback(async (): Promise<void> => {
     console.log('[audio-test] Starting standalone audio test...');
     try {
       const ctx = getContext();
@@ -214,9 +237,8 @@ export function useAudioEngine() {
         console.log('[audio-test] Resumed. state:', ctx.state, 'currentTime:', ctx.currentTime);
       }
 
-      // Wait for currentTime to advance
       if (ctx.currentTime === 0) {
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise((r) => setTimeout(r, 100));
         console.log('[audio-test] After 100ms wait, currentTime:', ctx.currentTime);
       }
 
@@ -230,7 +252,6 @@ export function useAudioEngine() {
       dm.start({ note: 'kick', velocity: 100, time });
       console.log('[audio-test] kick triggered');
 
-      // Play more notes after short delays
       setTimeout(() => {
         const t = ctx.currentTime + 0.05;
         console.log('[audio-test] Playing snare at time:', t);
@@ -249,7 +270,7 @@ export function useAudioEngine() {
     }
   }, [getContext]);
 
-  return useMemo(() => ({
+  return useMemo<AudioEngineApi>(() => ({
     getContext,
     ensureRunning,
     loadTrackInstrument,
