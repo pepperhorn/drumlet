@@ -3,6 +3,8 @@
  * Plugins can store arbitrary typed fields, while the host renders a normalized card view.
  */
 
+import type { SequencerState } from '../state/sequencerReducer.js';
+
 export const FIELD_TYPES = {
   TEXT: 'text',
   RICH_TEXT: 'rich_text',
@@ -33,15 +35,25 @@ export const FIELD_TYPES = {
   TELEPHONE_CHAIN: 'telephone_chain',
   CUSTOM_JSON: 'custom_json',
   PATCH_REF: 'patch_ref',
-};
+} as const;
 
-/**
- * A patch ref points at a sound source the host can resolve.
- * Shape:
- *   { sourceType: 'drumMachine', instrument: 'TR-808' }
- *   { sourceType: 'kit', kitId: 'my-custom-kit' }
- */
-export function createPatchRef({ sourceType, instrument = null, kitId = null }) {
+export type FieldType = (typeof FIELD_TYPES)[keyof typeof FIELD_TYPES];
+
+export interface PatchRef {
+  sourceType: string;
+  instrument: string | null;
+  kitId: string | null;
+}
+
+export function createPatchRef({
+  sourceType,
+  instrument = null,
+  kitId = null,
+}: {
+  sourceType: string;
+  instrument?: string | null;
+  kitId?: string | null;
+}): PatchRef {
   return { sourceType, instrument, kitId };
 }
 
@@ -50,7 +62,7 @@ export function createPatchRef({ sourceType, instrument = null, kitId = null }) 
  * Returns a new state with each track's source fields rewritten to match the patch.
  * Track `group` (kick/snare/etc) is preserved — only the sound source changes.
  */
-export function applyPatchToState(state, patch) {
+export function applyPatchToState(state: SequencerState | null, patch: PatchRef | null): SequencerState | null {
   if (!state || !patch) return state;
   const isCustomKit = patch.sourceType === 'kit';
   return {
@@ -75,18 +87,64 @@ export const ACTION_KINDS = {
   OPEN_MODE: 'open_mode',
   OPEN_LESSON: 'open_lesson',
   SHARE: 'share',
-};
+} as const;
 
-export function createField(id, type, value, extra = {}) {
+export type ActionKind = (typeof ACTION_KINDS)[keyof typeof ACTION_KINDS];
+
+export interface LibraryField<T = unknown> {
+  id: string;
+  type: FieldType;
+  value: T;
+  [extra: string]: unknown;
+}
+
+export function createField<T>(id: string, type: FieldType, value: T, extra: Record<string, unknown> = {}): LibraryField<T> {
   return { id, type, value, ...extra };
 }
 
-export function getFieldValue(item, fieldId, fallback = null) {
-  return item.fields?.find((field) => field.id === fieldId)?.value ?? fallback;
+export interface LibraryItem {
+  id: string;
+  pluginId: string;
+  collectionId: string;
+  kind: string;
+  title: string;
+  fields: LibraryField[];
+  card: CardView;
+  actions: LibraryAction[];
 }
 
-export function createNamespacedLibraryId(pluginId, collectionId, itemId) {
+export interface LibraryAction {
+  id: string;
+  label: string;
+  kind: ActionKind;
+  targetPluginId?: string;
+}
+
+export interface LibraryCollection {
+  id: string;
+  pluginId: string;
+  label: string;
+  itemKind: string;
+  items: LibraryItem[];
+}
+
+export function getFieldValue<T = unknown>(item: unknown, fieldId: string, fallback: T | null = null): T {
+  const it = item as { fields?: LibraryField[] } | null | undefined;
+  const found = it?.fields?.find((f) => f.id === fieldId);
+  return (found?.value ?? fallback) as T;
+}
+
+export function createNamespacedLibraryId(pluginId: string, collectionId: string, itemId: string): string {
   return `${pluginId}/${collectionId}/${itemId}`;
+}
+
+export interface CardView {
+  title: string;
+  subtitle: string;
+  cover: string;
+  meta: string[];
+  badges: string[];
+  previewSteps: number[] | null;
 }
 
 export function createCardView({
@@ -96,6 +154,13 @@ export function createCardView({
   meta = [],
   badges = [],
   previewSteps = null,
-}) {
+}: {
+  title: string;
+  subtitle?: string;
+  cover?: string;
+  meta?: string[];
+  badges?: string[];
+  previewSteps?: number[] | null;
+}): CardView {
   return { title, subtitle, cover, meta, badges, previewSteps };
 }

@@ -1,6 +1,19 @@
-import { buildExpectedHits, scorePerformance, DEFAULT_SCORE_POLICY, getSequenceDurationSeconds } from './timeline.js';
+import {
+  buildExpectedHits,
+  scorePerformance,
+  DEFAULT_SCORE_POLICY,
+  getSequenceDurationSeconds,
+} from './timeline.js';
+import type { ExpectedHit, PerformanceEvent, ScorePolicy, ScoreResult } from './timeline.js';
+import type { SequencerState } from '../state/sequencerReducer.js';
+import type { CapabilityPlugin } from './runtime.js';
 
-function createMetronomeClick(ctx, when) {
+interface AudioEngine {
+  ensureRunning: () => Promise<AudioContext>;
+  getContext: () => AudioContext;
+}
+
+function createMetronomeClick(ctx: AudioContext, when: number): void {
   const oscillator = ctx.createOscillator();
   const gain = ctx.createGain();
   oscillator.type = 'sine';
@@ -14,7 +27,15 @@ function createMetronomeClick(ctx, when) {
   oscillator.stop(when + 0.12);
 }
 
-async function createBasicAudioInput(audioEngine, onEvent, getReferenceTimeSec) {
+interface AudioInputHandle {
+  stop: () => void;
+}
+
+async function createBasicAudioInput(
+  audioEngine: AudioEngine,
+  onEvent: (event: PerformanceEvent) => void,
+  getReferenceTimeSec: () => number,
+): Promise<AudioInputHandle> {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   const ctx = await audioEngine.ensureRunning();
   const source = ctx.createMediaStreamSource(stream);
@@ -23,20 +44,21 @@ async function createBasicAudioInput(audioEngine, onEvent, getReferenceTimeSec) 
   source.connect(analyser);
 
   const samples = new Float32Array(analyser.fftSize);
-  let rafId = null;
+  let rafId: number | null = null;
   let lastOnsetAt = -1;
 
-  const tick = () => {
+  const tick = (): void => {
     analyser.getFloatTimeDomainData(samples);
     let energy = 0;
     for (let i = 0; i < samples.length; i += 1) {
-      energy += samples[i] * samples[i];
+      const sample = samples[i] ?? 0;
+      energy += sample * sample;
     }
     const rms = Math.sqrt(energy / samples.length);
     const now = ctx.currentTime;
     if (rms > 0.12 && (lastOnsetAt < 0 || now - lastOnsetAt > 0.09)) {
       lastOnsetAt = now;
-      const referenceTimeSec = typeof getReferenceTimeSec === 'function' ? getReferenceTimeSec() : 0;
+      const referenceTimeSec = getReferenceTimeSec();
       onEvent({
         source: 'audio',
         trackId: null,
@@ -50,7 +72,7 @@ async function createBasicAudioInput(audioEngine, onEvent, getReferenceTimeSec) 
   tick();
 
   return {
-    stop() {
+    stop(): void {
       if (rafId) cancelAnimationFrame(rafId);
       source.disconnect();
       analyser.disconnect();
@@ -59,7 +81,29 @@ async function createBasicAudioInput(audioEngine, onEvent, getReferenceTimeSec) 
   };
 }
 
-export const audioFollowCorePlugin = {
+export interface CreateSessionOptions {
+  state: SequencerState;
+  mode: string;
+  trackIds?: string[] | null;
+  loops?: number;
+  scorePolicy?: ScorePolicy;
+  audioEngine: AudioEngine;
+}
+
+export interface AudioFollowSession {
+  expectedHits: ExpectedHit[];
+  getDurationSeconds: () => number;
+  startCountIn: (countInBars?: number) => Promise<number>;
+  recordEvent: (event: PerformanceEvent) => void;
+  setReferenceTime: (referenceTime: number) => void;
+  startAudioCapture: () => Promise<AudioInputHandle | null>;
+  score: () => ScoreResult;
+  getPerformanceEvents: () => PerformanceEvent[];
+}
+
+export const audioFollowCorePlugin: CapabilityPlugin & {
+  createSession: (opts: CreateSessionOptions) => AudioFollowSession;
+} = {
   manifest: {
     id: 'audio-follow-core',
     name: 'Audio Follow Core',
@@ -76,17 +120,17 @@ export const audioFollowCorePlugin = {
     loops = 1,
     scorePolicy = DEFAULT_SCORE_POLICY,
     audioEngine,
-  }) {
+  }: CreateSessionOptions): AudioFollowSession {
     const expectedHits = buildExpectedHits(state, { trackIds, loops });
-    const performanceEvents = [];
+    const performanceEvents: PerformanceEvent[] = [];
     let referenceTimeSec = 0;
 
     return {
       expectedHits,
-      getDurationSeconds() {
+      getDurationSeconds(): number {
         return getSequenceDurationSeconds(state, loops);
       },
-      async startCountIn(countInBars = 1) {
+      async startCountIn(countInBars = 1): Promise<number> {
         const ctx = await audioEngine.ensureRunning();
         const beatDuration = 60 / (state.bpm || 120);
         const beatCount = countInBars * (state.beatsPerBar || 4);
@@ -95,19 +139,19 @@ export const audioFollowCorePlugin = {
         }
         return beatCount * beatDuration;
       },
-      recordEvent(event) {
+      recordEvent(event: PerformanceEvent): void {
         performanceEvents.push(event);
       },
-      setReferenceTime(referenceTime) {
+      setReferenceTime(referenceTime: number): void {
         referenceTimeSec = referenceTime || 0;
       },
-      async startAudioCapture() {
+      async startAudioCapture(): Promise<AudioInputHandle | null> {
         if (mode !== 'audio') return null;
         return createBasicAudioInput(audioEngine, (event) => {
           performanceEvents.push(event);
         }, () => referenceTimeSec);
       },
-      score() {
+      score(): ScoreResult {
         return scorePerformance({
           expectedHits,
           performanceEvents,
@@ -115,7 +159,7 @@ export const audioFollowCorePlugin = {
           allowAnyTrack: mode === 'audio',
         });
       },
-      getPerformanceEvents() {
+      getPerformanceEvents(): PerformanceEvent[] {
         return performanceEvents.slice();
       },
     };

@@ -1,24 +1,34 @@
 import { loadPresetCategories, presetToState } from '../state/presets.js';
-import { ACTION_KINDS, FIELD_TYPES, createCardView, createField, createNamespacedLibraryId, createPatchRef } from './librarySchema.js';
+import type { HydratedPreset, PresetCategory } from '../state/presets.js';
+import {
+  ACTION_KINDS,
+  FIELD_TYPES,
+  createCardView,
+  createField,
+  createNamespacedLibraryId,
+  createPatchRef,
+} from './librarySchema.js';
+import type { LibraryItem, LibraryCollection, PatchRef } from './librarySchema.js';
+import type { LibraryPlugin } from './runtime.js';
 
-function derivePatchRef(preset) {
+function derivePatchRef(preset: HydratedPreset): PatchRef {
   if (preset.kit?.type === 'kit') {
-    return createPatchRef({ sourceType: 'kit', kitId: preset.kit.id });
+    return createPatchRef({ sourceType: 'kit', kitId: preset.kit.id ?? null });
   }
   if (preset.kit?.type === 'drumMachine') {
-    return createPatchRef({ sourceType: 'drumMachine', instrument: preset.kit.id });
+    return createPatchRef({ sourceType: 'drumMachine', instrument: preset.kit.id ?? null });
   }
   const firstTrack = preset.tracks?.[0];
   if (firstTrack?.kitId) {
     return createPatchRef({ sourceType: 'kit', kitId: firstTrack.kitId });
   }
   return createPatchRef({
-    sourceType: firstTrack?.sourceType || 'drumMachine',
-    instrument: firstTrack?.instrument || 'TR-808',
+    sourceType: firstTrack?.sourceType ?? 'drumMachine',
+    instrument: firstTrack?.instrument ?? 'TR-808',
   });
 }
 
-function makeFactoryItem(category, preset) {
+function makeFactoryItem(category: PresetCategory, preset: HydratedPreset): LibraryItem {
   const itemId = createNamespacedLibraryId('factory-library', category.name, preset.name);
   return {
     id: itemId,
@@ -27,14 +37,14 @@ function makeFactoryItem(category, preset) {
     kind: 'pattern',
     title: preset.name,
     fields: [
-      createField('cover', FIELD_TYPES.IMAGE, preset.cover || ''),
+      createField('cover', FIELD_TYPES.IMAGE, preset.cover ?? ''),
       createField('bpm', FIELD_TYPES.NUMBER, preset.bpm),
-      createField('swing', FIELD_TYPES.NUMBER, preset.swing || 0),
-      createField('credit', FIELD_TYPES.TEXT, preset.credit || ''),
-      createField('credit_url', FIELD_TYPES.URL, preset.creditUrl || ''),
-      createField('description', FIELD_TYPES.MARKDOWN, preset.body || ''),
-      createField('notes', FIELD_TYPES.MARKDOWN, preset.notes || ''),
-      createField('links', FIELD_TYPES.CUSTOM_JSON, preset.links || {}),
+      createField('swing', FIELD_TYPES.NUMBER, preset.swing ?? 0),
+      createField('credit', FIELD_TYPES.TEXT, preset.credit ?? ''),
+      createField('credit_url', FIELD_TYPES.URL, preset.creditUrl ?? ''),
+      createField('description', FIELD_TYPES.MARKDOWN, preset.body ?? ''),
+      createField('notes', FIELD_TYPES.MARKDOWN, preset.notes ?? ''),
+      createField('links', FIELD_TYPES.CUSTOM_JSON, preset.links ?? {}),
       createField('pattern_state', FIELD_TYPES.PATTERN_STATE, presetToState(preset)),
       createField('default_patch', FIELD_TYPES.PATCH_REF, derivePatchRef(preset)),
       createField('source_preset', FIELD_TYPES.TEXT, preset.name),
@@ -43,12 +53,12 @@ function makeFactoryItem(category, preset) {
     card: createCardView({
       title: preset.name,
       subtitle: preset.inTheStyleOf ? 'In the style of' : '',
-      cover: preset.cover || '',
+      cover: preset.cover ?? '',
       meta: [
         `${preset.bpm} BPM${preset.swing ? ` · swing ${preset.swing}` : ''}`,
-        preset.credit || '',
+        preset.credit ?? '',
       ].filter(Boolean),
-      previewSteps: preset.tracks?.[0]?.steps || null,
+      previewSteps: (preset.tracks?.[0]?.steps as number[] | undefined) ?? null,
     }),
     actions: [
       { id: 'load', label: 'Load', kind: ACTION_KINDS.LOAD_STATE },
@@ -59,7 +69,7 @@ function makeFactoryItem(category, preset) {
   };
 }
 
-export const factoryLibraryPlugin = {
+export const factoryLibraryPlugin: LibraryPlugin = {
   manifest: {
     id: 'factory-library',
     name: 'Factory Library',
@@ -69,7 +79,7 @@ export const factoryLibraryPlugin = {
     commercial: false,
     licenseTier: 'core',
   },
-  getCollections() {
+  getCollections(): LibraryCollection[] {
     return loadPresetCategories().map((category) => ({
       id: `factory-library:${category.name}`,
       pluginId: 'factory-library',

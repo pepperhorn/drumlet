@@ -1,8 +1,10 @@
+import type { ModePlugin } from './runtime.js';
+
 export const PRACTICE_PLUGIN_ID = 'practice-follow';
 export const CHALLENGE_PLUGIN_ID = 'rhythm-challenge';
 export const TELEPHONE_PLUGIN_ID = 'telephone';
 
-export const modePlugins = [
+export const modePlugins: ModePlugin[] = [
   {
     manifest: {
       id: PRACTICE_PLUGIN_ID,
@@ -62,6 +64,6 @@ export const modePlugins = [
   },
 ];
 
-export function getModePlugin(modePluginId) {
-  return modePlugins.find((plugin) => plugin.manifest.id === modePluginId) || null;
+export function getModePlugin(modePluginId: string): ModePlugin | null {
+  return modePlugins.find((plugin) => plugin.manifest.id === modePluginId) ?? null;
 }

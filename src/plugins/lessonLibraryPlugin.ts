@@ -1,7 +1,15 @@
 import { loadPresetByName, presetToState } from '../state/presets.js';
-import { ACTION_KINDS, FIELD_TYPES, createCardView, createField, createNamespacedLibraryId } from './librarySchema.js';
+import {
+  ACTION_KINDS,
+  FIELD_TYPES,
+  createCardView,
+  createField,
+  createNamespacedLibraryId,
+} from './librarySchema.js';
+import type { LibraryItem } from './librarySchema.js';
+import type { LibraryPlugin } from './runtime.js';
 
-function createLessonItem(id, title, summary, presetName, recommendedMode) {
+function createLessonItem(id: string, title: string, summary: string, presetName: string, recommendedMode: string): LibraryItem {
   const preset = loadPresetByName(presetName);
   return {
     id: createNamespacedLibraryId('lesson-library', 'lessons', id),
@@ -14,18 +22,18 @@ function createLessonItem(id, title, summary, presetName, recommendedMode) {
       createField('duration', FIELD_TYPES.DURATION, '8 min'),
       createField('difficulty', FIELD_TYPES.ENUM, 'intermediate'),
       createField('recommended_input_mode', FIELD_TYPES.INPUT_MODE, recommendedMode),
-      createField('related_pattern', FIELD_TYPES.REFERENCE, preset?.name || ''),
+      createField('related_pattern', FIELD_TYPES.REFERENCE, preset?.name ?? ''),
       createField('pattern_state', FIELD_TYPES.PATTERN_STATE, preset ? presetToState(preset) : null),
       createField('lesson_blocks', FIELD_TYPES.LESSON_BLOCKS, [
         { type: 'intro', title: 'Listen', body: 'Play the reference groove and internalize the pulse.' },
         { type: 'practice', title: 'Loop', body: 'Loop the groove and focus on consistency.' },
       ]),
-      createField('cover', FIELD_TYPES.IMAGE, preset?.cover || ''),
+      createField('cover', FIELD_TYPES.IMAGE, preset?.cover ?? ''),
     ],
     card: createCardView({
       title,
       subtitle: 'Lesson',
-      cover: preset?.cover || '',
+      cover: preset?.cover ?? '',
       meta: ['8 min', 'Intermediate'],
     }),
     actions: [
@@ -34,7 +42,7 @@ function createLessonItem(id, title, summary, presetName, recommendedMode) {
   };
 }
 
-export const lessonLibraryPlugin = {
+export const lessonLibraryPlugin: LibraryPlugin = {
   manifest: {
     id: 'lesson-library',
     name: 'Lesson Library',

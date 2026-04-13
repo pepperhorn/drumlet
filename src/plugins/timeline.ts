@@ -1,7 +1,18 @@
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
 import { effectiveStep } from '../util/stepHelpers.js';
+import type { SequencerState, Step } from '../state/sequencerReducer.js';
 
-export const DEFAULT_SCORE_POLICY = {
+const effectiveStepFn = effectiveStep as (s: Step) => number | number[];
+
+export interface ScorePolicy {
+  perfectMs: number;
+  greatMs: number;
+  okMs: number;
+  missMs: number;
+  extraPenalty: number;
+}
+
+export const DEFAULT_SCORE_POLICY: ScorePolicy = {
   perfectMs: 25,
   greatMs: 50,
   okMs: 100,
@@ -9,15 +20,22 @@ export const DEFAULT_SCORE_POLICY = {
   extraPenalty: 10,
 };
 
-function getTimingValues(state) {
-  const beatNv = NOTE_VALUES.find((n) => n.key === state.noteValue) || NOTE_VALUES[3];
-  const stepNv = NOTE_VALUES.find((n) => n.key === state.stepValue) || beatNv;
+interface TimingValues {
+  beatNv: (typeof NOTE_VALUES)[number];
+  stepNv: (typeof NOTE_VALUES)[number];
+  stepsPerBeat: number;
+  stepDuration: number;
+}
+
+function getTimingValues(state: SequencerState): TimingValues {
+  const beatNv = NOTE_VALUES.find((n) => n.key === state.noteValue) ?? NOTE_VALUES[3];
+  const stepNv = NOTE_VALUES.find((n) => n.key === state.stepValue) ?? beatNv;
   const stepsPerBeat = beatNv.beatsPerStep / stepNv.beatsPerStep;
   const stepDuration = 60 / ((state.bpm || 120) * stepsPerBeat);
   return { beatNv, stepNv, stepsPerBeat, stepDuration };
 }
 
-function getSwingOffsetMs(state, stepIndex, stepsPerBeat, stepDuration) {
+function getSwingOffsetMs(state: SequencerState, stepIndex: number, stepsPerBeat: number, stepDuration: number): number {
   if ((state.swing || 0) <= 0) return 0;
 
   const swingTarget = state.swingTarget || '8th';
@@ -33,16 +51,31 @@ function getSwingOffsetMs(state, stepIndex, stepsPerBeat, stepDuration) {
   return stepDuration * ((state.swing / 100) * 0.5);
 }
 
-export function getSequenceDurationSeconds(state, loops = 1) {
+export function getSequenceDurationSeconds(state: SequencerState, loops = 1): number {
   const { stepDuration } = getTimingValues(state);
   return state.pages.length * state.stepsPerPage * stepDuration * loops;
 }
 
-export function buildExpectedHits(state, { trackIds = null, loops = 1 } = {}) {
+export interface ExpectedHit {
+  id: string;
+  trackId: string;
+  pageIndex: number;
+  stepIndex: number;
+  subStepIndex: number | null;
+  velocity: number;
+  timeSec: number;
+}
+
+interface BuildExpectedHitsOptions {
+  trackIds?: string[] | null;
+  loops?: number;
+}
+
+export function buildExpectedHits(state: SequencerState, { trackIds = null, loops = 1 }: BuildExpectedHitsOptions = {}): ExpectedHit[] {
   if (!state?.pages?.length) return [];
 
   const { stepsPerBeat, stepDuration } = getTimingValues(state);
-  const expectedHits = [];
+  const expectedHits: ExpectedHit[] = [];
   const activeTrackIds = trackIds ? new Set(trackIds) : null;
   const pageStepCount = state.stepsPerPage;
   const baseSequenceDuration = getSequenceDurationSeconds(state, 1);
@@ -57,7 +90,7 @@ export function buildExpectedHits(state, { trackIds = null, loops = 1 } = {}) {
         if (track.mute) return;
 
         track.steps.slice(0, pageStepCount).forEach((rawStep, stepIndex) => {
-          const stepData = effectiveStep(rawStep);
+          const stepData = effectiveStepFn(rawStep);
           const stepOffset = pageOffset + (stepIndex * stepDuration);
           const swingOffset = getSwingOffsetMs(state, stepIndex, stepsPerBeat, stepDuration);
 
@@ -97,20 +130,62 @@ export function buildExpectedHits(state, { trackIds = null, loops = 1 } = {}) {
   return expectedHits;
 }
 
+export interface PerformanceEvent {
+  source: 'pad' | 'audio';
+  trackId: string | null;
+  timeSec: number;
+  confidence: number;
+}
+
+type Rating = 'perfect' | 'great' | 'ok' | 'late';
+
+export interface MatchEntry {
+  expectedHit: ExpectedHit;
+  event: PerformanceEvent;
+  rating: Rating;
+  offsetMs: number;
+}
+
+interface TrackMetricBucket {
+  matched: number;
+  misses: number;
+  extras: number;
+  perfect: number;
+  great: number;
+  ok: number;
+}
+
+export interface ScoreResult {
+  totalScore: number;
+  maxScore: number;
+  accuracy: number;
+  matches: MatchEntry[];
+  misses: ExpectedHit[];
+  extras: PerformanceEvent[];
+  perTrack: Record<string, TrackMetricBucket>;
+}
+
+interface ScorePerformanceOptions {
+  expectedHits: ExpectedHit[];
+  performanceEvents: PerformanceEvent[];
+  scorePolicy?: ScorePolicy;
+  allowAnyTrack?: boolean;
+}
+
 export function scorePerformance({
   expectedHits,
   performanceEvents,
   scorePolicy = DEFAULT_SCORE_POLICY,
   allowAnyTrack = false,
-}) {
-  const unmatchedEvents = performanceEvents.map((event) => ({ ...event }));
-  const matches = [];
-  const misses = [];
-  const perTrack = new Map();
+}: ScorePerformanceOptions): ScoreResult {
+  const unmatchedEvents: PerformanceEvent[] = performanceEvents.map((event) => ({ ...event }));
+  const matches: MatchEntry[] = [];
+  const misses: ExpectedHit[] = [];
+  const perTrack = new Map<string, TrackMetricBucket>();
   let totalScore = 0;
 
-  function addTrackMetric(trackId, key) {
-    const bucket = perTrack.get(trackId) || {
+  function addTrackMetric(trackId: string, key: keyof TrackMetricBucket): void {
+    const bucket = perTrack.get(trackId) ?? {
       matched: 0,
       misses: 0,
       extras: 0,
@@ -141,9 +216,9 @@ export function scorePerformance({
       return;
     }
 
-    const event = unmatchedEvents.splice(bestIndex, 1)[0];
+    const event = unmatchedEvents.splice(bestIndex, 1)[0]!;
     const signedOffsetMs = (event.timeSec - expectedHit.timeSec) * 1000;
-    let rating = 'ok';
+    let rating: Rating = 'ok';
     let score = 50;
 
     if (bestOffsetMs <= scorePolicy.perfectMs) {
@@ -169,7 +244,7 @@ export function scorePerformance({
   const extras = unmatchedEvents;
   extras.forEach((event) => {
     totalScore -= scorePolicy.extraPenalty;
-    addTrackMetric(event.trackId || 'any', 'extras');
+    addTrackMetric(event.trackId ?? 'any', 'extras');
   });
 
   const maxScore = expectedHits.length * 100;
