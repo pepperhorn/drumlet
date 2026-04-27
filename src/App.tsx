@@ -844,8 +844,10 @@ function Drumlet() {
           previewMode={previewMode}
           isDirty={isDirty}
           hasSaveId={Boolean(currentSaveId)}
+          chainMode={state.chainMode}
           onSave={handleSave}
           onTogglePlay={handlePlay}
+          onToggleChainMode={() => dispatch({ type: 'TOGGLE_CHAIN_MODE' })}
           onSetBpm={(bpm) => dispatch({ type: 'SET_BPM', bpm })}
           onSetTimeSig={(beatsPerBar, noteValue) => dispatch({ type: 'SET_TIME_SIG', beatsPerBar, noteValue })}
           onSetStepValue={(stepValue) => dispatch({ type: 'SET_STEP_VALUE', stepValue })}
@@ -862,7 +864,6 @@ function Drumlet() {
           currentPageIndex={state.currentPageIndex}
           stepsPerPage={state.stepsPerPage}
           stepOptions={getStepConfigs(TIME_SIGNATURES.find(t => t.num === state.beatsPerBar && t.noteValue === state.noteValue)?.label ?? '4/4')}
-          chainMode={state.chainMode}
           splitMode={toolbarSplit}
           selectedStep={selectedStep}
           sectionHeadings={currentPage?.sectionHeadings}
@@ -870,7 +871,6 @@ function Drumlet() {
           onAddPage={() => dispatch({ type: 'ADD_PAGE' })}
           onRemovePage={(i) => dispatch({ type: 'REMOVE_PAGE', pageIndex: i })}
           onSetStepsPerPage={(n) => dispatch({ type: 'SET_STEPS_PER_PAGE', stepsPerPage: n })}
-          onToggleChainMode={() => dispatch({ type: 'TOGGLE_CHAIN_MODE' })}
           onSetSplitMode={handlePickSplit}
           onClearPage={() => dispatch({ type: 'CLEAR_PAGE' })}
           onAddSectionHeading={(step, label) => dispatch({ type: 'ADD_SECTION_HEADING', step, label })}

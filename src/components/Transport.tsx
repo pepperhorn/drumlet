@@ -120,8 +120,10 @@ interface TransportProps {
   previewMode: boolean;
   isDirty: boolean;
   hasSaveId: boolean;
+  chainMode: boolean;
   onSave: () => void;
   onTogglePlay: () => void;
+  onToggleChainMode: () => void;
   onSetBpm: (bpm: number) => void;
   onSetTimeSig: (beatsPerBar: number, noteValue: NoteValueKey) => void;
   onSetStepValue: (stepValue: NoteValueKey) => void;
@@ -143,8 +145,10 @@ function Transport({
   previewMode,
   isDirty,
   hasSaveId,
+  chainMode,
   onSave,
   onTogglePlay,
+  onToggleChainMode,
   onSetBpm,
   onSetTimeSig,
   onSetStepValue,
@@ -211,6 +215,32 @@ function Transport({
         ) : (
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M4 2 L14 8 L4 14 Z" />
+          </svg>
+        )}
+      </button>
+
+      <button
+        className={`transport-chain-btn w-11 h-11 rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 border
+          ${chainMode
+            ? 'bg-amber/15 text-amber border-amber/30 hover:bg-amber/25'
+            : 'bg-gray-50 text-muted border-border hover:bg-gray-100 hover:text-text'}`}
+        onClick={onToggleChainMode}
+        title={chainMode
+          ? 'Chain mode: advance through pages on each loop (click to switch to Loop)'
+          : 'Loop mode: repeat the current page (click to switch to Chain)'}
+        aria-label={chainMode ? 'Chain mode' : 'Loop mode'}
+      >
+        {chainMode ? (
+          <svg className="transport-chain-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2.5 8h8" />
+            <path d="M7.5 4.5l3 3.5l-3 3.5" />
+            <path d="M13 3v10" />
+          </svg>
+        ) : (
+          <svg className="transport-loop-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6.5h7.5a3 3 0 0 1 0 6H6.5" />
+            <path d="M5 4.5L3 6.5l2 2" />
+            <path d="M11 14.5l2-2l-2-2" />
           </svg>
         )}
       </button>
