@@ -323,13 +323,18 @@ export function deserializeProject(json: DottlProject): Partial<SequencerState> 
   };
 }
 
+function slugify(name: string): string {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return slug || 'untitled';
+}
+
 export function exportToFile(state: SequencerState): void {
   const data = serializeProject(state);
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/dottl+json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'drumlet-project.json';
+  a.download = `${slugify(data.projectName)}.drumlet`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -353,7 +358,7 @@ export function importFromFile(): Promise<Partial<SequencerState> | null> {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json';
+    input.accept = '.drumlet,.dottl,.json,application/dottl+json,application/json';
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return resolve(null);
