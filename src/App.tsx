@@ -22,6 +22,9 @@ import type { SequencerState, Track, VelMode, NoteValueKey, SplitCount, Step } f
 import { normalizeSequencerState } from './state/normalizeSequencerState.js';
 import { useUserLibrary } from './state/userLibrary.js';
 import { useLibraryActions } from './state/useLibraryActions.js';
+import { useAuth } from './state/useAuth.js';
+import AuthModal from './components/AuthModal.js';
+import UserMenu from './components/UserMenu.js';
 import { usePluginSession } from './state/usePluginSession.js';
 import { ACTION_KINDS, getFieldValue } from './plugins/librarySchema.js';
 import type { LibraryItem, LibraryAction } from './plugins/librarySchema.js';
@@ -76,6 +79,11 @@ function Drumlet() {
   const [soundPickerTrackIndex, setSoundPickerTrackIndex] = useState<number | null>(null);
   const [activePadTrackIds, setActivePadTrackIds] = useState<Set<string>>(new Set());
   const [embed] = useState(() => isEmbedMode());
+  const [authOpen, setAuthOpen] = useState(() => {
+    try { return !!localStorage.getItem('drumlet-auth-flow'); } catch { return false; }
+  });
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const auth = useAuth();
   const customBuffersRef = useRef<Map<string, AudioBuffer>>(new Map());
   const activePadTimeoutsRef = useRef<Map<string, number>>(new Map());
   const tapTimesRef = useRef<number[]>([]);
@@ -634,6 +642,27 @@ function Drumlet() {
               </svg>
             )}
           </button>
+          {/* User icon — mobile */}
+          <button
+            className={`mobile-user-btn w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-95 border
+              ${auth.isLoggedIn
+                ? 'bg-sky/15 text-sky border-sky/30'
+                : 'bg-gray-100 text-muted border-border'}`}
+            onClick={() => auth.isLoggedIn ? setUserMenuOpen((v) => !v) : setAuthOpen(true)}
+            title={auth.isLoggedIn ? auth.user?.user_handle : 'Sign in'}
+          >
+            {auth.isLoggedIn ? (
+              <span className="mobile-user-initials text-[9px] font-bold">
+                {(auth.user?.first_name?.[0] || auth.user?.user_handle?.[0] || '').toUpperCase()}
+              </span>
+            ) : (
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="8" cy="5.5" r="3" />
+                <path d="M2.5 14.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
+              </svg>
+            )}
+          </button>
+          {/* More controls (swing, humanize, actions) */}
           <button
             className="mobile-more-btn w-8 h-8 rounded-lg bg-gray-100 text-muted hover:text-text flex items-center justify-center cursor-pointer"
             onClick={() => setShowFullTransport((v) => !v)}
@@ -688,6 +717,34 @@ function Drumlet() {
           >
             {playMode ? 'Edit' : 'Pads'}
           </button>
+          {/* User icon */}
+          <div className="user-icon-wrapper relative">
+            <button
+              className={`user-icon-btn w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-95 border
+                ${auth.isLoggedIn
+                  ? 'bg-sky/15 text-sky border-sky/30'
+                  : 'bg-gray-50 text-muted border-border hover:bg-gray-100 hover:text-text'}`}
+              onClick={() => auth.isLoggedIn ? setUserMenuOpen((v) => !v) : setAuthOpen(true)}
+              title={auth.isLoggedIn ? auth.user?.user_handle : 'Sign in'}
+            >
+              {auth.isLoggedIn ? (
+                <span className="user-icon-initials text-[11px] font-bold">
+                  {(auth.user?.first_name?.[0] || auth.user?.user_handle?.[0] || '').toUpperCase()}
+                </span>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="8" cy="5.5" r="3" />
+                  <path d="M2.5 14.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
+                </svg>
+              )}
+            </button>
+            <UserMenu
+              isOpen={userMenuOpen}
+              onClose={() => setUserMenuOpen(false)}
+              user={auth.user}
+              onSignOut={auth.logout}
+            />
+          </div>
         </div>
       </div>
 
@@ -969,6 +1026,13 @@ function Drumlet() {
         isOpen={shareOpen}
         onClose={() => setShareOpen(false)}
         state={state}
+      />
+
+      {/* Auth modal */}
+      <AuthModal
+        isOpen={authOpen}
+        onClose={() => setAuthOpen(false)}
+        auth={auth}
       />
 
       <PluginModal
