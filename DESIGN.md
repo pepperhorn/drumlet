@@ -62,7 +62,26 @@ Three-tier type stack. Each font has a clear job.
   - OK hit: Muted `#94A3B8`
   - Miss: Stop red `#EF4444` + glow shadow
   - Weak timing: Amber `#FFB347`
-- **Dark mode:** Not currently planned. The warm light theme is a brand differentiator.
+- **Dark mode:** Available as **Dark Studio** (toggle in app header). Grey-black canvas (`#0F1218`), dark-blue cards (`#1E2A47`), near-white text (`#F1F5F9`). Track palette stays identical — instrument identity does not flip with theme. The warm light theme remains the default and the brand differentiator.
+
+## Theming System
+
+Themes are defined as `DrumletTheme` objects (see `src/themes/types.ts`) and applied at runtime by writing CSS custom properties on `<html>`. Built-ins: `light`, `dark`. Plugins can register their own with `registerTheme()` from `src/themes/applyTheme.ts`.
+
+Token groups:
+- **Surfaces** — `bg`, `card`, `cardElevated`, `inset` (DESIGN L0–L3 tiers).
+- **Tailwind grays** — `surface1/2/3` map to `--color-gray-50/100/200` so existing utility classes stay legible in dark themes.
+- **Text** — `text`, `textInverse`, `muted`.
+- **Lines** — `border`.
+- **Accent** — `accent`, `accentText` (primary action; default = sky).
+- **Semantic** — `play`, `stop`.
+- **Track palette** — eight named instrument colors: `coral, amber, lime, sky, lavender, peach, mint, rose`.
+
+Persistence: user choice stored in `localStorage` under `drumlet-theme`. Special value `"system"` follows OS `prefers-color-scheme`.
+
+No-flash: `index.html` runs an inline bootstrap that sets `data-theme` + `color-scheme` before first paint. `index.css` provides CSS-variable fallbacks for `[data-theme="dark"]` so initial render is correct even before `applyTheme.ts` loads. JS later writes the same vars as inline styles on `<html>` (higher specificity), so plugin/custom themes can override.
+
+JSON Schema for theme files: exported as `THEME_JSON_SCHEMA` from `src/themes/types.ts`.
 
 ## Depth & Elevation
 Three-layer depth system creates physical presence. Each layer sits on top of the previous one.
@@ -157,4 +176,5 @@ Three-layer depth system creates physical presence. Each layer sits on top of th
 | 2026-04-02 | Initial design system created | Formalized from existing codebase by /design-consultation. Warm light theme is a deliberate differentiator from dark music tools. |
 | 2026-04-02 | 3-tier typography (Fredoka + Inter + JetBrains Mono) | Fredoka for personality, Inter for readability, JetBrains Mono for precision. Each font has one job. |
 | 2026-04-02 | Keep all 8 accent colors | Each track accent IS the track identity. Color is information, not decoration. |
-| 2026-04-02 | No dark mode planned | Warm light theme is brand identity. Dark mode would dilute the "approachable, not a studio tool" positioning. |
+| 2026-04-02 | No dark mode planned | Warm light theme is brand identity. Dark mode would dilute the "approachable, not a studio tool" positioning. (Reversed 2026-04-28 — Dark Studio added behind a toggle; light remains default.) |
+| 2026-04-28 | Add Dark Studio theme + theming schema | User testing of long ripped patterns showed real demand for a dimmer canvas. Built-in **Dark Studio** ships alongside Light. Theming is now extensible via `DrumletTheme` schema — plugins can register custom themes without forking. Track palette is intentionally kept across themes so instrument identity stays consistent. |
