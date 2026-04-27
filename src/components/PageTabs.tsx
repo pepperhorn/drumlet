@@ -46,7 +46,6 @@ interface PageTabsProps {
   currentPageIndex: number;
   stepsPerPage: number;
   stepOptions?: StepOption[];
-  chainMode: boolean;
   splitMode: SplitCount | null;
   selectedStep: number | null;
   sectionHeadings?: SectionHeading[];
@@ -54,7 +53,6 @@ interface PageTabsProps {
   onAddPage: () => void;
   onRemovePage: (i: number) => void;
   onSetStepsPerPage: (n: number) => void;
-  onToggleChainMode: () => void;
   onSetSplitMode: (val: SplitCount | null) => void;
   onClearPage: () => void;
   onAddSectionHeading?: (step: number, label: string) => void;
@@ -67,7 +65,6 @@ function PageTabs({
   currentPageIndex,
   stepsPerPage,
   stepOptions,
-  chainMode,
   splitMode,
   selectedStep,
   sectionHeadings,
@@ -75,7 +72,6 @@ function PageTabs({
   onAddPage,
   onRemovePage,
   onSetStepsPerPage,
-  onToggleChainMode,
   onSetSplitMode,
   onClearPage,
   onAddSectionHeading,
@@ -276,20 +272,6 @@ function PageTabs({
           </button>
         ))}
       </div>
-
-      <div className="page-divider w-px h-6 bg-border shrink-0" />
-
-      <button
-        className={`chain-mode-btn shrink-0 px-3 py-1 rounded-lg text-xs lg:text-sm font-semibold cursor-pointer transition-all
-          ${chainMode
-            ? 'bg-amber/15 text-amber border border-amber/30'
-            : 'bg-gray-50 text-muted hover:bg-gray-100'
-          }`}
-        onClick={onToggleChainMode}
-        title={chainMode ? 'Chain: plays pages in order' : 'Loop: repeats current page'}
-      >
-        {chainMode ? 'Chain' : 'Loop'}
-      </button>
 
       <div className="page-divider w-px h-6 bg-border shrink-0" />
 
