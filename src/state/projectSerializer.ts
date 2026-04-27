@@ -116,11 +116,11 @@ export function serializeProject(state: SequencerState): DottlProject {
               layer.notes.push({
                 id: `${track.id}-p${pageIdx}-n${col}-s${subIdx}`,
                 name: 'C',
-                col: pageOffset + col,
+                col: pageOffset + col + 1,
                 subCol: subIdx,
                 subCount: stepData.length,
                 row: 0,
-                octave: 0,
+                octave: 4,
                 isRoot: false,
                 isStartNote: false,
                 sustainCells: 0,
@@ -132,9 +132,9 @@ export function serializeProject(state: SequencerState): DottlProject {
           layer.notes.push({
             id: `${track.id}-p${pageIdx}-n${col}`,
             name: 'C',
-            col: pageOffset + col,
+            col: pageOffset + col + 1,
             row: 0,
-            octave: 0,
+            octave: 4,
             isRoot: false,
             isStartNote: false,
             sustainCells: 0,
@@ -147,7 +147,7 @@ export function serializeProject(state: SequencerState): DottlProject {
 
   const sections: DottlSection[] = state.pages.map((page, i) => ({
     id: page.id,
-    col: i * state.stepsPerPage,
+    col: i * state.stepsPerPage + 1,
     name: page.name,
   }));
 
@@ -269,7 +269,7 @@ export function deserializeProject(json: DottlProject): Partial<SequencerState> 
   // Generic dottl-spec v5 import (best effort for drum layers)
   const stepsPerPage = json.divisor === 4 ? 16 : json.divisor === 3 ? 12 : 16;
   const maxCol = Math.max(0, ...json.layers.flatMap((l) => l.notes.map((n) => n.col)));
-  const numPages = Math.max(1, Math.ceil((maxCol + 1) / stepsPerPage));
+  const numPages = Math.max(1, Math.ceil(maxCol / stepsPerPage));
 
   const pages = Array.from({ length: numPages }, (_, pageIdx) => {
     const pageOffset = pageIdx * stepsPerPage;
@@ -278,7 +278,8 @@ export function deserializeProject(json: DottlProject): Partial<SequencerState> 
       .map((layer, i) => {
         const steps = new Array<Step>(stepsPerPage).fill(0);
         for (const note of layer.notes) {
-          const localCol = note.col - pageOffset;
+          // dottl-spec: col 1 = beat 1, col 0 = anacrusis (skipped)
+          const localCol = note.col - 1 - pageOffset;
           if (localCol >= 0 && localCol < stepsPerPage) {
             steps[localCol] = note.velocity || 2;
           }
