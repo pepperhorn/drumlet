@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.gitignore
+.claude
+.gstack
+docs
+*.md
+.env
+.env.*
+npm-debug.log*
+.DS_Store
