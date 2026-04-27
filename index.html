@@ -10,6 +10,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <script>
+      // No-flash theme bootstrap: set data-theme + color-scheme before the
+      // first paint, based on stored preference (or OS pref if unset).
+      (function () {
+        try {
+          var pref = localStorage.getItem('drumlet-theme') || 'system';
+          var resolved = pref;
+          if (pref === 'system') {
+            resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+          }
+          document.documentElement.dataset.theme = resolved;
+          document.documentElement.style.colorScheme = resolved === 'dark' ? 'dark' : 'light';
+        } catch (e) { /* localStorage blocked — fall through to light default */ }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

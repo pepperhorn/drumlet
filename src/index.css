@@ -5,11 +5,18 @@
   --font-body: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
+  /* Defaults are the light theme. Runtime overrides via :root[data-theme]
+     below + inline-style writes from src/themes/applyTheme.ts. */
   --color-bg: #FAFBFC;
   --color-card: #FFFFFF;
+  --color-card-elevated: #FFFFFF;
+  --color-inset: #FAFBFC;
   --color-text: #1A1A2E;
+  --color-text-inverse: #FFFFFF;
   --color-muted: #94A3B8;
   --color-border: #E2E8F0;
+  --color-accent: #5BC0EB;
+  --color-accent-text: #FFFFFF;
 
   --color-coral: #FF6B6B;
   --color-amber: #FFB347;
@@ -22,6 +29,29 @@
 
   --color-play: #22C55E;
   --color-stop: #EF4444;
+}
+
+/* No-flash dark fallback: ensures first paint is dark when the inline
+   bootstrap in index.html sets [data-theme="dark"], even before
+   src/themes/applyTheme.ts runs. JS later overrides via inline style
+   so plugin/custom themes keep working. */
+:root[data-theme="dark"] {
+  --color-bg: #0F1218;
+  --color-card: #1E2A47;
+  --color-card-elevated: #243454;
+  --color-inset: #161B25;
+  --color-text: #F1F5F9;
+  --color-text-inverse: #0F1218;
+  --color-muted: #94A3B8;
+  --color-border: #334155;
+  --color-accent: #5BC0EB;
+  --color-accent-text: #FFFFFF;
+
+  /* Tailwind grays are remapped so bg-gray-50 / bg-gray-100 buttons stay
+     legible against the dark cards instead of glowing light-grey. */
+  --color-gray-50: #1E2A47;
+  --color-gray-100: #283557;
+  --color-gray-200: #324166;
 }
 
 * {
