@@ -334,6 +334,21 @@ export function exportToFile(state: SequencerState): void {
   URL.revokeObjectURL(url);
 }
 
+export function loadDottlFromHash(): Partial<SequencerState> | null {
+  const match = window.location.hash.match(/[#&]dottl=([A-Za-z0-9_-]+)/);
+  if (!match || !match[1]) return null;
+  try {
+    let b64 = match[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    const json = atob(b64);
+    const parsed = JSON.parse(decodeURIComponent(escape(json))) as DottlProject;
+    return deserializeProject(parsed);
+  } catch (e) {
+    console.error('Failed to decode #dottl= payload:', e);
+    return null;
+  }
+}
+
 export function importFromFile(): Promise<Partial<SequencerState> | null> {
   return new Promise((resolve) => {
     const input = document.createElement('input');
