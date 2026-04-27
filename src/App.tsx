@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import { SequencerProvider, useSequencer } from './state/SequencerContext.js';
 import { useAudioEngine } from './audio/useAudioEngine.js';
 import { useTransport } from './audio/useTransport.js';
-import { exportToFile, importFromFile } from './state/projectSerializer.js';
+import { exportToFile, importFromFile, loadDottlFromHash } from './state/projectSerializer.js';
 import { exportMidi } from './state/midiExport.js';
 import { maxLevel } from './audio/velocityConfig.js';
 import { isSplit, isMulti, effectiveStep } from './util/stepHelpers.js';
@@ -393,6 +393,19 @@ function Drumlet() {
 
   // Load shared state from URL on mount
   useEffect(() => {
+    // #dottl= takes precedence — raw dottl-spec JSON, used by external tools/rippers
+    const dottlPayload = loadDottlFromHash();
+    if (dottlPayload) {
+      const nextState = normalizeSequencerState(dottlPayload);
+      if (nextState) {
+        dispatch({ type: 'LOAD_STATE', state: nextState });
+        setCurrentSaveId(null);
+        setActivePreset(null);
+        markClean(nextState);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        return;
+      }
+    }
     const sharedPayload = loadSharedPayload();
     if (sharedPayload?.state) {
       const nextState = normalizeSequencerState(sharedPayload.state);
