@@ -1,37 +1,62 @@
 import { useState, useCallback, useEffect } from 'react';
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  user_handle?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+}
+
+export interface VerifyOtpResult {
+  success?: boolean;
+  token?: string;
+  user?: AuthUser;
+  is_new_user?: boolean;
+}
+
+export interface UseAuthReturn {
+  user: AuthUser | null;
+  isLoggedIn: boolean;
+  isLoading: boolean;
+  isNewUser: boolean;
+  setIsNewUser: (v: boolean) => void;
+  requestOtp: (email: string) => Promise<boolean>;
+  verifyOtp: (email: string, otpCode: string) => Promise<VerifyOtpResult>;
+  updateProfile: (updates: Partial<AuthUser>) => Promise<void>;
+  logout: () => void;
+}
+
 const SESSION_KEY = 'drumlet-session-token';
 const APP_SLUG = 'drumlet';
 const API_BASE = 'https://apps.pepperhorn.com/flows/trigger';
 
-// Flow webhook IDs
 const FLOW_SEND_CODE = '40f96a57-1ab0-4031-a7f5-9a32ec877d15';
 const FLOW_VERIFY_CODE = '65da02e3-4742-4c5a-8bc5-3bb114fb6557';
 const FLOW_VERIFY_SESSION = '11dd60ca-fc66-4396-9461-858b7bbf2df8';
 
-function getStoredToken() {
+function getStoredToken(): string | null {
   try { return localStorage.getItem(SESSION_KEY); }
   catch { return null; }
 }
 
-function storeToken(token) {
+function storeToken(token: string): void {
   try { localStorage.setItem(SESSION_KEY, token); }
   catch { /* quota exceeded */ }
 }
 
-function clearToken() {
+function clearToken(): void {
   try { localStorage.removeItem(SESSION_KEY); }
   catch { /* ignore */ }
 }
 
-export function useAuth() {
-  const [user, setUser] = useState(null);
+export function useAuth(): UseAuthReturn {
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isNewUser, setIsNewUser] = useState(false);
 
   const isLoggedIn = !!user;
 
-  // Validate stored session on mount
   useEffect(() => {
     const token = getStoredToken();
     if (!token) {
@@ -57,7 +82,7 @@ export function useAuth() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const requestOtp = useCallback(async (email) => {
+  const requestOtp = useCallback(async (email: string): Promise<boolean> => {
     const res = await fetch(`${API_BASE}/${FLOW_SEND_CODE}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -70,7 +95,7 @@ export function useAuth() {
     return true;
   }, []);
 
-  const verifyOtp = useCallback(async (email, otpCode) => {
+  const verifyOtp = useCallback(async (email: string, otpCode: string): Promise<VerifyOtpResult> => {
     const res = await fetch(`${API_BASE}/${FLOW_VERIFY_CODE}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -86,15 +111,14 @@ export function useAuth() {
       storeToken(data.token);
       setUser(data.user);
       setIsNewUser(data.is_new_user || false);
-      return data;
+      return data as VerifyOtpResult;
     }
     throw new Error('Verification failed');
   }, []);
 
-  const updateProfile = useCallback(async (updates) => {
+  const updateProfile = useCallback(async (updates: Partial<AuthUser>): Promise<void> => {
     if (!user) return;
     const token = getStoredToken();
-    // Direct Directus API call to update the user record
     const res = await fetch(`https://apps.pepperhorn.com/items/app_users/${user.id}`, {
       method: 'PATCH',
       headers: {
@@ -104,11 +128,11 @@ export function useAuth() {
       body: JSON.stringify(updates),
     });
     if (res.ok) {
-      setUser((prev) => ({ ...prev, ...updates }));
+      setUser((prev) => (prev ? { ...prev, ...updates } : prev));
     }
   }, [user]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback((): void => {
     clearToken();
     setUser(null);
     setIsNewUser(false);

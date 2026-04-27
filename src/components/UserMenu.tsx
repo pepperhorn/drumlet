@@ -1,12 +1,20 @@
 import { memo, useEffect, useRef } from 'react';
+import type { AuthUser } from '../state/useAuth.js';
 
-function UserMenu({ isOpen, onClose, user, onSignOut }) {
-  const menuRef = useRef(null);
+interface UserMenuProps {
+  isOpen: boolean;
+  onClose: () => void;
+  user: AuthUser | null | undefined;
+  onSignOut: () => void;
+}
+
+function UserMenu({ isOpen, onClose, user, onSignOut }: UserMenuProps) {
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
-    function handleClick(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         onClose();
       }
     }

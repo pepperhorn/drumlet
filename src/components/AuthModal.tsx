@@ -1,9 +1,25 @@
 import { memo, useState, useCallback, useRef, useEffect } from 'react';
+import type { FormEvent, KeyboardEvent } from 'react';
+import type { UseAuthReturn } from '../state/useAuth.js';
 
-const STEPS = { EMAIL: 'email', OTP: 'otp', PROFILE: 'profile' };
+const STEPS = { EMAIL: 'email', OTP: 'otp', PROFILE: 'profile' } as const;
+type Step = typeof STEPS[keyof typeof STEPS];
+
 const AUTH_FLOW_KEY = 'drumlet-auth-flow';
 
-function getPersistedFlow() {
+interface PersistedFlow {
+  step: Step;
+  email: string;
+  codeSentAt: number;
+}
+
+interface AuthModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  auth: UseAuthReturn;
+}
+
+function getPersistedFlow(): PersistedFlow | null {
   try {
     const raw = localStorage.getItem(AUTH_FLOW_KEY);
     if (!raw) return null;
@@ -17,28 +33,28 @@ function getPersistedFlow() {
   } catch { return null; }
 }
 
-function persistFlow(step, email, codeSentAt) {
+function persistFlow(step: Step, email: string, codeSentAt: number): void {
   try {
     localStorage.setItem(AUTH_FLOW_KEY, JSON.stringify({ step, email, codeSentAt }));
   } catch { /* quota exceeded */ }
 }
 
-function clearPersistedFlow() {
+function clearPersistedFlow(): void {
   try { localStorage.removeItem(AUTH_FLOW_KEY); } catch { /* ignore */ }
 }
 
-function AuthModal({ isOpen, onClose, auth }) {
+function AuthModal({ isOpen, onClose, auth }: AuthModalProps) {
   const persisted = isOpen ? getPersistedFlow() : null;
-  const [step, setStep] = useState(persisted?.step || STEPS.EMAIL);
-  const [email, setEmail] = useState(persisted?.email || '');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [step, setStep] = useState<Step>(persisted?.step || STEPS.EMAIL);
+  const [email, setEmail] = useState<string>(persisted?.email || '');
+  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [codeSentAt, setCodeSentAt] = useState(persisted?.codeSentAt || null);
-  const digitRefs = useRef([]);
+  const [, setCodeSentAt] = useState<number | null>(persisted?.codeSentAt || null);
+  const digitRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   // Reset state when modal opens (but preserve persisted OTP flow)
   useEffect(() => {
@@ -62,7 +78,7 @@ function AuthModal({ isOpen, onClose, auth }) {
     }
   }, [isOpen]);
 
-  const handleSendCode = useCallback(async (e) => {
+  const handleSendCode = useCallback(async (e: FormEvent) => {
     e.preventDefault();
     if (!email.trim() || sending) return;
     setError('');
@@ -74,13 +90,13 @@ function AuthModal({ isOpen, onClose, auth }) {
       setStep(STEPS.OTP);
       persistFlow(STEPS.OTP, email.trim(), now);
     } catch (err) {
-      setError(err.message || 'Failed to send code');
+      setError((err as Error).message || 'Failed to send code');
     } finally {
       setSending(false);
     }
   }, [email, sending, auth]);
 
-  const handleDigitChange = useCallback((index, value) => {
+  const handleDigitChange = useCallback((index: number, value: string) => {
     if (value.length > 1) {
       // Handle paste
       const digits = value.replace(/\D/g, '').slice(0, 6).split('');
@@ -115,7 +131,7 @@ function AuthModal({ isOpen, onClose, auth }) {
     }
   }, [otp]);
 
-  const handleDigitKeyDown = useCallback((index, e) => {
+  const handleDigitKeyDown = useCallback((index: number, e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
       digitRefs.current[index - 1]?.focus();
     }
@@ -128,7 +144,7 @@ function AuthModal({ isOpen, onClose, auth }) {
     }
   }, [otp, step]);
 
-  const handleVerify = useCallback(async (code) => {
+  const handleVerify = useCallback(async (code: string) => {
     if (verifying) return;
     setError('');
     setVerifying(true);
@@ -141,14 +157,14 @@ function AuthModal({ isOpen, onClose, auth }) {
         onClose();
       }
     } catch (err) {
-      setError(err.message || 'Invalid code');
+      setError((err as Error).message || 'Invalid code');
       setOtp(['', '', '', '', '', '']);
       setVerifying(false);
       digitRefs.current[0]?.focus();
     }
   }, [email, verifying, auth, onClose]);
 
-  const handleProfileSubmit = useCallback(async (e) => {
+  const handleProfileSubmit = useCallback(async (e: FormEvent) => {
     e.preventDefault();
     if (firstName.trim() || lastName.trim()) {
       await auth.updateProfile({
@@ -170,7 +186,7 @@ function AuthModal({ isOpen, onClose, auth }) {
       setCodeSentAt(Date.now());
       setOtp(['', '', '', '', '', '']);
     } catch (err) {
-      setError(err.message || 'Failed to resend');
+      setError((err as Error).message || 'Failed to resend');
     } finally {
       setSending(false);
     }
