@@ -326,45 +326,64 @@ export function sequencerReducer(state: SequencerState, action: SequencerAction)
     case 'SET_TRACK_PROP': {
       const { trackIndex, prop, value } = action;
       const pages = structuredClone(state.pages);
-      const track = pages[state.currentPageIndex]?.tracks[trackIndex];
-      if (!track) return state;
-      // Caller is responsible for matching prop ↔ value types.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (track as any)[prop] = value;
+      // Track config is global across pages; only `steps` is per-page.
+      let touched = false;
+      for (const page of pages) {
+        const track = page.tracks[trackIndex];
+        if (!track) continue;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (track as any)[prop] = value;
+        touched = true;
+      }
+      if (!touched) return state;
       return { ...state, pages };
     }
 
     case 'SET_TRACK_SOURCE': {
       const { trackIndex, sourceType, instrument, group, soundfontName, customSampleName, kitId, kitSample, name } = action;
       const pages = structuredClone(state.pages);
-      const track = pages[state.currentPageIndex]?.tracks[trackIndex];
-      if (!track) return state;
-      track.sourceType = sourceType;
-      track.instrument = instrument ?? null;
-      track.group = group ?? null;
-      track.soundfontName = soundfontName ?? null;
-      track.customSampleName = customSampleName ?? null;
-      track.kitId = kitId ?? null;
-      track.kitSample = kitSample ?? null;
-      if (name) track.name = name;
+      // Sound source is shared across pages.
+      let touched = false;
+      for (const page of pages) {
+        const track = page.tracks[trackIndex];
+        if (!track) continue;
+        track.sourceType = sourceType;
+        track.instrument = instrument ?? null;
+        track.group = group ?? null;
+        track.soundfontName = soundfontName ?? null;
+        track.customSampleName = customSampleName ?? null;
+        track.kitId = kitId ?? null;
+        track.kitSample = kitSample ?? null;
+        if (name) track.name = name;
+        touched = true;
+      }
+      if (!touched) return state;
       return { ...state, pages };
     }
 
     case 'ADD_TRACK': {
       const pages = structuredClone(state.pages);
-      const page = pages[state.currentPageIndex];
-      if (!page) return state;
-      const idx = page.tracks.length;
-      page.tracks.push(makeTrack(idx, state.stepsPerPage));
+      if (pages.length === 0) return state;
+      const idx = pages[0]!.tracks.length;
+      // One template track for shared identity (id, name, sound) across pages.
+      const template = makeTrack(idx, state.stepsPerPage);
+      for (const page of pages) {
+        page.tracks.push({
+          ...structuredClone(template),
+          steps: new Array<Step>(state.stepsPerPage).fill(0),
+        });
+      }
       return { ...state, pages };
     }
 
     case 'REMOVE_TRACK': {
       const { trackIndex } = action;
       const pages = structuredClone(state.pages);
-      const page = pages[state.currentPageIndex];
-      if (!page) return state;
-      page.tracks.splice(trackIndex, 1);
+      for (const page of pages) {
+        if (trackIndex >= 0 && trackIndex < page.tracks.length) {
+          page.tracks.splice(trackIndex, 1);
+        }
+      }
       return { ...state, pages };
     }
 
@@ -372,12 +391,13 @@ export function sequencerReducer(state: SequencerState, action: SequencerAction)
       const { fromIndex, toIndex } = action;
       if (fromIndex === toIndex) return state;
       const pages = structuredClone(state.pages);
-      const tracks = pages[state.currentPageIndex]?.tracks;
-      if (!tracks) return state;
-      if (fromIndex < 0 || fromIndex >= tracks.length) return state;
-      if (toIndex < 0 || toIndex >= tracks.length) return state;
-      const [moved] = tracks.splice(fromIndex, 1);
-      if (moved) tracks.splice(toIndex, 0, moved);
+      for (const page of pages) {
+        const tracks = page.tracks;
+        if (fromIndex < 0 || fromIndex >= tracks.length) continue;
+        if (toIndex < 0 || toIndex >= tracks.length) continue;
+        const [moved] = tracks.splice(fromIndex, 1);
+        if (moved) tracks.splice(toIndex, 0, moved);
+      }
       return { ...state, pages };
     }
 
@@ -449,13 +469,10 @@ export function sequencerReducer(state: SequencerState, action: SequencerAction)
     case 'SET_TRACK_VEL_MODE': {
       const { trackIndex, mode } = action;
       const pages = structuredClone(state.pages);
-      const track = pages[state.currentPageIndex]?.tracks[trackIndex];
-      if (!track) return state;
-      const oldMode = track.velMode || 3;
+      const refTrack = pages[state.currentPageIndex]?.tracks[trackIndex];
+      if (!refTrack) return state;
+      const oldMode = refTrack.velMode || 3;
       if (mode === oldMode) return state;
-
-      const stashed: Partial<Record<VelMode, Step[]>> = { ...(track._stashedSteps || {}) };
-      stashed[oldMode] = structuredClone(track.steps);
 
       const convertStepValue = (v: Step): Step => {
         if (isMulti(v)) {
@@ -471,16 +488,22 @@ export function sequencerReducer(state: SequencerState, action: SequencerAction)
         return convertStep(v as number, oldMode, mode);
       };
 
-      const stashedForNew = stashed[mode];
-      if (stashedForNew) {
-        track.steps = stashedForNew;
-        delete stashed[mode];
-      } else {
-        track.steps = track.steps.map(convertStepValue);
+      // velMode is shared across pages; each page stashes/restores its own steps.
+      for (const page of pages) {
+        const track = page.tracks[trackIndex];
+        if (!track) continue;
+        const stashed: Partial<Record<VelMode, Step[]>> = { ...(track._stashedSteps || {}) };
+        stashed[oldMode] = structuredClone(track.steps);
+        const stashedForNew = stashed[mode];
+        if (stashedForNew) {
+          track.steps = stashedForNew;
+          delete stashed[mode];
+        } else {
+          track.steps = track.steps.map(convertStepValue);
+        }
+        track.velMode = mode;
+        track._stashedSteps = stashed;
       }
-
-      track.velMode = mode;
-      track._stashedSteps = stashed;
       return { ...state, pages };
     }
 
