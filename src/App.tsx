@@ -17,6 +17,7 @@ import PluginModal from './components/PluginModal.js';
 import SoundPicker from './components/SoundPicker.js';
 import type { SoundSourceConfig } from './components/SoundPicker.js';
 import { isEmbedMode, loadSharedPayload } from './state/shareCodec.js';
+import { useTheme } from './state/useTheme.js';
 import { TIME_SIGNATURES, getStepConfigs } from './state/sequencerReducer.js';
 import type { SequencerState, Track, VelMode, NoteValueKey, SplitCount, Step } from './state/sequencerReducer.js';
 import { normalizeSequencerState } from './state/normalizeSequencerState.js';
@@ -84,6 +85,8 @@ function Drumlet() {
   });
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const auth = useAuth();
+  const { activeThemeId, setPreference } = useTheme();
+  const isDark = activeThemeId === 'dark';
   const customBuffersRef = useRef<Map<string, AudioBuffer>>(new Map());
   const activePadTimeoutsRef = useRef<Map<string, number>>(new Map());
   const tapTimesRef = useRef<number[]>([]);
@@ -730,6 +733,25 @@ function Drumlet() {
           >
             {playMode ? 'Edit' : 'Pads'}
           </button>
+          {/* Theme toggle */}
+          <button
+            className="theme-toggle-btn w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-95 border bg-gray-50 text-muted border-border hover:bg-gray-100 hover:text-text"
+            onClick={() => setPreference(isDark ? 'light' : 'dark')}
+            title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+            aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+          >
+            {isDark ? (
+              <svg className="theme-icon-sun" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="8" cy="8" r="3" />
+                <path d="M8 1.5v1.5M8 13v1.5M1.5 8h1.5M13 8h1.5M3.3 3.3l1.1 1.1M11.6 11.6l1.1 1.1M3.3 12.7l1.1-1.1M11.6 4.4l1.1-1.1" />
+              </svg>
+            ) : (
+              <svg className="theme-icon-moon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z" />
+              </svg>
+            )}
+          </button>
+
           {/* User icon */}
           <div className="user-icon-wrapper relative">
             <button
