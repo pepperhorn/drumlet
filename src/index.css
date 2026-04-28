@@ -29,6 +29,11 @@
 
   --color-play: #22C55E;
   --color-stop: #EF4444;
+
+  /* Empty step-cell face. Light = pure white pad. Dark theme overrides
+     this to a warm cream so empty pads don't read as stark sheet-white. */
+  --color-cell: #FFFFFF;
+  --color-cell-hover: #F8FAFC;
 }
 
 /* No-flash dark fallback: ensures first paint is dark when the inline
@@ -40,12 +45,18 @@
   --color-card: #1E2A47;
   --color-card-elevated: #243454;
   --color-inset: #0E1220;
-  --color-text: #F1F5F9;
+  /* Warm ivory instead of cool slate so the title + track labels don't
+     read as stark screen-white. */
+  --color-text: #EDE6D3;
   --color-text-inverse: #0E1220;
   --color-muted: #94A3B8;
   --color-border: #334155;
   --color-accent: #5BC0EB;
   --color-accent-text: #FFFFFF;
+
+  /* Cream pad face — Launchpad-rubber feel for empty cells. */
+  --color-cell: #E5DCC4;
+  --color-cell-hover: #D8CFB7;
 
   /* Tailwind grays remapped so bg-gray-* buttons inside dark cards have a
      visible surface lift (gray-50 sits *above* card, not equal to it). */

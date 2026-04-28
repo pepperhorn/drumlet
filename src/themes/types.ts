@@ -42,6 +42,15 @@ export interface ThemeColors {
   /** Border between surfaces. */
   border: string;
 
+  /**
+   * Empty step-cell face — the "rubber pad" surface. Optional; defaults
+   * to white. Override in dark themes to avoid stark white pads against
+   * the dark canvas (e.g. warm cream / parchment for a Launchpad feel).
+   */
+  cell?: string;
+  /** Empty step-cell hover. Optional; defaults to surface1 / gray-50. */
+  cellHover?: string;
+
   /** Primary action accent (default: track.sky). */
   accent: string;
   /** Foreground used on accent backgrounds. */
@@ -112,6 +121,8 @@ export const THEME_JSON_SCHEMA = {
         textInverse: { type: 'string' },
         muted: { type: 'string' },
         border: { type: 'string' },
+        cell: { type: 'string' },
+        cellHover: { type: 'string' },
         accent: { type: 'string' },
         accentText: { type: 'string' },
         play: { type: 'string' },

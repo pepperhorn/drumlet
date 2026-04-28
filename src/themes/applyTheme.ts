@@ -84,6 +84,12 @@ function writeVars(theme: DrumletTheme): void {
   else root.style.removeProperty('--color-gray-100');
   if (c.surface3) root.style.setProperty('--color-gray-200', c.surface3);
   else root.style.removeProperty('--color-gray-200');
+  // Empty step-cell surface. Themes that don't override fall back to the
+  // CSS defaults declared in index.css (white / gray-50).
+  if (c.cell) root.style.setProperty('--color-cell', c.cell);
+  else root.style.removeProperty('--color-cell');
+  if (c.cellHover) root.style.setProperty('--color-cell-hover', c.cellHover);
+  else root.style.removeProperty('--color-cell-hover');
 }
 
 /** Apply preference (theme id or `"system"`) and notify listeners. */
