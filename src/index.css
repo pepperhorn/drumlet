@@ -36,22 +36,33 @@
    src/themes/applyTheme.ts runs. JS later overrides via inline style
    so plugin/custom themes keep working. */
 :root[data-theme="dark"] {
-  --color-bg: #0F1218;
+  --color-bg: #0E1220;
   --color-card: #1E2A47;
   --color-card-elevated: #243454;
-  --color-inset: #161B25;
+  --color-inset: #0E1220;
   --color-text: #F1F5F9;
-  --color-text-inverse: #0F1218;
+  --color-text-inverse: #0E1220;
   --color-muted: #94A3B8;
   --color-border: #334155;
   --color-accent: #5BC0EB;
   --color-accent-text: #FFFFFF;
 
-  /* Tailwind grays are remapped so bg-gray-50 / bg-gray-100 buttons stay
-     legible against the dark cards instead of glowing light-grey. */
-  --color-gray-50: #1E2A47;
-  --color-gray-100: #283557;
-  --color-gray-200: #324166;
+  /* Tailwind grays remapped so bg-gray-* buttons inside dark cards have a
+     visible surface lift (gray-50 sits *above* card, not equal to it). */
+  --color-gray-50: #283557;
+  --color-gray-100: #324166;
+  --color-gray-200: #3F517D;
+
+  /* Softened track palette — same hue family, ~10% saturation drop so the
+     identity colors don't punch as neon on deep navy. */
+  --color-coral: #E87A7A;
+  --color-amber: #E5A75C;
+  --color-lime: #A4CF74;
+  --color-sky: #6FB7D5;
+  --color-lavender: #A695C8;
+  --color-peach: #E5A18E;
+  --color-mint: #74C29A;
+  --color-rose: #D89AB1;
 }
 
 * {
@@ -102,9 +113,11 @@ body {
   transform: scale(1.15);
 }
 
-/* Playhead glow */
+/* Playhead glow — themed via accent so plugin themes flow through */
 .playhead-active {
-  box-shadow: 0 0 10px 3px rgba(91, 192, 235, 0.5), 0 0 4px 1px rgba(91, 192, 235, 0.3);
+  box-shadow:
+    0 0 10px 3px color-mix(in srgb, var(--color-accent) 50%, transparent),
+    0 0 4px 1px color-mix(in srgb, var(--color-accent) 30%, transparent);
   z-index: 2;
 }
 
