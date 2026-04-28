@@ -57,6 +57,12 @@
   /* Cream pad face — Launchpad-rubber feel for empty cells. */
   --color-cell: #E5DCC4;
   --color-cell-hover: #D8CFB7;
+}
+
+/* Dark-theme title accent — "drumlet" wordmark in play-green so it pops
+   against the dark cards (like a power LED on a piece of gear). */
+:root[data-theme="dark"] .drumlet-title {
+  color: var(--color-play);
 
   /* Tailwind grays remapped so bg-gray-* buttons inside dark cards have a
      visible surface lift (gray-50 sits *above* card, not equal to it). */
