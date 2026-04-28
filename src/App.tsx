@@ -658,6 +658,25 @@ function Drumlet() {
               </svg>
             )}
           </button>
+          {/* Theme toggle — mobile */}
+          <button
+            className="mobile-theme-toggle-btn w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-95 border bg-gray-100 text-muted border-border"
+            onClick={() => setPreference(isDark ? 'light' : 'dark')}
+            title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+            aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+          >
+            {isDark ? (
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="8" cy="8" r="3" />
+                <path d="M8 1.5v1.5M8 13v1.5M1.5 8h1.5M13 8h1.5M3.3 3.3l1.1 1.1M11.6 11.6l1.1 1.1M3.3 12.7l1.1-1.1M11.6 4.4l1.1-1.1" />
+              </svg>
+            ) : (
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z" />
+              </svg>
+            )}
+          </button>
+
           {/* User icon — mobile */}
           <button
             className={`mobile-user-btn w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-95 border
