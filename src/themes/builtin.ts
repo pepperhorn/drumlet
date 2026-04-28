@@ -64,10 +64,17 @@ export const DARK_THEME: DrumletTheme = {
     surface1: '#283557',
     surface2: '#324166',
     surface3: '#3F517D',
-    text: '#F1F5F9',
+    // Slightly warm ivory rather than cool slate — softens the title and
+    // track-name "drumlet / kick / snare" labels so they don't read as
+    // stark white against deep navy.
+    text: '#EDE6D3',
     textInverse: '#0E1220',
     muted: '#94A3B8',
     border: '#334155',
+    // Empty step pads as warm cream — the Novation-Launchpad-rubber feel,
+    // not stark sheet-white. Filled cells still light up in track colors.
+    cell: '#E5DCC4',
+    cellHover: '#D8CFB7',
     accent: '#5BC0EB',
     accentText: '#FFFFFF',
     play: '#22C55E',

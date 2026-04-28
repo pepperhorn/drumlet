@@ -140,7 +140,7 @@ function Cell({
                 key={i}
                 className={`step-subcell w-9 h-7 md:w-10 md:h-8 lg:w-11 lg:h-9 rounded-sm border cursor-pointer
                   flex items-center justify-center text-[9px] md:text-[10px] lg:text-xs font-mono font-semibold select-none
-                  ${subVel === 0 ? 'bg-white border-border hover:bg-gray-50' : 'border-transparent'}`}
+                  ${subVel === 0 ? 'bg-cell border-border hover:bg-cell-hover' : 'border-transparent'}`}
                 style={subVel > 0 ? {
                   backgroundColor: color,
                   opacity: subOpacity,
@@ -171,7 +171,7 @@ function Cell({
       className={`step-cell cell-hit relative w-9 h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
         flex items-center justify-center text-[10px] md:text-xs lg:text-sm font-mono font-semibold select-none overflow-hidden
         ${velocity === 0
-          ? 'bg-white border-border hover:bg-gray-50'
+          ? 'bg-cell border-border hover:bg-cell-hover'
           : 'border-transparent'
         }
         ${isActive ? 'cell-active ring-2 ring-violet/60' : ''}
