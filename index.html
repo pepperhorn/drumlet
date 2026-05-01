@@ -4,7 +4,120 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Drumlet</title>
+    <meta name="theme-color" content="#0ea5e9" />
+
+    <title>Drumlet — your gateway to groove</title>
+    <meta name="description" content="Drumlet is an interactive drum machine, composition and rehearsal tool. Build patterns with real drum-machine samples, play them live for accuracy scoring, and share challenges. Dottl compatible." />
+    <meta name="keywords" content="drum machine, step sequencer, rhythm trainer, online drum machine, browser drum machine, drum composition, rehearsal tool, TR-808, LM-2, CR-8000, Dottl, music education, play-along, groove" />
+    <meta name="author" content="Pepperhorn" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://drumlet.app/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Drumlet" />
+    <meta property="og:title" content="Drumlet — your gateway to groove" />
+    <meta property="og:description" content="An interactive drum machine, composition and rehearsal tool. Build, play, and share rhythm challenges in your browser. Dottl compatible." />
+    <meta property="og:url" content="https://drumlet.app/" />
+    <meta property="og:image" content="https://drumlet.app/Social.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Drumlet — your gateway to groove" />
+    <meta name="twitter:description" content="An interactive drum machine, composition and rehearsal tool. Build, play, and share rhythm challenges. Dottl compatible." />
+    <meta name="twitter:image" content="https://drumlet.app/Social.png" />
+
+    <!-- JSON-LD: SoftwareApplication (for SEO + Answer Engines) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Drumlet",
+      "alternateName": "Drumlet — your gateway to groove",
+      "description": "Drumlet is an interactive drum machine, composition and rehearsal tool. Build patterns with real drum-machine samples (TR-808, LM-2, CR-8000), play them live for accuracy scoring, and share challenges via URL. Dottl compatible.",
+      "applicationCategory": "MusicApplication",
+      "applicationSubCategory": "Drum Machine",
+      "operatingSystem": "Web Browser",
+      "browserRequirements": "Requires JavaScript and Web Audio API",
+      "url": "https://drumlet.app/",
+      "image": "https://drumlet.app/Social.png",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "creator": {
+        "@type": "Organization",
+        "name": "Pepperhorn",
+        "url": "https://pepperhorn.com"
+      },
+      "featureList": [
+        "Step sequencer with multi-page patterns",
+        "Time signature changes, swing, humanize, per-step velocity",
+        "Real drum machine samples (TR-808, LM-2, CR-8000 and more)",
+        "Notation view powered by VexFlow",
+        "Play-along practice modes with accuracy scoring",
+        "Telephone rhythm-chain mode",
+        "URL-encoded pattern sharing — no backend required",
+        "Dottl compatible"
+      ],
+      "license": "https://www.gnu.org/licenses/agpl-3.0.html"
+    }
+    </script>
+
+    <!-- JSON-LD: FAQ (Answer Engine Optimization) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Drumlet?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Drumlet is a browser-based interactive drum machine, composition and rehearsal tool. It combines a step sequencer with real drum-machine samples, a notation view, and play-along scoring so you can build patterns and rehearse them with accuracy feedback."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Drumlet free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Drumlet runs entirely in your browser at no cost and is open source under the GNU AGPL v3 license."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I need to install anything?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Drumlet runs in any modern browser with Web Audio support. No download or sign-up is required to start building patterns."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Drumlet Dottl compatible?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Drumlet is fully compatible with Dottl, so patterns and challenges interoperate across the Dottl ecosystem."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I share my drum patterns?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Drumlet encodes patterns and challenges directly into the URL hash fragment, so you can share a link to any groove without needing a backend or account."
+          }
+        }
+      ]
+    }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -28,6 +141,11 @@
       })();
     </script>
     <div id="root"></div>
+    <noscript>
+      <h1>Drumlet — your gateway to groove</h1>
+      <p>Drumlet is an interactive drum machine, composition and rehearsal tool. Dottl compatible.</p>
+      <p>Drumlet requires JavaScript and the Web Audio API to run. Please enable JavaScript in your browser to use the sequencer.</p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
