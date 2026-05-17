@@ -18,7 +18,7 @@ import SoundPicker from './components/SoundPicker.js';
 import type { SoundSourceConfig } from './components/SoundPicker.js';
 import { isEmbedMode, loadSharedPayload } from './state/shareCodec.js';
 import { useTheme } from './state/useTheme.js';
-import { TIME_SIGNATURES, getStepConfigs } from './state/sequencerReducer.js';
+import { TIME_SIGNATURES, getStepConfigs, createInitialState } from './state/sequencerReducer.js';
 import type { SequencerState, Track, VelMode, NoteValueKey, SplitCount, Step } from './state/sequencerReducer.js';
 import { normalizeSequencerState } from './state/normalizeSequencerState.js';
 import { useUserLibrary } from './state/userLibrary.js';
@@ -438,6 +438,16 @@ function Drumlet() {
     }
   }, [dispatch, markClean, stop, setCurrentSaveId, setActivePreset]);
 
+  const handleNewProject = useCallback(() => {
+    if (!window.confirm('Start a new file? This clears all tracks and pages. Unsaved changes will be lost.')) return;
+    const nextState = createInitialState();
+    stop();
+    dispatch({ type: 'LOAD_STATE', state: nextState });
+    setCurrentSaveId(null);
+    setActivePreset(null);
+    markClean(nextState);
+  }, [dispatch, markClean, stop, setCurrentSaveId, setActivePreset]);
+
   const handleActivateLibraryItem = useCallback((item: LibraryItem, action: LibraryAction | null = null) => {
     const primaryAction = action ?? item.actions?.[0] ?? null;
     const nextState = getFieldValue<SequencerState | null>(item, 'pattern_state', null);
@@ -742,6 +752,7 @@ function Drumlet() {
             </svg>
             Share
           </button>
+          <button className="action-btn px-3 py-1.5 rounded-lg bg-gray-50 text-xs lg:text-sm font-medium text-muted hover:bg-gray-100 hover:text-text transition-colors cursor-pointer" onClick={handleNewProject}>New</button>
           <button className="action-btn px-3 py-1.5 rounded-lg bg-gray-50 text-xs lg:text-sm font-medium text-muted hover:bg-gray-100 hover:text-text transition-colors cursor-pointer" onClick={handleImport}>Import</button>
           <button className="action-btn px-3 py-1.5 rounded-lg bg-gray-50 text-xs lg:text-sm font-medium text-muted hover:bg-gray-100 hover:text-text transition-colors cursor-pointer" onClick={handleExport}>Export</button>
           <button className="action-btn px-3 py-1.5 rounded-lg bg-gray-50 text-xs lg:text-sm font-medium text-muted hover:bg-gray-100 hover:text-text transition-colors cursor-pointer" onClick={handleMidiExport}>MIDI</button>
@@ -865,6 +876,7 @@ function Drumlet() {
           </div>
           <div className="mobile-action-btns flex items-center gap-1.5 mt-2 flex-wrap">
             <button className="action-btn px-2.5 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-muted cursor-pointer" onClick={() => { setShareOpen(true); setShowFullTransport(false); }}>Share</button>
+            <button className="action-btn px-2.5 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-muted cursor-pointer" onClick={handleNewProject}>New</button>
             <button className="action-btn px-2.5 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-muted cursor-pointer" onClick={handleImport}>Import</button>
             <button className="action-btn px-2.5 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-muted cursor-pointer" onClick={handleExport}>Export</button>
             <button className="action-btn px-2.5 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-muted cursor-pointer" onClick={handleMidiExport}>MIDI</button>
