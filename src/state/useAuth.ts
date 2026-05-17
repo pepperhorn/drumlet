@@ -105,7 +105,7 @@ export function useAuth(): UseAuthReturn {
       const err = await res.json().catch(() => ({}));
       throw new Error(err?.errors?.[0]?.message || 'Invalid code');
     }
-    const result = await res.json();
+    const result = await res.json().catch(() => null);
     const data = result?.data ?? result;
     if (data?.success && data.token) {
       storeToken(data.token);
@@ -113,7 +113,7 @@ export function useAuth(): UseAuthReturn {
       setIsNewUser(data.is_new_user || false);
       return data as VerifyOtpResult;
     }
-    throw new Error('Verification failed');
+    throw new Error('Invalid or expired code');
   }, []);
 
   const updateProfile = useCallback(async (updates: Partial<AuthUser>): Promise<void> => {

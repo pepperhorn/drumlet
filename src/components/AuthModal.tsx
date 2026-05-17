@@ -55,6 +55,7 @@ function AuthModal({ isOpen, onClose, auth }: AuthModalProps) {
   const [verifying, setVerifying] = useState(false);
   const [, setCodeSentAt] = useState<number | null>(persisted?.codeSentAt || null);
   const digitRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const verifyingRef = useRef(false);
 
   // Reset state when modal opens (but preserve persisted OTP flow)
   useEffect(() => {
@@ -75,6 +76,7 @@ function AuthModal({ isOpen, onClose, auth }: AuthModalProps) {
       setError('');
       setSending(false);
       setVerifying(false);
+      verifyingRef.current = false;
     }
   }, [isOpen]);
 
@@ -109,14 +111,7 @@ function AuthModal({ isOpen, onClose, auth }: AuthModalProps) {
       });
       const focusIdx = Math.min(index + digits.length, 5);
       digitRefs.current[focusIdx]?.focus();
-      // Auto-submit if all 6 filled
-      if (index + digits.length >= 6) {
-        const fullCode = [...otp];
-        digits.forEach((d, i) => { if (index + i < 6) fullCode[index + i] = d; });
-        if (fullCode.every((d) => d !== '')) {
-          handleVerify(fullCode.join(''));
-        }
-      }
+      // The watcher effect submits once all 6 digits are present.
       return;
     }
 
@@ -137,15 +132,9 @@ function AuthModal({ isOpen, onClose, auth }: AuthModalProps) {
     }
   }, [otp]);
 
-  // Watch for all 6 digits filled
-  useEffect(() => {
-    if (step === STEPS.OTP && otp.every((d) => d !== '') && !verifying) {
-      handleVerify(otp.join(''));
-    }
-  }, [otp, step]);
-
   const handleVerify = useCallback(async (code: string) => {
-    if (verifying) return;
+    if (verifyingRef.current) return;
+    verifyingRef.current = true;
     setError('');
     setVerifying(true);
     try {
@@ -160,9 +149,17 @@ function AuthModal({ isOpen, onClose, auth }: AuthModalProps) {
       setError((err as Error).message || 'Invalid code');
       setOtp(['', '', '', '', '', '']);
       setVerifying(false);
+      verifyingRef.current = false;
       digitRefs.current[0]?.focus();
     }
-  }, [email, verifying, auth, onClose]);
+  }, [email, auth, onClose]);
+
+  // Single submit trigger: fires once all 6 digits are present.
+  useEffect(() => {
+    if (step === STEPS.OTP && otp.every((d) => d !== '') && !verifyingRef.current) {
+      handleVerify(otp.join(''));
+    }
+  }, [otp, step, handleVerify]);
 
   const handleProfileSubmit = useCallback(async (e: FormEvent) => {
     e.preventDefault();
@@ -185,6 +182,7 @@ function AuthModal({ isOpen, onClose, auth }: AuthModalProps) {
       await auth.requestOtp(email);
       setCodeSentAt(Date.now());
       setOtp(['', '', '', '', '', '']);
+      verifyingRef.current = false;
     } catch (err) {
       setError((err as Error).message || 'Failed to resend');
     } finally {
@@ -275,7 +273,7 @@ function AuthModal({ isOpen, onClose, auth }: AuthModalProps) {
             <div className="auth-otp-actions flex items-center justify-between">
               <button
                 className="auth-back-btn text-xs text-muted hover:text-text cursor-pointer transition-colors"
-                onClick={() => { clearPersistedFlow(); setStep(STEPS.EMAIL); setError(''); setOtp(['', '', '', '', '', '']); }}
+                onClick={() => { clearPersistedFlow(); setStep(STEPS.EMAIL); setError(''); setOtp(['', '', '', '', '', '']); verifyingRef.current = false; }}
               >
                 ← Back
               </button>
