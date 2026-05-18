@@ -1,10 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { v4 as uuid } from 'uuid';
 import { normalizeSequencerState } from './normalizeSequencerState.js';
+import { onAuthChanged, getSessionToken } from './useAuth.js';
+import { remoteListSaves, remoteUpsertSave, remoteDeleteSave } from './savesRemote.js';
 import type { SequencerState } from './sequencerReducer.js';
 
 const LIBRARY_KEY = 'drumlet-user-library-v1';
 const BOOKMARKS_KEY = 'drumlet-bookmarks-v1';
+const DELETED_KEY = 'drumlet-saves-deleted-v1';
+const LAST_SYNC_KEY = 'drumlet-saves-last-sync-v1';
 
 export interface LibraryLinks {
   wikipedia?: string;
@@ -47,53 +51,54 @@ function normalizeBookmarkId(bookmarkId: unknown): string | null {
   return bookmarkId;
 }
 
+/** Normalize one raw entry (from localStorage or a remote payload) into a LibraryEntry. */
+function normalizeEntry(entry: unknown, idOverride?: string): LibraryEntry | null {
+  const e = (entry ?? {}) as Record<string, unknown>;
+  const state = normalizeSequencerState(e.state);
+  if (!state) return null;
+
+  const firstTrack = state.pages[0]?.tracks?.[0];
+  const links = (e.links ?? {}) as LibraryLinks;
+
+  return {
+    id: idOverride ?? (typeof e.id === 'string' ? e.id : uuid()),
+    name: typeof e.name === 'string' ? e.name : 'Untitled',
+    inTheStyleOf: e.inTheStyleOf === true,
+    credit: typeof e.credit === 'string' ? e.credit : '',
+    creditUrl: typeof e.creditUrl === 'string' ? e.creditUrl : '',
+    cover: typeof e.cover === 'string' ? e.cover : '',
+    body: typeof e.body === 'string' ? e.body : '',
+    notes: typeof e.notes === 'string' ? e.notes : '',
+    links: {
+      wikipedia: links.wikipedia ?? '',
+      spotify: links.spotify ?? '',
+      youtube: links.youtube ?? '',
+    },
+    bpm: typeof e.bpm === 'number' ? e.bpm : state.bpm,
+    swing: typeof e.swing === 'number' ? e.swing : (state.swing ?? 0),
+    kit: (e.kit as LibraryKit | undefined) ?? {
+      type: firstTrack?.sourceType ?? 'drumMachine',
+      id: firstTrack?.instrument ?? firstTrack?.kitId ?? 'TR-808',
+    },
+    createdAt: typeof e.createdAt === 'string' ? e.createdAt : new Date().toISOString(),
+    updatedAt: typeof e.updatedAt === 'string'
+      ? e.updatedAt
+      : (typeof e.createdAt === 'string' ? e.createdAt : new Date().toISOString()),
+    sourcePreset: typeof e.sourcePreset === 'string' ? e.sourcePreset : null,
+    state,
+  };
+}
+
 /* ── localStorage helpers ─────────────────────────────────── */
 
 function loadUserLibrary(): LibraryEntry[] {
   try {
     const raw = localStorage.getItem(LIBRARY_KEY);
     if (!raw) return [];
-
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-
     return parsed
-      .map((entry): LibraryEntry | null => {
-        const e = (entry ?? {}) as Record<string, unknown>;
-        const state = normalizeSequencerState(e.state);
-        if (!state) return null;
-
-        const firstTrack = state.pages[0]?.tracks?.[0];
-        const links = (e.links ?? {}) as LibraryLinks;
-
-        return {
-          id: typeof e.id === 'string' ? e.id : uuid(),
-          name: typeof e.name === 'string' ? e.name : 'Untitled',
-          inTheStyleOf: e.inTheStyleOf === true,
-          credit: typeof e.credit === 'string' ? e.credit : '',
-          creditUrl: typeof e.creditUrl === 'string' ? e.creditUrl : '',
-          cover: typeof e.cover === 'string' ? e.cover : '',
-          body: typeof e.body === 'string' ? e.body : '',
-          notes: typeof e.notes === 'string' ? e.notes : '',
-          links: {
-            wikipedia: links.wikipedia ?? '',
-            spotify: links.spotify ?? '',
-            youtube: links.youtube ?? '',
-          },
-          bpm: typeof e.bpm === 'number' ? e.bpm : state.bpm,
-          swing: typeof e.swing === 'number' ? e.swing : (state.swing ?? 0),
-          kit: (e.kit as LibraryKit | undefined) ?? {
-            type: firstTrack?.sourceType ?? 'drumMachine',
-            id: firstTrack?.instrument ?? firstTrack?.kitId ?? 'TR-808',
-          },
-          createdAt: typeof e.createdAt === 'string' ? e.createdAt : new Date().toISOString(),
-          updatedAt: typeof e.updatedAt === 'string'
-            ? e.updatedAt
-            : (typeof e.createdAt === 'string' ? e.createdAt : new Date().toISOString()),
-          sourcePreset: typeof e.sourcePreset === 'string' ? e.sourcePreset : null,
-          state,
-        };
-      })
+      .map((entry) => normalizeEntry(entry))
       .filter((e): e is LibraryEntry => e !== null);
   } catch { return []; }
 }
@@ -117,6 +122,34 @@ function persistBookmarks(ids: string[]): void {
   catch { /* quota exceeded */ }
 }
 
+function loadTombstones(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETED_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === 'string') : []);
+  } catch { return new Set(); }
+}
+
+function persistTombstones(ids: Set<string>): void {
+  try { localStorage.setItem(DELETED_KEY, JSON.stringify([...ids])); }
+  catch { /* ignore */ }
+}
+
+function getLastSyncAt(): number {
+  try { return Number(localStorage.getItem(LAST_SYNC_KEY)) || 0; }
+  catch { return 0; }
+}
+
+function setLastSyncAt(ms: number): void {
+  try { localStorage.setItem(LAST_SYNC_KEY, String(ms)); }
+  catch { /* ignore */ }
+}
+
+function ts(iso: string | null | undefined): number {
+  const n = iso ? Date.parse(iso) : NaN;
+  return Number.isNaN(n) ? 0 : n;
+}
+
 /* ── Preset key for bookmarks ─────────────────────────────── */
 
 export function presetKey(categoryName: string, presetName: string): string | null {
@@ -137,6 +170,86 @@ export interface UserLibraryAPI {
 export function useUserLibrary(): UserLibraryAPI {
   const [entries, setEntries] = useState<LibraryEntry[]>(loadUserLibrary);
   const [bookmarks, setBookmarks] = useState<string[]>(loadBookmarks);
+  const entriesRef = useRef<LibraryEntry[]>(entries);
+  const syncingRef = useRef(false);
+
+  // Keep a synchronous mirror of entries for sync()'s reconciliation.
+  const commit = useCallback((next: LibraryEntry[]): void => {
+    entriesRef.current = next;
+    persistLibrary(next);
+    setEntries(next);
+  }, []);
+
+  /**
+   * Remote-primary reconciliation with localStorage as cache + offline
+   * fallback. When logged out or unreachable, the local cache is the library.
+   */
+  const sync = useCallback(async (): Promise<void> => {
+    if (syncingRef.current || !getSessionToken()) return;
+    syncingRef.current = true;
+    try {
+      const remote = await remoteListSaves();
+      if (remote === null) return; // logged out / unreachable — keep local
+
+      const tombstones = loadTombstones();
+      const lastSync = getLastSyncAt();
+
+      const remoteById = new Map<string, LibraryEntry>();
+      for (const save of remote) {
+        const entry = normalizeEntry(save.payload, save.external_id);
+        if (!entry) continue;
+        if (!entry.updatedAt && save.date_updated) entry.updatedAt = save.date_updated;
+        remoteById.set(entry.id, entry);
+      }
+
+      const localById = new Map<string, LibraryEntry>();
+      for (const e of entriesRef.current) localById.set(e.id, e);
+
+      const merged: LibraryEntry[] = [];
+      const toUpsert: LibraryEntry[] = [];
+      const toDelete: string[] = [];
+
+      for (const [id, r] of remoteById) {
+        if (tombstones.has(id)) { toDelete.push(id); continue; }
+        const local = localById.get(id);
+        if (local && ts(local.updatedAt) > ts(r.updatedAt) && ts(local.updatedAt) > lastSync) {
+          merged.push(local);
+          toUpsert.push(local);
+        } else {
+          merged.push(r);
+        }
+      }
+
+      for (const [id, l] of localById) {
+        if (remoteById.has(id) || tombstones.has(id)) continue;
+        if (ts(l.updatedAt) > lastSync) {
+          merged.push(l);   // created/edited offline since last sync
+          toUpsert.push(l);
+        }
+        // else: was synced before and is gone remotely → deleted elsewhere, drop
+      }
+
+      merged.sort((a, b) => ts(b.updatedAt) - ts(a.updatedAt));
+
+      commit(merged);
+
+      for (const e of toUpsert) void remoteUpsertSave(e.id, e.name, e);
+      for (const id of toDelete) {
+        void remoteDeleteSave(id).then((ok) => {
+          if (ok) { tombstones.delete(id); persistTombstones(tombstones); }
+        });
+      }
+
+      setLastSyncAt(Date.now());
+    } finally {
+      syncingRef.current = false;
+    }
+  }, [commit]);
+
+  useEffect(() => {
+    void sync();
+    return onAuthChanged(() => { void sync(); });
+  }, [sync]);
 
   const addEntry = useCallback((metadata: LibraryEntryMetadata, state: unknown): string | null => {
     const normalizedState = normalizeSequencerState(state);
@@ -168,38 +281,40 @@ export function useUserLibrary(): UserLibraryAPI {
       sourcePreset: metadata.sourcePreset ?? null,
       state: normalizedState,
     };
-    setEntries((prev) => {
-      const next = [entry, ...prev];
-      persistLibrary(next);
-      return next;
-    });
+    commit([entry, ...entriesRef.current]);
+    void remoteUpsertSave(entry.id, entry.name, entry);
     return entry.id;
-  }, []);
+  }, [commit]);
 
   const updateEntry = useCallback((id: string, updates: Partial<LibraryEntry>): void => {
-    setEntries((prev) => {
-      const next = prev.map((e): LibraryEntry =>
-        e.id === id
-          ? {
-              ...e,
-              ...updates,
-              state: updates.state ? (normalizeSequencerState(updates.state) ?? e.state) : e.state,
-              updatedAt: new Date().toISOString(),
-            }
-          : e
-      );
-      persistLibrary(next);
-      return next;
+    let updated: LibraryEntry | null = null;
+    const next = entriesRef.current.map((e): LibraryEntry => {
+      if (e.id !== id) return e;
+      updated = {
+        ...e,
+        ...updates,
+        state: updates.state ? (normalizeSequencerState(updates.state) ?? e.state) : e.state,
+        updatedAt: new Date().toISOString(),
+      };
+      return updated;
     });
-  }, []);
+    commit(next);
+    if (updated) void remoteUpsertSave(updated.id, updated.name, updated);
+  }, [commit]);
 
   const removeEntry = useCallback((id: string): void => {
-    setEntries((prev) => {
-      const next = prev.filter((e) => e.id !== id);
-      persistLibrary(next);
-      return next;
+    commit(entriesRef.current.filter((e) => e.id !== id));
+    const tombstones = loadTombstones();
+    tombstones.add(id);
+    persistTombstones(tombstones);
+    void remoteDeleteSave(id).then((ok) => {
+      if (ok) {
+        const t = loadTombstones();
+        t.delete(id);
+        persistTombstones(t);
+      }
     });
-  }, []);
+  }, [commit]);
 
   const toggleBookmark = useCallback((key: string): void => {
     const bookmarkId = normalizeBookmarkId(key);

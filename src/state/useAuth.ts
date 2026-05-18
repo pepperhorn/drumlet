@@ -28,12 +28,31 @@ export interface UseAuthReturn {
 }
 
 const SESSION_KEY = 'drumlet-session-token';
-const APP_SLUG = 'drumlet';
-const API_BASE = 'https://apps.pepperhorn.com/flows/trigger';
+export const APP_SLUG = 'drumlet';
+export const FLOWS_BASE = 'https://apps.pepperhorn.com/flows/trigger';
+const API_BASE = FLOWS_BASE;
 
 const FLOW_SEND_CODE = '40f96a57-1ab0-4031-a7f5-9a32ec877d15';
 const FLOW_VERIFY_CODE = '65da02e3-4742-4c5a-8bc5-3bb114fb6557';
 const FLOW_VERIFY_SESSION = '11dd60ca-fc66-4396-9461-858b7bbf2df8';
+
+/** Read the active app-session token, or null. Shared with the saves sync layer. */
+export function getSessionToken(): string | null {
+  try { return localStorage.getItem(SESSION_KEY); }
+  catch { return null; }
+}
+
+const AUTH_CHANGED_EVENT = 'drumlet-auth-changed';
+
+/** Fires after login/logout so the saves layer can re-sync. */
+export function onAuthChanged(handler: () => void): () => void {
+  window.addEventListener(AUTH_CHANGED_EVENT, handler);
+  return () => window.removeEventListener(AUTH_CHANGED_EVENT, handler);
+}
+
+function emitAuthChanged(): void {
+  try { window.dispatchEvent(new Event(AUTH_CHANGED_EVENT)); } catch { /* SSR/no-DOM */ }
+}
 
 function getStoredToken(): string | null {
   try { return localStorage.getItem(SESSION_KEY); }
@@ -111,6 +130,7 @@ export function useAuth(): UseAuthReturn {
       storeToken(data.token);
       setUser(data.user);
       setIsNewUser(data.is_new_user || false);
+      emitAuthChanged();
       return data as VerifyOtpResult;
     }
     throw new Error('Invalid or expired code');
@@ -136,6 +156,7 @@ export function useAuth(): UseAuthReturn {
     clearToken();
     setUser(null);
     setIsNewUser(false);
+    emitAuthChanged();
   }, []);
 
   return {
