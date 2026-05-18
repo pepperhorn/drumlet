@@ -23,7 +23,7 @@ import type { SequencerState, Track, VelMode, NoteValueKey, SplitCount, Step } f
 import { normalizeSequencerState } from './state/normalizeSequencerState.js';
 import { useUserLibrary } from './state/userLibrary.js';
 import { useLibraryActions } from './state/useLibraryActions.js';
-import { useAuth } from './state/useAuth.js';
+import { useAuth, onSessionInvalidated } from './state/useAuth.js';
 import AuthModal from './components/AuthModal.js';
 import UserMenu from './components/UserMenu.js';
 import { usePluginSession } from './state/usePluginSession.js';
@@ -85,6 +85,7 @@ function Drumlet() {
   });
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const auth = useAuth();
+  useEffect(() => onSessionInvalidated(() => setAuthOpen(true)), []);
   const { activeThemeId, setPreference } = useTheme();
   const isDark = activeThemeId === 'dark';
   const customBuffersRef = useRef<Map<string, AudioBuffer>>(new Map());

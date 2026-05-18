@@ -54,6 +54,45 @@ function emitAuthChanged(): void {
   try { window.dispatchEvent(new Event(AUTH_CHANGED_EVENT)); } catch { /* SSR/no-DOM */ }
 }
 
+const SESSION_INVALIDATED_EVENT = 'drumlet-session-invalidated';
+
+/** Fires when the stored session is confirmed dead (expired/revoked). */
+export function onSessionInvalidated(handler: () => void): () => void {
+  window.addEventListener(SESSION_INVALIDATED_EVENT, handler);
+  return () => window.removeEventListener(SESSION_INVALIDATED_EVENT, handler);
+}
+
+/**
+ * Re-check the stored session against the backend. Returns false only when
+ * the server explicitly says the session is invalid. Network/transport
+ * failures return true so a transient outage never force-logs-out a user.
+ */
+export async function verifyStoredSession(): Promise<boolean> {
+  const token = getStoredToken();
+  if (!token) return false;
+  try {
+    const res = await fetch(`${API_BASE}/${FLOW_VERIFY_SESSION}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, app_slug: APP_SLUG }),
+    });
+    if (!res.ok) return res.status >= 500; // 5xx = transient, keep session
+    const result = await res.json().catch(() => null);
+    const data = (result as { data?: unknown })?.data ?? result;
+    return (data as { valid?: boolean })?.valid === true;
+  } catch {
+    return true; // offline — don't kill the session
+  }
+}
+
+/** Clear the dead session and notify the app so it can prompt re-login. */
+export function invalidateSession(): void {
+  if (!getStoredToken()) return;
+  clearToken();
+  try { window.dispatchEvent(new Event(SESSION_INVALIDATED_EVENT)); } catch { /* no-DOM */ }
+  emitAuthChanged();
+}
+
 function getStoredToken(): string | null {
   try { return localStorage.getItem(SESSION_KEY); }
   catch { return null; }
@@ -100,6 +139,11 @@ export function useAuth(): UseAuthReturn {
       .catch(() => clearToken())
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => onSessionInvalidated(() => {
+    setUser(null);
+    setIsNewUser(false);
+  }), []);
 
   const requestOtp = useCallback(async (email: string): Promise<boolean> => {
     const res = await fetch(`${API_BASE}/${FLOW_SEND_CODE}`, {

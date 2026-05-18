@@ -1,4 +1,19 @@
-import { APP_SLUG, FLOWS_BASE, getSessionToken } from './useAuth.js';
+import { APP_SLUG, FLOWS_BASE, getSessionToken, verifyStoredSession, invalidateSession } from './useAuth.js';
+
+let sessionCheckInFlight = false;
+
+/**
+ * A saves flow failed while we held a token. Re-verify the session once;
+ * if the server confirms it's dead, clear it so the app can prompt re-login.
+ * Transient/network errors never trigger logout (see verifyStoredSession).
+ */
+function handlePossibleSessionFailure(): void {
+  if (sessionCheckInFlight || !getSessionToken()) return;
+  sessionCheckInFlight = true;
+  void verifyStoredSession()
+    .then((valid) => { if (!valid) invalidateSession(); })
+    .finally(() => { sessionCheckInFlight = false; });
+}
 
 const FLOW_LIST = '55b04a7b-a384-4d75-ac8c-68439054dcbf';
 const FLOW_UPSERT = 'ffd9c4cc-5e14-46a6-a011-7baebba7f171';
@@ -23,12 +38,12 @@ async function callFlow(flowId: string, body: Record<string, unknown>): Promise<
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, app_slug: APP_SLUG, ...body }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) { handlePossibleSessionFailure(); return null; }
     const json = await res.json().catch(() => null);
     // Webhook flows return the last operation's value directly (no { data } wrapper).
     return (json as { data?: unknown })?.data ?? json;
   } catch {
-    return null;
+    return null; // network/offline — keep working locally, don't touch session
   }
 }
 
