@@ -2,6 +2,12 @@
 
 All notable changes to Drumlet are documented here.
 
+## [0.1.1.0] - 2026-05-19
+
+### Fixed
+- Sign-in no longer surfaces the raw backend "An unexpected error occurred." message. Auth errors now show actionable text by failure type: a 500 reads "Something went wrong on our end. Please try again in a moment.", a rate-limited request reads "Too many attempts. Wait a minute and try again.", and an offline/unreachable server reads "Can't reach the server. Check your connection and try again."
+- A transient server error or network blip while restoring a session no longer logs you out — the saved session is kept and re-checked on the next request instead of being discarded on the first hiccup.
+
 ## [0.1.0.0] - 2026-04-02
 
 ### Added
