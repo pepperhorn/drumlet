@@ -1,9 +1,9 @@
 import { memo, useState } from 'react'
-import { savePresetToLibrary } from './jameeBridge'
+import { savePresetToLibrary } from './drumletBridge'
 
 interface Props { preset: any; presetName: string }
 
-function AddToJameeImpl({ preset, presetName }: Props) {
+function AddToDrumletImpl({ preset, presetName }: Props) {
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<{ external_id: string; name: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -23,25 +23,25 @@ function AddToJameeImpl({ preset, presetName }: Props) {
 
   if (done) {
     return (
-      <div className="add-jamee-done text-xs flex items-center gap-2 px-3 py-1.5 rounded">
-        <span>✓ Added to Jamee Library</span>
+      <div className="add-drumlet-done text-xs flex items-center gap-2 px-3 py-1.5 rounded">
+        <span>✓ Added to Drumlet Library</span>
         <button className="text-xs underline" onClick={() => setDone(null)}>add again</button>
       </div>
     )
   }
 
   return (
-    <div className="add-jamee-host inline-flex items-center gap-2">
+    <div className="add-drumlet-host inline-flex items-center gap-2">
       <button
-        className="add-jamee-btn px-3 py-1.5 text-sm rounded"
+        className="add-drumlet-btn px-3 py-1.5 text-sm rounded"
         onClick={handleAdd}
         disabled={busy}
       >
-        {busy ? 'saving…' : 'Add to Jamee'}
+        {busy ? 'saving…' : 'Add to Drumlet'}
       </button>
-      {error && <span className="add-jamee-error text-xs" style={{ color: '#EF4444' }}>{error}</span>}
+      {error && <span className="add-drumlet-error text-xs" style={{ color: '#EF4444' }}>{error}</span>}
     </div>
   )
 }
 
-export const AddToJamee = memo(AddToJameeImpl)
+export const AddToDrumlet = memo(AddToDrumletImpl)

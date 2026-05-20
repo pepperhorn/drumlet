@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
-import { AddToJamee } from './jamee/AddToJamee.js';
+import { AddToDrumlet } from './drumlet/AddToDrumlet.js';
 import { SequencerProvider, useSequencer } from './state/SequencerContext.js';
 import { useAudioEngine } from './audio/useAudioEngine.js';
 import { useTransport } from './audio/useTransport.js';
@@ -816,7 +816,7 @@ function Drumlet() {
           <button className="action-btn px-3 py-1.5 rounded-lg bg-gray-50 text-xs lg:text-sm font-medium text-muted hover:bg-gray-100 hover:text-text transition-colors cursor-pointer" onClick={handleExport}>Export</button>
           <button className="action-btn px-3 py-1.5 rounded-lg bg-gray-50 text-xs lg:text-sm font-medium text-muted hover:bg-gray-100 hover:text-text transition-colors cursor-pointer" onClick={handleMidiExport}>MIDI</button>
           {auth.isLoggedIn && (
-            <AddToJamee
+            <AddToDrumlet
               preset={state}
               presetName={activePreset?.name ?? 'Untitled preset'}
             />
@@ -945,7 +945,7 @@ function Drumlet() {
             <button className="action-btn px-2.5 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-muted cursor-pointer" onClick={handleExport}>Export</button>
             <button className="action-btn px-2.5 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-muted cursor-pointer" onClick={handleMidiExport}>MIDI</button>
             {auth.isLoggedIn && (
-              <AddToJamee
+              <AddToDrumlet
                 preset={state}
                 presetName={activePreset?.name ?? 'Untitled preset'}
               />
