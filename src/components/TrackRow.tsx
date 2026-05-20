@@ -34,6 +34,11 @@ interface TrackRowProps {
   sortableEnabled: boolean;
   deleteMode?: boolean;
   onPickForDelete?: () => void;
+  /** Step range to render. Defaults to the full page (0 .. stepsPerPage). */
+  stepStart?: number;
+  stepCount?: number;
+  /** Slim mode: render a thin track-title strip on the left instead of the full TrackControls. */
+  slimControls?: boolean;
 }
 
 function TrackRow({
@@ -59,7 +64,14 @@ function TrackRow({
   sortableEnabled,
   deleteMode = false,
   onPickForDelete,
+  stepStart = 0,
+  stepCount,
+  slimControls = false,
 }: TrackRowProps) {
+  // In slim mode we still call useSortable (rules of hooks), but with a
+  // synthetic id so multiple wrap-systems don't collide on track.id, and
+  // sorting is forcibly disabled.
+  const sortableId = slimControls ? `${track.id}-slim-${stepStart}` : track.id;
   const {
     attributes,
     listeners,
@@ -67,7 +79,7 @@ function TrackRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: track.id, disabled: !sortableEnabled });
+  } = useSortable({ id: sortableId, disabled: slimControls || !sortableEnabled });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -76,10 +88,14 @@ function TrackRow({
     opacity: isDragging ? 0.6 : undefined,
   };
 
+  const count = stepCount ?? (stepsPerPage - stepStart);
+  const sliceEnd = stepStart + count;
+  const slice = track.steps.slice(stepStart, sliceEnd);
+
   return (
     <div
-      ref={setNodeRef}
-      style={style}
+      ref={slimControls ? undefined : setNodeRef}
+      style={slimControls ? undefined : style}
       className={`track-row flex items-start gap-3 py-1.5 relative ${track.mute ? 'opacity-40' : ''} ${isDragging ? 'track-row-dragging' : ''} ${deleteMode ? 'track-row-delete-mode' : ''}`}
     >
       {deleteMode && onPickForDelete && (
@@ -96,44 +112,57 @@ function TrackRow({
           Delete "{track.name}"
         </button>
       )}
-      <TrackControls
-        track={track}
-        trackIndex={trackIndex}
-        expanded={expanded}
-        onToggleExpand={onToggleExpand}
-        colWidth={colWidth}
-        onChangeProp={onChangeProp}
-        onChangeVelMode={onChangeVelMode}
-        onOpenSoundPicker={onOpenSoundPicker}
-        onDrop={onDrop}
-        dragHandleProps={sortableEnabled ? { ...attributes, ...listeners } : null}
-      />
+      {slimControls ? (
+        <div className={`track-slim-title ${colWidth} flex items-center gap-2 pl-2 pr-1`}>
+          <span
+            className="track-slim-dot w-2.5 h-2.5 rounded-full shrink-0"
+            style={{ backgroundColor: track.color }}
+          />
+          <span className="track-slim-name text-xs lg:text-sm font-medium text-text truncate">
+            {track.name}
+          </span>
+        </div>
+      ) : (
+        <TrackControls
+          track={track}
+          trackIndex={trackIndex}
+          expanded={expanded}
+          onToggleExpand={onToggleExpand}
+          colWidth={colWidth}
+          onChangeProp={onChangeProp}
+          onChangeVelMode={onChangeVelMode}
+          onOpenSoundPicker={onOpenSoundPicker}
+          onDrop={onDrop}
+          dragHandleProps={sortableEnabled ? { ...attributes, ...listeners } : null}
+        />
+      )}
 
       <div className="track-steps flex items-start mt-0.5">
-        {track.steps.slice(0, stepsPerPage).map((stepData, stepIdx) => {
+        {slice.map((stepData, localIdx) => {
+          const globalStepIdx = stepStart + localIdx;
           const effective = effectiveStep(stepData);
           const split = isSplit(effective);
-          const isThisExpanded = expandedSplitCell?.trackIndex === trackIndex && expandedSplitCell?.stepIndex === stepIdx;
-          const isActive = activeCell?.trackIndex === trackIndex && activeCell?.stepIndex === stepIdx;
+          const isThisExpanded = expandedSplitCell?.trackIndex === trackIndex && expandedSplitCell?.stepIndex === globalStepIdx;
+          const isActive = activeCell?.trackIndex === trackIndex && activeCell?.stepIndex === globalStepIdx;
           const vel = split ? masterVelocity(effective) : (typeof effective === 'number' ? effective : 0);
 
           return (
             <Cell
-              key={stepIdx}
+              key={globalStepIdx}
               velocity={vel}
               velMode={track.velMode || 3}
               color={track.color}
-              isPlayhead={currentStep === stepIdx}
-              isBeatStart={stepIdx > 0 && stepIdx % stepsPerBeat === 0}
-              isBarStart={stepsPerBar ? stepIdx > 0 && stepIdx % stepsPerBar === 0 : false}
+              isPlayhead={currentStep === globalStepIdx}
+              isBeatStart={localIdx > 0 && globalStepIdx % stepsPerBeat === 0}
+              isBarStart={stepsPerBar ? localIdx > 0 && globalStepIdx % stepsPerBar === 0 : false}
               splitData={split ? (effective as number[]) : null}
               isActive={isActive}
               isExpanded={isThisExpanded}
-              onExpandToggle={() => onExpandSplitCell(trackIndex, stepIdx)}
-              onToggleSubStep={(subIdx) => onToggleSubStep(trackIndex, stepIdx, subIdx)}
-              onClearSubStep={(subIdx) => onClearSubStep(trackIndex, stepIdx, subIdx)}
-              onClick={() => onToggleCell(trackIndex, stepIdx)}
-              onRightClick={() => onToggleCell(trackIndex, stepIdx, true)}
+              onExpandToggle={() => onExpandSplitCell(trackIndex, globalStepIdx)}
+              onToggleSubStep={(subIdx) => onToggleSubStep(trackIndex, globalStepIdx, subIdx)}
+              onClearSubStep={(subIdx) => onClearSubStep(trackIndex, globalStepIdx, subIdx)}
+              onClick={() => onToggleCell(trackIndex, globalStepIdx)}
+              onRightClick={() => onToggleCell(trackIndex, globalStepIdx, true)}
             />
           );
         })}
