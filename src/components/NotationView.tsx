@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo, useSyncExternalStore, memo } from 'react';
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
 import type { Page, Track, NoteValueKey } from '../state/sequencerReducer.js';
 import { renderDrumStaff, type RenderDrumStaffResult, type StepPosition, type MergedTrack } from '../notation/renderStaff.js';
@@ -13,6 +13,19 @@ const SIZE_LABELS: Record<SizeKey, string> = { sm: 'S', md: 'M', lg: 'L', xl: 'X
 const SIZE_FONT: Record<SizeKey, number> = { sm: 9, md: 11, lg: 14, xl: 18, '2xl': 24 };
 
 const BARS_PER_LINE_OPTIONS = [0, 2, 3, 4]; // 0 = ∞ (single scrolling line)
+
+// Portrait viewport → 2 bars/line default, landscape/desktop → 4. The user can
+// still override with the Bars/line buttons; their pick wins until reset.
+const portraitQuery = typeof window !== 'undefined'
+  ? window.matchMedia('(orientation: portrait)')
+  : null;
+function subscribeToPortrait(cb: () => void) {
+  portraitQuery?.addEventListener('change', cb);
+  return () => portraitQuery?.removeEventListener('change', cb);
+}
+function getIsPortrait(): boolean {
+  return portraitQuery?.matches ?? false;
+}
 
 interface SubdivisionDef {
   key: string;
@@ -107,7 +120,12 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
   const [useColor, setUseColor] = useState(true);
   const [countSize, setCountSize] = useState<SizeKey>('lg');
   const [subdivIdx, setSubdivIdx] = useState(0);
-  const [barsPerLine, setBarsPerLine] = useState(0);
+  // null = follow orientation default (2 portrait / 4 landscape); a number = user override.
+  const [barsPerLineOverride, setBarsPerLineOverride] = useState<number | null>(null);
+  const isPortrait = useSyncExternalStore(subscribeToPortrait, getIsPortrait);
+  const responsiveDefaultBars = isPortrait ? 2 : 4;
+  const barsPerLine = barsPerLineOverride ?? responsiveDefaultBars;
+  const setBarsPerLine = (n: number) => setBarsPerLineOverride(n);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const allTrackIds = useMemo(
