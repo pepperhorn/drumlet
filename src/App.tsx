@@ -19,7 +19,7 @@ import SoundPicker from './components/SoundPicker.js';
 import type { SoundSourceConfig } from './components/SoundPicker.js';
 import { isEmbedMode, loadSharedPayload } from './state/shareCodec.js';
 import { useTheme } from './state/useTheme.js';
-import { TIME_SIGNATURES, getStepConfigs } from './state/sequencerReducer.js';
+import { TIME_SIGNATURES, getStepConfigs, createNewPatternState } from './state/sequencerReducer.js';
 import type { SequencerState, Track, VelMode, NoteValueKey, SplitCount, Step } from './state/sequencerReducer.js';
 import { normalizeSequencerState } from './state/normalizeSequencerState.js';
 import { useUserLibrary } from './state/userLibrary.js';
@@ -426,6 +426,29 @@ function Drumlet() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, markClean]);
 
+  const handleNewPattern = useCallback(() => {
+    stop();
+    loadStateIntoSequencer(createNewPatternState(), null, null, false);
+  }, [loadStateIntoSequencer, stop]);
+
+  const [deleteTrackMode, setDeleteTrackMode] = useState(false);
+  const [pendingDeleteTrackIndex, setPendingDeleteTrackIndex] = useState<number | null>(null);
+
+  const handleConfirmDeleteTrack = useCallback(() => {
+    if (pendingDeleteTrackIndex == null) return;
+    dispatch({ type: 'REMOVE_TRACK', trackIndex: pendingDeleteTrackIndex });
+    setPendingDeleteTrackIndex(null);
+    setDeleteTrackMode(false);
+  }, [dispatch, pendingDeleteTrackIndex]);
+
+  const handleSaveFirstBeforeDelete = useCallback(() => {
+    if (auth.isLoggedIn) {
+      handleSave();
+    } else {
+      handleExport();
+    }
+  }, [auth.isLoggedIn, handleSave, handleExport]);
+
   const handleImport = useCallback(async () => {
     const imported = await importFromFile();
     if (imported) {
@@ -543,6 +566,42 @@ function Drumlet() {
           <span className="drumlet-version text-[9px] md:text-xs lg:text-sm font-mono text-muted bg-gray-100 px-1.5 py-0.5 rounded-full hidden md:inline">
             v0.1
           </span>
+          {activePreset && (activePreset.name || activePreset.credit) && (
+            <span className="drumlet-songline hidden md:inline-flex items-baseline gap-1.5 min-w-0 max-w-[40ch] truncate">
+              {activePreset.name && (
+                <span className="drumlet-songline-name text-sm lg:text-base font-display font-semibold text-text truncate">
+                  {activePreset.name}
+                </span>
+              )}
+              {activePreset.credit && (
+                <span className="drumlet-songline-credit text-xs lg:text-sm text-muted truncate">
+                  {activePreset.inTheStyleOf ? 'in the style of' : 'by'}{' '}
+                  {activePreset.creditUrl ? (
+                    <a
+                      href={activePreset.creditUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="drumlet-songline-credit-link hover:text-sky transition-colors"
+                    >
+                      {activePreset.credit}
+                    </a>
+                  ) : (
+                    activePreset.credit
+                  )}
+                </span>
+              )}
+            </span>
+          )}
+          <button
+            className="action-btn action-new-btn-mobile md:hidden px-2 py-1 rounded-lg bg-mint/10 text-[10px] font-medium text-mint cursor-pointer flex items-center gap-1"
+            onClick={handleNewPattern}
+            title="New pattern"
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <path d="M8 3v10" /><path d="M3 8h10" />
+            </svg>
+            New
+          </button>
           <button
             className="action-btn md:hidden px-2 py-1 rounded-lg bg-sky/10 text-[10px] font-medium text-sky cursor-pointer flex items-center gap-1"
             onClick={openLibrary}
@@ -710,6 +769,16 @@ function Drumlet() {
         </div>
 
         <div className="drumlet-actions hidden md:flex items-center gap-2">
+          <button
+            className="action-btn action-new-btn px-3 py-1.5 rounded-lg bg-mint/10 text-xs lg:text-sm font-medium text-mint hover:bg-mint/20 transition-colors cursor-pointer flex items-center gap-1.5"
+            onClick={handleNewPattern}
+            title="New empty pattern (kick / snare / hihat, TR-808)"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <path d="M8 3v10" /><path d="M3 8h10" />
+            </svg>
+            New
+          </button>
           <button
             className="action-btn px-3 py-1.5 rounded-lg bg-sky/10 text-xs lg:text-sm font-medium text-sky hover:bg-sky/20 transition-colors cursor-pointer flex items-center gap-1.5"
             onClick={openLibrary}
@@ -1018,6 +1087,9 @@ function Drumlet() {
             onReorderTracks={playMode ? undefined : (fromIndex, toIndex) => dispatch({ type: 'REORDER_TRACK', fromIndex, toIndex })}
             onOpenSoundPicker={playMode ? () => {} : handleOpenSoundPicker}
             onDrop={playMode ? () => {} : handleDrop}
+            deleteMode={!playMode && deleteTrackMode}
+            onToggleDeleteMode={playMode ? undefined : () => setDeleteTrackMode((v) => !v)}
+            onPickTrackForDelete={playMode ? undefined : (i) => setPendingDeleteTrackIndex(i)}
           />
         </div>
       )}
@@ -1127,6 +1199,41 @@ function Drumlet() {
         shareUrl={pluginShareUrl}
         audioDisclaimer="Audio mode currently uses basic onset detection and loose alignment scoring. Pads and keyboard are the more reliable input path."
       />
+
+      {pendingDeleteTrackIndex != null && currentPage && (() => {
+        const track = currentPage.tracks[pendingDeleteTrackIndex];
+        if (!track) return null;
+        return (
+          <div className="track-delete-modal fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="track-delete-modal-card bg-card rounded-2xl shadow-xl border border-border max-w-sm w-full p-5">
+              <h3 className="track-delete-modal-title text-lg font-display font-bold text-text mb-1">Delete "{track.name}"?</h3>
+              <p className="track-delete-modal-body text-sm text-muted mb-4">
+                This removes the track from <strong>all pages</strong> of this pattern. Want to save first?
+              </p>
+              <div className="track-delete-modal-actions flex flex-col gap-2">
+                <button
+                  className="track-delete-modal-save-btn px-4 py-2 rounded-lg bg-sky/15 text-sky text-sm font-semibold hover:bg-sky/25 cursor-pointer transition-colors"
+                  onClick={handleSaveFirstBeforeDelete}
+                >
+                  {auth.isLoggedIn ? 'Save to library first' : 'Export pattern first'}
+                </button>
+                <button
+                  className="track-delete-modal-confirm-btn px-4 py-2 rounded-lg bg-coral text-white text-sm font-semibold hover:bg-coral/90 cursor-pointer transition-colors"
+                  onClick={handleConfirmDeleteTrack}
+                >
+                  Delete track
+                </button>
+                <button
+                  className="track-delete-modal-cancel-btn px-4 py-2 rounded-lg bg-gray-100 text-muted text-sm font-medium hover:bg-gray-200 cursor-pointer transition-colors"
+                  onClick={() => setPendingDeleteTrackIndex(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {!audioStarted && (
         <div className="audio-start-overlay fixed inset-0 z-50 flex items-center justify-center bg-bg/80 backdrop-blur-sm">

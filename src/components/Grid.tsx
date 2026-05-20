@@ -82,6 +82,9 @@ interface GridProps {
   onReorderTracks?: (fromIndex: number, toIndex: number) => void;
   onOpenSoundPicker: (trackIndex: number) => void;
   onDrop: (file: File, trackIndex: number) => void;
+  deleteMode?: boolean;
+  onToggleDeleteMode?: () => void;
+  onPickTrackForDelete?: (trackIndex: number) => void;
 }
 
 function Grid({
@@ -110,6 +113,9 @@ function Grid({
   onReorderTracks,
   onOpenSoundPicker,
   onDrop,
+  deleteMode = false,
+  onToggleDeleteMode,
+  onPickTrackForDelete,
 }: GridProps) {
   const [countMode, setCountMode] = useState<'step' | 'beat'>('step');
   const [countSize, setCountSize] = useState<SizeKey>('sm');
@@ -277,6 +283,24 @@ function Grid({
 
       <div className="step-numbers flex items-center gap-3 mb-1">
         <div className={`grid-count-toggle ${colWidth} flex justify-end gap-1`}>
+          {onToggleDeleteMode && (
+            <button
+              className={`track-delete-toggle-btn w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center cursor-pointer transition-all
+                ${deleteMode
+                  ? 'bg-coral text-white'
+                  : 'bg-gray-100 text-muted hover:bg-coral/15 hover:text-coral'
+                }`}
+              onClick={onToggleDeleteMode}
+              title={deleteMode ? 'Cancel delete' : 'Delete a track'}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2.5 4h11" />
+                <path d="M6 4V2.5h4V4" />
+                <path d="M3.5 4l.7 9a1 1 0 0 0 1 1h5.6a1 1 0 0 0 1-1l.7-9" />
+                <path d="M6.5 7v5M9.5 7v5" />
+              </svg>
+            </button>
+          )}
           {onToggleNotation && (
             <button
               className={`notation-toggle-btn w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center cursor-pointer transition-all
@@ -285,17 +309,22 @@ function Grid({
                   : 'bg-gray-100 text-muted hover:bg-gray-200 hover:text-text'
                 }`}
               onClick={onToggleNotation}
-              title={notationView ? 'Switch to grid view' : 'Switch to notation view'}
+              title={notationView ? 'Switch back to pattern' : 'Switch to notation view'}
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
-                <line x1="2" y1="4" x2="14" y2="4" /><line x1="2" y1="6.5" x2="14" y2="6.5" />
-                <line x1="2" y1="9" x2="14" y2="9" /><line x1="2" y1="11.5" x2="14" y2="11.5" />
-                <line x1="2" y1="14" x2="14" y2="14" />
-                <circle cx="6" cy="6.5" r="1.8" fill="currentColor" stroke="none" />
-                <line x1="7.8" y1="6.5" x2="7.8" y2="2" strokeWidth="1.5" />
-                <circle cx="10" cy="11.5" r="1.8" fill="currentColor" stroke="none" />
-                <line x1="11.8" y1="11.5" x2="11.8" y2="7" strokeWidth="1.5" />
-              </svg>
+              {notationView ? (
+                <svg className="notation-toggle-icon-grid" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <rect x="2" y="2" width="5" height="5" rx="1" />
+                  <rect x="9" y="2" width="5" height="5" rx="1" />
+                  <rect x="2" y="9" width="5" height="5" rx="1" />
+                  <rect x="9" y="9" width="5" height="5" rx="1" />
+                </svg>
+              ) : (
+                <svg className="notation-toggle-icon-note" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <ellipse cx="5" cy="12" rx="2.5" ry="1.8" fill="currentColor" stroke="none" />
+                  <path d="M7.5 12V3l5 -1.5V10" />
+                  <ellipse cx="10" cy="10" rx="2.5" ry="1.8" fill="currentColor" stroke="none" />
+                </svg>
+              )}
             </button>
           )}
           <button
@@ -367,6 +396,20 @@ function Grid({
         </div>
       </div>
 
+      {deleteMode && (
+        <div className="track-delete-banner mb-2 px-3 py-2 rounded-lg bg-coral/10 border border-coral/30 text-xs lg:text-sm text-coral flex items-center justify-between gap-2">
+          <span className="track-delete-banner-text">Pick a track to delete — it will be removed from all pages.</span>
+          {onToggleDeleteMode && (
+            <button
+              className="track-delete-banner-cancel px-2 py-0.5 rounded text-[10px] lg:text-xs font-medium bg-white/40 hover:bg-white/60 cursor-pointer"
+              onClick={onToggleDeleteMode}
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      )}
+
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTrackDragEnd}>
         <SortableContext items={trackIds} strategy={verticalListSortingStrategy}>
           {tracks.map((track, i) => (
@@ -391,7 +434,9 @@ function Grid({
               onChangeVelMode={onChangeVelMode}
               onOpenSoundPicker={onOpenSoundPicker}
               onDrop={onDrop}
-              sortableEnabled={!!onReorderTracks}
+              sortableEnabled={!!onReorderTracks && !deleteMode}
+              deleteMode={deleteMode}
+              onPickForDelete={onPickTrackForDelete ? () => onPickTrackForDelete(i) : undefined}
             />
           ))}
         </SortableContext>

@@ -265,6 +265,44 @@ function makePage(name: string, stepsPerPage: number, tracks: Track[] | null = n
   };
 }
 
+const NEW_PATTERN_GROUPS = ['kick', 'snare', 'hihat-close'] as const;
+
+export function createNewPatternState(): SequencerState {
+  const stepsPerPage = 16;
+  const tracks: Track[] = NEW_PATTERN_GROUPS.map((group, i) => ({
+    id: uuid(),
+    name: group === 'hihat-close' ? 'Hihat' : group.charAt(0).toUpperCase() + group.slice(1),
+    color: TRACK_COLORS[i % TRACK_COLORS.length]!,
+    sourceType: 'drumMachine',
+    instrument: 'TR-808',
+    group,
+    soundfontName: null,
+    customSampleName: null,
+    volume: 80,
+    reverb: 20,
+    velMode: 3,
+    _stashedSteps: {},
+    mute: false,
+    solo: false,
+    steps: new Array<Step>(stepsPerPage).fill(0),
+  }));
+  return {
+    pages: [makePage('Page 1', stepsPerPage, tracks)],
+    currentPageIndex: 0,
+    stepsPerPage,
+    bpm: 120,
+    noteValue: '1/4',
+    beatsPerBar: 4,
+    stepValue: '1/16',
+    swing: 0,
+    swingTarget: '8th',
+    humanize: 0,
+    chainMode: false,
+    activeCell: null,
+    pendingSplit: null,
+  };
+}
+
 export function createInitialState(): SequencerState {
   const stepsPerPage = 16;
   return {
