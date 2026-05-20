@@ -639,9 +639,9 @@ function Drumlet() {
           <span className="drumlet-version text-[9px] md:text-xs lg:text-sm font-mono text-muted bg-gray-100 px-1.5 py-0.5 rounded-full hidden md:inline">
             v0.1
           </span>
-          <span className="drumlet-songline hidden md:inline-flex items-baseline gap-1.5 min-w-0">
+          <span className="drumlet-songline hidden md:inline-flex items-baseline gap-1.5 min-w-0 pl-2 ml-1 border-l border-border">
             <input
-              className="drumlet-songline-name bg-transparent border-b border-transparent hover:border-border focus:border-sky focus:outline-none text-sm lg:text-base font-display font-semibold text-text placeholder:text-muted/60 placeholder:font-normal placeholder:italic w-32 lg:w-44"
+              className="drumlet-songline-name bg-gray-50 hover:bg-gray-100 focus:bg-white border-b border-dotted border-border focus:border-solid focus:border-sky focus:outline-none rounded-sm px-1.5 py-0.5 text-sm lg:text-base font-display font-semibold text-text placeholder:text-muted placeholder:font-normal w-36 lg:w-48 transition-colors"
               type="text"
               value={activePreset?.name ?? ''}
               placeholder="Untitled pattern"
@@ -662,9 +662,9 @@ function Drumlet() {
                 }));
               }}
             />
-            <span className="drumlet-songline-by text-xs lg:text-sm text-muted shrink-0">by</span>
+            <span className="drumlet-songline-by text-xs lg:text-sm text-muted shrink-0 font-medium">by</span>
             <input
-              className="drumlet-songline-credit bg-transparent border-b border-transparent hover:border-border focus:border-sky focus:outline-none text-xs lg:text-sm text-muted placeholder:text-muted/50 placeholder:italic w-24 lg:w-32"
+              className="drumlet-songline-credit bg-gray-50 hover:bg-gray-100 focus:bg-white border-b border-dotted border-border focus:border-solid focus:border-sky focus:outline-none rounded-sm px-1.5 py-0.5 text-xs lg:text-sm text-text placeholder:text-muted w-28 lg:w-36 transition-colors"
               type="text"
               value={activePreset?.credit ?? ''}
               placeholder="credit"
