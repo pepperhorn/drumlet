@@ -2,6 +2,17 @@
 
 All notable changes to Drumlet are documented here.
 
+## [0.1.2.0] - 2026-05-20
+
+### Added
+- **Add to Drumlet** button (signed-in users only) — saves the current pattern into your shared Drumlet library via the ph-apps Directus flows, scoped to your account server-side.
+- **+ New pattern** button (desktop + mobile header) — clears the workspace and gives you a fresh 3-track kit (kick, snare, hihat, all TR-808) so you can start a beat without first deleting the default tracks.
+- **Song "by" line in the header** — when a preset is loaded or you save to the library, the song name and credit ("by …" or "in the style of …") show inline next to the drumlet logo, with the credit link clickable.
+- **Delete-track flow** — a trash icon next to the notation toggle arms delete mode. Pick any track to open a confirmation modal with a "Save first" shortcut (saves to your library if signed in, exports otherwise), a destructive "Delete track" confirm, and Cancel. Removes the track from all pages of the pattern.
+
+### Changed
+- **Notation toggle icon** — replaced the busy custom glyph with a simple note icon, swapping to a grid icon while notation view is active so the button always shows what you'll switch *to*.
+
 ## [0.1.1.0] - 2026-05-19
 
 ### Fixed
