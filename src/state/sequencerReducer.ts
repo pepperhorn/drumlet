@@ -231,6 +231,7 @@ export type SequencerAction =
   | { type: 'UNSPLIT_CELL'; cell?: CellRef }
   | { type: 'TOGGLE_SUBSTEP'; trackIndex: number; stepIndex: number; subIndex: number }
   | { type: 'SET_SUBSTEP'; trackIndex: number; stepIndex: number; subIndex: number; velocity: number }
+  | { type: 'REPLACE_CELL'; trackIndex: number; stepIndex: number; step: Step }
   | { type: 'LOAD_STATE'; state: SequencerState };
 
 /* ── Factories ────────────────────────────────────────────── */
@@ -358,6 +359,15 @@ export function sequencerReducer(state: SequencerState, action: SequencerAction)
       const track = pages[state.currentPageIndex]?.tracks[trackIndex];
       if (!track) return state;
       track.steps[stepIndex] = velocity;
+      return { ...state, pages };
+    }
+
+    case 'REPLACE_CELL': {
+      const { trackIndex, stepIndex, step } = action;
+      const pages = structuredClone(state.pages);
+      const track = pages[state.currentPageIndex]?.tracks[trackIndex];
+      if (!track) return state;
+      track.steps[stepIndex] = structuredClone(step);
       return { ...state, pages };
     }
 

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo, useSyncExternalStore, memo } from 'react';
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
 import type { Page, Track, NoteValueKey } from '../state/sequencerReducer.js';
 import { renderDrumStaff, type RenderDrumStaffResult, type StepPosition, type MergedTrack } from '../notation/renderStaff.js';
@@ -13,6 +13,19 @@ const SIZE_LABELS: Record<SizeKey, string> = { sm: 'S', md: 'M', lg: 'L', xl: 'X
 const SIZE_FONT: Record<SizeKey, number> = { sm: 9, md: 11, lg: 14, xl: 18, '2xl': 24 };
 
 const BARS_PER_LINE_OPTIONS = [0, 2, 3, 4]; // 0 = ∞ (single scrolling line)
+
+// Portrait viewport → 2 bars/line default, landscape/desktop → 4. The user can
+// still override with the Bars/line buttons; their pick wins until reset.
+const portraitQuery = typeof window !== 'undefined'
+  ? window.matchMedia('(orientation: portrait)')
+  : null;
+function subscribeToPortrait(cb: () => void) {
+  portraitQuery?.addEventListener('change', cb);
+  return () => portraitQuery?.removeEventListener('change', cb);
+}
+function getIsPortrait(): boolean {
+  return portraitQuery?.matches ?? false;
+}
 
 interface SubdivisionDef {
   key: string;
@@ -107,7 +120,12 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
   const [useColor, setUseColor] = useState(true);
   const [countSize, setCountSize] = useState<SizeKey>('lg');
   const [subdivIdx, setSubdivIdx] = useState(0);
-  const [barsPerLine, setBarsPerLine] = useState(0);
+  // null = follow orientation default (2 portrait / 4 landscape); a number = user override.
+  const [barsPerLineOverride, setBarsPerLineOverride] = useState<number | null>(null);
+  const isPortrait = useSyncExternalStore(subscribeToPortrait, getIsPortrait);
+  const responsiveDefaultBars = isPortrait ? 2 : 4;
+  const barsPerLine = barsPerLineOverride ?? responsiveDefaultBars;
+  const setBarsPerLine = (n: number) => setBarsPerLineOverride(n);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const allTrackIds = useMemo(
@@ -263,12 +281,13 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
 
   const playheadWidth = layout?.stepWidth ?? 28;
   const lineHeight = layout?.lineHeight ?? 100;
-  const lineGap = layout?.lineGap ?? 10;
+  const lineGap = layout?.lineGap ?? 18;
+  const topPadding = layout?.topPadding ?? 48;
 
   const allTracks: Track[] = pages?.[0]?.tracks ?? [];
 
   return (
-    <div ref={scrollRef} className="notation-view bg-card rounded-2xl shadow-sm border border-border px-4 py-2 overflow-x-auto grid-scroll">
+    <div ref={scrollRef} className="notation-view bg-card rounded-2xl shadow-sm border border-border px-6 py-4 lg:px-8 lg:py-5 overflow-x-auto grid-scroll">
       <div className="notation-parts flex items-center gap-1.5 mb-2 flex-wrap">
         {displayParts.map((part, idx) => (
           <button
@@ -398,7 +417,7 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
         </div>
       </div>
 
-      <div className="notation-score-wrap" style={{ position: 'relative', display: 'block', minHeight: 120 }}>
+      <div className="notation-score-wrap" style={{ position: 'relative', display: 'block', minHeight: 160, paddingTop: 8, paddingBottom: 12 }}>
         <div ref={containerRef} className="vexflow-container" style={{ display: 'block' }} />
         {playhead && (
           <div
@@ -432,7 +451,7 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
             {Array.from({ length: layout.numLines }, (_, lineIdx) => {
               const lineLabels = countLabels.filter((cl) => cl.line === lineIdx);
               if (lineLabels.length === 0) return null;
-              const topOffset = (lineIdx + 1) * (lineHeight + lineGap) - lineGap + 10;
+              const topOffset = topPadding + lineIdx * (lineHeight + lineGap) + lineHeight;
               return (
                 <svg
                   key={lineIdx}

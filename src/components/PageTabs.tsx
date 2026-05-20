@@ -58,6 +58,10 @@ interface PageTabsProps {
   onAddSectionHeading?: (step: number, label: string) => void;
   onUpdateSectionHeading?: (id: string, label: string) => void;
   onRemoveSectionHeading?: (id: string) => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 function PageTabs({
@@ -77,6 +81,10 @@ function PageTabs({
   onAddSectionHeading,
   onUpdateSectionHeading,
   onRemoveSectionHeading,
+  canUndo = false,
+  canRedo = false,
+  onUndo,
+  onRedo,
 }: PageTabsProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sectionBtnRef = useRef<HTMLButtonElement | null>(null);
@@ -274,6 +282,41 @@ function PageTabs({
       </div>
 
       <div className="page-divider w-px h-6 bg-border shrink-0" />
+
+      {(onUndo || onRedo) && (
+        <div className="history-controls flex items-center gap-0.5 shrink-0">
+          <button
+            className={`undo-btn w-8 h-7 rounded-lg flex items-center justify-center transition-all
+              ${canUndo
+                ? 'bg-gray-50 text-muted hover:bg-sky/15 hover:text-sky cursor-pointer'
+                : 'bg-gray-50 text-muted/40 cursor-not-allowed'}`}
+            onClick={canUndo ? onUndo : undefined}
+            disabled={!canUndo}
+            title="Undo (⌘Z)"
+            aria-label="Undo"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 7h7a3.5 3.5 0 0 1 0 7H6" />
+              <path d="M5.5 4.5L3 7l2.5 2.5" />
+            </svg>
+          </button>
+          <button
+            className={`redo-btn w-8 h-7 rounded-lg flex items-center justify-center transition-all
+              ${canRedo
+                ? 'bg-gray-50 text-muted hover:bg-sky/15 hover:text-sky cursor-pointer'
+                : 'bg-gray-50 text-muted/40 cursor-not-allowed'}`}
+            onClick={canRedo ? onRedo : undefined}
+            disabled={!canRedo}
+            title="Redo (⌘⇧Z / ⌘Y)"
+            aria-label="Redo"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 7H6a3.5 3.5 0 0 0 0 7h4" />
+              <path d="M10.5 4.5L13 7l-2.5 2.5" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       <button
         ref={sectionBtnRef}
