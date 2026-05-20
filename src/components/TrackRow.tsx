@@ -32,6 +32,8 @@ interface TrackRowProps {
   onOpenSoundPicker: (trackIndex: number) => void;
   onDrop: (file: File, trackIndex: number) => void;
   sortableEnabled: boolean;
+  deleteMode?: boolean;
+  onPickForDelete?: () => void;
 }
 
 function TrackRow({
@@ -55,6 +57,8 @@ function TrackRow({
   onOpenSoundPicker,
   onDrop,
   sortableEnabled,
+  deleteMode = false,
+  onPickForDelete,
 }: TrackRowProps) {
   const {
     attributes,
@@ -76,8 +80,22 @@ function TrackRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`track-row flex items-start gap-3 py-1.5 relative ${track.mute ? 'opacity-40' : ''} ${isDragging ? 'track-row-dragging' : ''}`}
+      className={`track-row flex items-start gap-3 py-1.5 relative ${track.mute ? 'opacity-40' : ''} ${isDragging ? 'track-row-dragging' : ''} ${deleteMode ? 'track-row-delete-mode' : ''}`}
     >
+      {deleteMode && onPickForDelete && (
+        <button
+          className="track-row-delete-overlay absolute inset-0 z-20 rounded-lg border-2 border-coral/60 bg-coral/10 hover:bg-coral/20 cursor-pointer transition-colors flex items-center justify-center gap-2 text-coral font-semibold text-xs lg:text-sm"
+          onClick={onPickForDelete}
+          title={`Delete "${track.name}" from all pages`}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2.5 4h11" />
+            <path d="M6 4V2.5h4V4" />
+            <path d="M3.5 4l.7 9a1 1 0 0 0 1 1h5.6a1 1 0 0 0 1-1l.7-9" />
+          </svg>
+          Delete "{track.name}"
+        </button>
+      )}
       <TrackControls
         track={track}
         trackIndex={trackIndex}
