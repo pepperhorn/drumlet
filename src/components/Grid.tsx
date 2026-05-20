@@ -85,6 +85,11 @@ interface GridProps {
   deleteMode?: boolean;
   onToggleDeleteMode?: () => void;
   onPickTrackForDelete?: (trackIndex: number) => void;
+  canCopy?: boolean;
+  canPaste?: boolean;
+  onCopyCell?: () => void;
+  onCutCell?: () => void;
+  onPasteCell?: () => void;
 }
 
 function Grid({
@@ -116,6 +121,11 @@ function Grid({
   deleteMode = false,
   onToggleDeleteMode,
   onPickTrackForDelete,
+  canCopy = false,
+  canPaste = false,
+  onCopyCell,
+  onCutCell,
+  onPasteCell,
 }: GridProps) {
   const [countMode, setCountMode] = useState<'step' | 'beat'>('step');
   const [countSize, setCountSize] = useState<SizeKey>('sm');
@@ -283,6 +293,53 @@ function Grid({
 
       <div className="step-numbers flex items-center gap-3 mb-1">
         <div className={`grid-count-toggle ${colWidth} flex justify-end gap-1`}>
+          {onCopyCell && (
+            <button
+              className={`cell-copy-btn w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center transition-all
+                ${canCopy ? 'bg-gray-100 text-muted hover:bg-sky/15 hover:text-sky cursor-pointer' : 'bg-gray-50 text-muted/40 cursor-not-allowed'}`}
+              onClick={canCopy ? onCopyCell : undefined}
+              disabled={!canCopy}
+              title="Copy active cell (⌘C)"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="5" y="5" width="9" height="9" rx="1.5" />
+                <path d="M3 11V3.5a1 1 0 0 1 1-1H11" />
+              </svg>
+            </button>
+          )}
+          {onCutCell && (
+            <button
+              className={`cell-cut-btn w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center transition-all
+                ${canCopy ? 'bg-gray-100 text-muted hover:bg-coral/15 hover:text-coral cursor-pointer' : 'bg-gray-50 text-muted/40 cursor-not-allowed'}`}
+              onClick={canCopy ? onCutCell : undefined}
+              disabled={!canCopy}
+              title="Cut active cell (⌘X)"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="4" cy="12" r="2" />
+                <circle cx="12" cy="12" r="2" />
+                <line x1="5.5" y1="10.5" x2="13" y2="2" />
+                <line x1="10.5" y1="10.5" x2="3" y2="2" />
+              </svg>
+            </button>
+          )}
+          {onPasteCell && (
+            <button
+              className={`cell-paste-btn w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center transition-all
+                ${canPaste ? 'bg-gray-100 text-muted hover:bg-mint/15 hover:text-mint cursor-pointer' : 'bg-gray-50 text-muted/40 cursor-not-allowed'}`}
+              onClick={canPaste ? onPasteCell : undefined}
+              disabled={!canPaste}
+              title="Paste into active cell (⌘V)"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="3" width="8" height="11" rx="1" />
+                <rect x="6" y="1.5" width="4" height="2.5" rx="0.5" fill="currentColor" stroke="none" />
+              </svg>
+            </button>
+          )}
+          {(onCopyCell || onCutCell || onPasteCell) && onToggleDeleteMode && (
+            <div className="grid-count-toggle-divider w-px h-6 self-center bg-border mx-0.5" />
+          )}
           {onToggleDeleteMode && (
             <button
               className={`track-delete-toggle-btn w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center cursor-pointer transition-all

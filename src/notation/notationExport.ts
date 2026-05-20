@@ -1,10 +1,62 @@
 /**
  * SVG and PNG download utilities for VexFlow notation.
+ *
+ * VexFlow renders noteheads, clefs, and time signatures as <text> elements
+ * styled with the Petaluma webfont. When the SVG is opened standalone (in a
+ * viewer that doesn't have Petaluma installed) or rasterized via <img>, those
+ * glyphs vanish. Fix: collect the @font-face rules VexFlow injected into
+ * document.styleSheets and embed them inline so the exported SVG is fully
+ * self-contained.
  */
 
+const MUSIC_FONT_FAMILIES = ['Petaluma', 'Petaluma Script', 'Bravura'];
+
+function collectFontFaceCSS(): string {
+  const wanted = new Set(MUSIC_FONT_FAMILIES.map((f) => f.toLowerCase()));
+  const collected: string[] = [];
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules: CSSRuleList | null = null;
+    try {
+      rules = sheet.cssRules;
+    } catch {
+      continue;
+    }
+    if (!rules) continue;
+    for (const rule of Array.from(rules)) {
+      if (!(rule instanceof CSSFontFaceRule)) continue;
+      const family = rule.style.getPropertyValue('font-family').replace(/['"]/g, '').trim().toLowerCase();
+      if (wanted.has(family)) collected.push(rule.cssText);
+    }
+  }
+  return collected.join('\n');
+}
+
+function ensureFontStyle(svg: SVGElement): void {
+  if (svg.querySelector('style[data-drumlet-fonts]')) return;
+  const fontCSS = collectFontFaceCSS();
+  if (!fontCSS) return;
+  const ns = svg.namespaceURI ?? 'http://www.w3.org/2000/svg';
+  const defs = svg.querySelector('defs') ?? svg.insertBefore(
+    document.createElementNS(ns, 'defs'),
+    svg.firstChild,
+  );
+  const style = document.createElementNS(ns, 'style');
+  style.setAttribute('data-drumlet-fonts', 'true');
+  style.textContent = fontCSS;
+  defs.appendChild(style);
+}
+
+function serializeWithFonts(svgElement: SVGElement): string {
+  const clone = svgElement.cloneNode(true) as SVGElement;
+  ensureFontStyle(clone);
+  if (!clone.getAttribute('xmlns')) {
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  }
+  return new XMLSerializer().serializeToString(clone);
+}
+
 export function downloadSVG(svgElement: SVGElement, filename?: string): void {
-  const serializer = new XMLSerializer();
-  const svgString = serializer.serializeToString(svgElement);
+  const svgString = serializeWithFonts(svgElement);
   const blob = new Blob([svgString], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -15,15 +67,17 @@ export function downloadSVG(svgElement: SVGElement, filename?: string): void {
 }
 
 export function downloadPNG(svgElement: SVGElement, filename?: string, scale = 2): void {
-  const serializer = new XMLSerializer();
-  const svgString = serializer.serializeToString(svgElement);
+  const svgString = serializeWithFonts(svgElement);
   const img = new Image();
-  const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(svgBlob);
+  // Use a data URL (not blob URL): some browsers treat blob URLs as a separate
+  // origin and silently drop inline @font-face resolution.
+  const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
   img.onload = () => {
+    const width = img.width || svgElement.clientWidth || 800;
+    const height = img.height || svgElement.clientHeight || 200;
     const canvas = document.createElement('canvas');
-    canvas.width = img.width * scale;
-    canvas.height = img.height * scale;
+    canvas.width = width * scale;
+    canvas.height = height * scale;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.fillStyle = '#FFFFFF';
@@ -38,7 +92,6 @@ export function downloadPNG(svgElement: SVGElement, filename?: string, scale = 2
       a.click();
       URL.revokeObjectURL(pngUrl);
     }, 'image/png');
-    URL.revokeObjectURL(url);
   };
-  img.src = url;
+  img.src = dataUrl;
 }

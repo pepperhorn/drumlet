@@ -228,6 +228,7 @@ export interface RenderDrumStaffResult {
   numLines: number;
   lineHeight: number;
   lineGap: number;
+  topPadding: number;
 }
 
 export function renderDrumStaff(container: HTMLElement, {
@@ -254,15 +255,17 @@ export function renderDrumStaff(container: HTMLElement, {
   const stepWidth = 28;
   const leftMarginFirst = 80;
   const leftMarginRest = 50;
-  const rightMargin = 20;
+  const rightMargin = 32;
+  const topPadding = 48;    // room for beams that fly well above the stave
+  const bottomPadding = 36; // room for kick noteheads + count labels
   const hasHighNotes = mergedTracks.some((t) => getNotation(t).pos >= 5);
   const baseLineHeight = numStaffLines <= 2 ? 70 : (hasHighNotes ? 105 : 90);
   const lineHeight = baseLineHeight;
-  const lineGap = 10;
+  const lineGap = 18;
 
   const maxStepsPerLine = Math.min(barsPerLine * stepsPerBar, totalSteps);
   const svgWidth = leftMarginFirst + maxStepsPerLine * stepWidth + rightMargin;
-  const svgHeight = numLines * lineHeight + (numLines - 1) * lineGap + 20;
+  const svgHeight = topPadding + numLines * lineHeight + (numLines - 1) * lineGap + bottomPadding;
 
   const renderer = new Renderer(container, Renderer.Backends.SVG);
   renderer.resize(svgWidth, svgHeight);
@@ -277,7 +280,7 @@ export function renderDrumStaff(container: HTMLElement, {
     const barsThisLine = Math.min(barsPerLine, totalBars - line * barsPerLine);
     const stepsThisLine = Math.min(barsThisLine * stepsPerBar, totalSteps - stepOffset);
     const staveWidth = stepsThisLine * stepWidth;
-    const staveY = line * (lineHeight + lineGap) + 10;
+    const staveY = topPadding + line * (lineHeight + lineGap);
 
     const stave = new Stave(leftMargin, staveY, staveWidth);
     if (numStaffLines !== 5) {
@@ -309,30 +312,59 @@ export function renderDrumStaff(container: HTMLElement, {
     }
 
     const staveLineTop = stave.getYForLine(0);
-    const staveBottom = stave.getYForLine(4);
+    const staveBottom = stave.getYForLine(numStaffLines === 1 ? 0 : numStaffLines === 2 ? 1 : 4);
+
+    // Sub-beat dividers (faintest), beat dividers (slightly darker), then
+    // prominent bar lines on top. Two passes keeps z-order correct.
     for (let i = 1; i < Math.ceil(stepsThisLine / stepsPerBeat); i++) {
       const stepIdx = i * stepsPerBeat;
-      if (stepIdx < stepsThisLine) {
-        const xPrev = notes[stepIdx - 1]?.getAbsoluteX();
-        const xNext = notes[stepIdx]?.getAbsoluteX();
-        if (xPrev && xNext) {
-          const x = (xPrev + xNext) / 2;
-          const globalStep = stepOffset + stepIdx;
-          const isBarline = stepsPerBar > 0 && globalStep % stepsPerBar === 0;
-          const svgLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          svgLine.setAttribute('x1', String(x));
-          svgLine.setAttribute('y1', String(staveLineTop - 2));
-          svgLine.setAttribute('x2', String(x));
-          svgLine.setAttribute('y2', String(staveBottom + 2));
-          svgLine.setAttribute('stroke', isBarline ? '#94A3B8' : '#E2E8F0');
-          svgLine.setAttribute('stroke-width', isBarline ? '1.2' : '0.5');
-          context.svg.appendChild(svgLine);
-        }
-      }
+      if (stepIdx >= stepsThisLine) continue;
+      const globalStep = stepOffset + stepIdx;
+      const isBarBoundary = stepsPerBar > 0 && globalStep % stepsPerBar === 0;
+      if (isBarBoundary) continue; // drawn in the next pass
+      const xPrev = notes[stepIdx - 1]?.getAbsoluteX();
+      const xNext = notes[stepIdx]?.getAbsoluteX();
+      if (xPrev == null || xNext == null) continue;
+      const x = (xPrev + xNext) / 2;
+      const svgLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      svgLine.setAttribute('x1', String(x));
+      svgLine.setAttribute('y1', String(staveLineTop - 2));
+      svgLine.setAttribute('x2', String(x));
+      svgLine.setAttribute('y2', String(staveBottom + 2));
+      svgLine.setAttribute('stroke', '#E2E8F0');
+      svgLine.setAttribute('stroke-width', '0.5');
+      context.svg.appendChild(svgLine);
     }
+
+    // Real barlines at every bar boundary inside the stave + final barline at
+    // the right edge. Driven by the time signature (beatsPerBar × stepsPerBeat).
+    const drawBarline = (x: number, final: boolean): void => {
+      const svgLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      svgLine.setAttribute('x1', String(x));
+      svgLine.setAttribute('y1', String(staveLineTop));
+      svgLine.setAttribute('x2', String(x));
+      svgLine.setAttribute('y2', String(staveBottom));
+      svgLine.setAttribute('stroke', TEXT_COLOR);
+      svgLine.setAttribute('stroke-width', final ? '1.6' : '1.2');
+      svgLine.setAttribute('stroke-linecap', 'square');
+      svgLine.setAttribute('class', final ? 'drumlet-barline-final' : 'drumlet-barline');
+      context.svg.appendChild(svgLine);
+    };
+
+    for (let bar = 1; bar < barsThisLine; bar++) {
+      const barStepIdx = bar * stepsPerBar;
+      if (barStepIdx >= stepsThisLine) break;
+      const xPrev = notes[barStepIdx - 1]?.getAbsoluteX();
+      const xNext = notes[barStepIdx]?.getAbsoluteX();
+      if (xPrev == null || xNext == null) continue;
+      drawBarline((xPrev + xNext) / 2, false);
+    }
+
+    // Final barline at the right edge of the stave.
+    drawBarline(leftMargin + staveWidth, true);
 
     stepOffset += stepsThisLine;
   }
 
-  return { stepPositions, svgWidth, svgHeight, stepWidth, numLines, lineHeight, lineGap };
+  return { stepPositions, svgWidth, svgHeight, stepWidth, numLines, lineHeight, lineGap, topPadding };
 }

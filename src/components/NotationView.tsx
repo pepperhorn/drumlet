@@ -263,12 +263,13 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
 
   const playheadWidth = layout?.stepWidth ?? 28;
   const lineHeight = layout?.lineHeight ?? 100;
-  const lineGap = layout?.lineGap ?? 10;
+  const lineGap = layout?.lineGap ?? 18;
+  const topPadding = layout?.topPadding ?? 48;
 
   const allTracks: Track[] = pages?.[0]?.tracks ?? [];
 
   return (
-    <div ref={scrollRef} className="notation-view bg-card rounded-2xl shadow-sm border border-border px-4 py-2 overflow-x-auto grid-scroll">
+    <div ref={scrollRef} className="notation-view bg-card rounded-2xl shadow-sm border border-border px-6 py-4 lg:px-8 lg:py-5 overflow-x-auto grid-scroll">
       <div className="notation-parts flex items-center gap-1.5 mb-2 flex-wrap">
         {displayParts.map((part, idx) => (
           <button
@@ -398,7 +399,7 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
         </div>
       </div>
 
-      <div className="notation-score-wrap" style={{ position: 'relative', display: 'block', minHeight: 120 }}>
+      <div className="notation-score-wrap" style={{ position: 'relative', display: 'block', minHeight: 160, paddingTop: 8, paddingBottom: 12 }}>
         <div ref={containerRef} className="vexflow-container" style={{ display: 'block' }} />
         {playhead && (
           <div
@@ -432,7 +433,7 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
             {Array.from({ length: layout.numLines }, (_, lineIdx) => {
               const lineLabels = countLabels.filter((cl) => cl.line === lineIdx);
               if (lineLabels.length === 0) return null;
-              const topOffset = (lineIdx + 1) * (lineHeight + lineGap) - lineGap + 10;
+              const topOffset = topPadding + lineIdx * (lineHeight + lineGap) + lineHeight;
               return (
                 <svg
                   key={lineIdx}

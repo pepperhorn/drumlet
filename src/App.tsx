@@ -20,7 +20,7 @@ import type { SoundSourceConfig } from './components/SoundPicker.js';
 import { isEmbedMode, loadSharedPayload } from './state/shareCodec.js';
 import { useTheme } from './state/useTheme.js';
 import { TIME_SIGNATURES, getStepConfigs, createNewPatternState } from './state/sequencerReducer.js';
-import type { SequencerState, Track, VelMode, NoteValueKey, SplitCount, Step } from './state/sequencerReducer.js';
+import type { SequencerState, Track, VelMode, NoteValueKey, SplitCount, Step, CellRef } from './state/sequencerReducer.js';
 import { normalizeSequencerState } from './state/normalizeSequencerState.js';
 import { useUserLibrary } from './state/userLibrary.js';
 import { useLibraryActions } from './state/useLibraryActions.js';
@@ -36,7 +36,7 @@ import { PRACTICE_PLUGIN_ID } from './plugins/modePlugins.js';
 const PAD_KEYS = ['A', 'S', 'D', 'F', 'J', 'K', 'L', ';'];
 
 function Drumlet() {
-  const { state, dispatch } = useSequencer();
+  const { state, dispatch, canUndo, canRedo, undo, redo } = useSequencer();
   const userLibrary = useUserLibrary();
   const { entries, bookmarks, toggleBookmark } = userLibrary;
   const audioEngine = useAudioEngine();
@@ -434,6 +434,44 @@ function Drumlet() {
   const [deleteTrackMode, setDeleteTrackMode] = useState(false);
   const [pendingDeleteTrackIndex, setPendingDeleteTrackIndex] = useState<number | null>(null);
 
+  const cellClipboardRef = useRef<Step | null>(null);
+  const [hasClipboard, setHasClipboard] = useState(false);
+
+  const cellAtRef = useCallback((cell: CellRef): Step | undefined => {
+    const page = stateRef.current.pages[stateRef.current.currentPageIndex];
+    return page?.tracks[cell.trackIndex]?.steps[cell.stepIndex];
+  }, []);
+
+  const handleCopyCell = useCallback(() => {
+    const cell = stateRef.current.activeCell;
+    if (!cell) return;
+    const step = cellAtRef(cell);
+    if (step === undefined) return;
+    cellClipboardRef.current = structuredClone(step) as Step;
+    setHasClipboard(true);
+  }, [cellAtRef]);
+
+  const handleCutCell = useCallback(() => {
+    const cell = stateRef.current.activeCell;
+    if (!cell) return;
+    const step = cellAtRef(cell);
+    if (step === undefined) return;
+    cellClipboardRef.current = structuredClone(step) as Step;
+    setHasClipboard(true);
+    dispatch({ type: 'REPLACE_CELL', trackIndex: cell.trackIndex, stepIndex: cell.stepIndex, step: 0 });
+  }, [cellAtRef, dispatch]);
+
+  const handlePasteCell = useCallback(() => {
+    const cell = stateRef.current.activeCell;
+    if (!cell || cellClipboardRef.current == null) return;
+    dispatch({
+      type: 'REPLACE_CELL',
+      trackIndex: cell.trackIndex,
+      stepIndex: cell.stepIndex,
+      step: cellClipboardRef.current,
+    });
+  }, [dispatch]);
+
   const handleConfirmDeleteTrack = useCallback(() => {
     if (pendingDeleteTrackIndex == null) return;
     dispatch({ type: 'REMOVE_TRACK', trackIndex: pendingDeleteTrackIndex });
@@ -507,6 +545,36 @@ function Drumlet() {
         return;
       }
 
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod) {
+        const key = e.key.toLowerCase();
+        if (key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          undo();
+          return;
+        }
+        if ((key === 'z' && e.shiftKey) || key === 'y') {
+          e.preventDefault();
+          redo();
+          return;
+        }
+        if (key === 'c' && stateRef.current.activeCell) {
+          e.preventDefault();
+          handleCopyCell();
+          return;
+        }
+        if (key === 'x' && stateRef.current.activeCell) {
+          e.preventDefault();
+          handleCutCell();
+          return;
+        }
+        if (key === 'v' && stateRef.current.activeCell && cellClipboardRef.current != null) {
+          e.preventDefault();
+          handlePasteCell();
+          return;
+        }
+      }
+
       if (e.code === 'Space') {
         e.preventDefault();
         toggle();
@@ -549,6 +617,11 @@ function Drumlet() {
     state.bpm,
     state.pages.length,
     toggle,
+    undo,
+    redo,
+    handleCopyCell,
+    handleCutCell,
+    handlePasteCell,
   ]);
 
   useEffect(() => () => {
@@ -566,32 +639,53 @@ function Drumlet() {
           <span className="drumlet-version text-[9px] md:text-xs lg:text-sm font-mono text-muted bg-gray-100 px-1.5 py-0.5 rounded-full hidden md:inline">
             v0.1
           </span>
-          {activePreset && (activePreset.name || activePreset.credit) && (
-            <span className="drumlet-songline hidden md:inline-flex items-baseline gap-1.5 min-w-0 max-w-[40ch] truncate">
-              {activePreset.name && (
-                <span className="drumlet-songline-name text-sm lg:text-base font-display font-semibold text-text truncate">
-                  {activePreset.name}
-                </span>
-              )}
-              {activePreset.credit && (
-                <span className="drumlet-songline-credit text-xs lg:text-sm text-muted truncate">
-                  {activePreset.inTheStyleOf ? 'in the style of' : 'by'}{' '}
-                  {activePreset.creditUrl ? (
-                    <a
-                      href={activePreset.creditUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="drumlet-songline-credit-link hover:text-sky transition-colors"
-                    >
-                      {activePreset.credit}
-                    </a>
-                  ) : (
-                    activePreset.credit
-                  )}
-                </span>
-              )}
-            </span>
-          )}
+          <span className="drumlet-songline hidden md:inline-flex items-baseline gap-1.5 min-w-0">
+            <input
+              className="drumlet-songline-name bg-transparent border-b border-transparent hover:border-border focus:border-sky focus:outline-none text-sm lg:text-base font-display font-semibold text-text placeholder:text-muted/60 placeholder:font-normal placeholder:italic w-32 lg:w-44"
+              type="text"
+              value={activePreset?.name ?? ''}
+              placeholder="Untitled pattern"
+              onChange={(e) => {
+                const name = e.target.value;
+                setActivePreset((prev) => ({
+                  sourceEntryId: prev?.sourceEntryId ?? null,
+                  sourcePreset: prev?.sourcePreset ?? null,
+                  name,
+                  inTheStyleOf: prev?.inTheStyleOf ?? false,
+                  credit: prev?.credit ?? '',
+                  creditUrl: prev?.creditUrl ?? '',
+                  cover: prev?.cover ?? '',
+                  links: prev?.links ?? {},
+                  bpm: prev?.bpm ?? null,
+                  body: prev?.body ?? null,
+                  notes: prev?.notes ?? null,
+                }));
+              }}
+            />
+            <span className="drumlet-songline-by text-xs lg:text-sm text-muted shrink-0">by</span>
+            <input
+              className="drumlet-songline-credit bg-transparent border-b border-transparent hover:border-border focus:border-sky focus:outline-none text-xs lg:text-sm text-muted placeholder:text-muted/50 placeholder:italic w-24 lg:w-32"
+              type="text"
+              value={activePreset?.credit ?? ''}
+              placeholder="credit"
+              onChange={(e) => {
+                const credit = e.target.value;
+                setActivePreset((prev) => ({
+                  sourceEntryId: prev?.sourceEntryId ?? null,
+                  sourcePreset: prev?.sourcePreset ?? null,
+                  name: prev?.name ?? '',
+                  inTheStyleOf: prev?.inTheStyleOf ?? false,
+                  credit,
+                  creditUrl: prev?.creditUrl ?? '',
+                  cover: prev?.cover ?? '',
+                  links: prev?.links ?? {},
+                  bpm: prev?.bpm ?? null,
+                  body: prev?.body ?? null,
+                  notes: prev?.notes ?? null,
+                }));
+              }}
+            />
+          </span>
           <button
             className="action-btn action-new-btn-mobile md:hidden px-2 py-1 rounded-lg bg-mint/10 text-[10px] font-medium text-mint cursor-pointer flex items-center gap-1"
             onClick={handleNewPattern}
@@ -999,6 +1093,10 @@ function Drumlet() {
           onAddSectionHeading={(step, label) => dispatch({ type: 'ADD_SECTION_HEADING', step, label })}
           onUpdateSectionHeading={(id, label) => dispatch({ type: 'UPDATE_SECTION_HEADING', id, label })}
           onRemoveSectionHeading={(id) => dispatch({ type: 'REMOVE_SECTION_HEADING', id })}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
         />
       </div>
 
@@ -1090,6 +1188,11 @@ function Drumlet() {
             deleteMode={!playMode && deleteTrackMode}
             onToggleDeleteMode={playMode ? undefined : () => setDeleteTrackMode((v) => !v)}
             onPickTrackForDelete={playMode ? undefined : (i) => setPendingDeleteTrackIndex(i)}
+            canCopy={!playMode && activeCell != null}
+            canPaste={!playMode && activeCell != null && hasClipboard}
+            onCopyCell={playMode ? undefined : handleCopyCell}
+            onCutCell={playMode ? undefined : handleCutCell}
+            onPasteCell={playMode ? undefined : handlePasteCell}
           />
         </div>
       )}
