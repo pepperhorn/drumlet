@@ -309,7 +309,12 @@ export function renderDrumStaff(container: HTMLElement, {
     voice.setMode(VoiceMode.SOFT);
     voice.addTickables(notes);
 
-    new Formatter().joinVoices([voice]).format([voice], staveWidth - 10);
+    // Clef + time-signature modifiers consume space INSIDE the stave's width,
+    // so the available area for notes is getNoteStartX..getNoteEndX. Passing
+    // the raw staveWidth makes notes (and beat labels) overflow past the
+    // final barline.
+    const noteAreaWidth = stave.getNoteEndX() - stave.getNoteStartX();
+    new Formatter().joinVoices([voice]).format([voice], noteAreaWidth - 10);
     voice.draw(context, stave);
 
     drawManualBeams(context.svg, notes, noteValueKey, useColor);

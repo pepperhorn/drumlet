@@ -37,6 +37,12 @@ interface DottlSection {
   name: string;
 }
 
+export interface DottlPresetMeta {
+  name?: string;
+  credit?: string;
+  creditUrl?: string;
+}
+
 export interface DottlProject {
   version: number;
   projectName: string;
@@ -60,6 +66,8 @@ export interface DottlProject {
       rawPageSteps: Record<string, Record<string, Step[]>>;
       pages: { id: string; name: string }[];
       trackSources: TrackSource[];
+      credit?: string;
+      creditUrl?: string;
     };
   };
 }
@@ -76,7 +84,7 @@ interface TrackSource {
   solo: boolean;
 }
 
-export function serializeProject(state: SequencerState): DottlProject {
+export function serializeProject(state: SequencerState, preset?: DottlPresetMeta): DottlProject {
   const layers: DottlLayer[] = [];
 
   for (const page of state.pages) {
@@ -151,9 +159,10 @@ export function serializeProject(state: SequencerState): DottlProject {
     name: page.name,
   }));
 
+  const presetName = preset?.name?.trim();
   return {
     version: 5,
-    projectName: 'Drumlet Project',
+    projectName: presetName || 'Drumlet Project',
     bpm: state.bpm,
     divisor: 4,
     timeSignature: { numerator: state.beatsPerBar || 4, denominator: state.noteValue || '1/4' },
@@ -192,8 +201,20 @@ export function serializeProject(state: SequencerState): DottlProject {
           mute: t.mute,
           solo: t.solo,
         })) ?? [],
+        ...(preset?.credit ? { credit: preset.credit } : {}),
+        ...(preset?.creditUrl ? { creditUrl: preset.creditUrl } : {}),
       },
     },
+  };
+}
+
+export function extractPresetMeta(json: DottlProject): DottlPresetMeta {
+  const ext = json.extensions?.drumlet;
+  const name = json.projectName && json.projectName !== 'Drumlet Project' ? json.projectName : '';
+  return {
+    name,
+    credit: ext?.credit ?? '',
+    creditUrl: ext?.creditUrl ?? '',
   };
 }
 
@@ -328,8 +349,8 @@ function slugify(name: string): string {
   return slug || 'untitled';
 }
 
-export function exportToFile(state: SequencerState): void {
-  const data = serializeProject(state);
+export function exportToFile(state: SequencerState, preset?: DottlPresetMeta): void {
+  const data = serializeProject(state, preset);
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/dottl+json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -354,7 +375,12 @@ export function loadDottlFromHash(): Partial<SequencerState> | null {
   }
 }
 
-export function importFromFile(): Promise<Partial<SequencerState> | null> {
+export interface ImportedProject {
+  state: Partial<SequencerState>;
+  preset: DottlPresetMeta;
+}
+
+export function importFromFile(): Promise<ImportedProject | null> {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -365,7 +391,7 @@ export function importFromFile(): Promise<Partial<SequencerState> | null> {
       const text = await file.text();
       try {
         const json = JSON.parse(text) as DottlProject;
-        resolve(deserializeProject(json));
+        resolve({ state: deserializeProject(json), preset: extractPresetMeta(json) });
       } catch {
         resolve(null);
       }

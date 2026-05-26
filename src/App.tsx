@@ -392,7 +392,11 @@ function Drumlet() {
     }
   }, [audioEngine, dispatch]);
 
-  const handleExport = useCallback(() => exportToFile(state), [state]);
+  const handleExport = useCallback(() => exportToFile(state, activePreset ? {
+    name: activePreset.name,
+    credit: activePreset.credit,
+    creditUrl: activePreset.creditUrl,
+  } : undefined), [state, activePreset]);
   const handleMidiExport = useCallback(() => exportMidi(state), [state]);
 
   // Load shared state from URL on mount
@@ -490,12 +494,29 @@ function Drumlet() {
   const handleImport = useCallback(async () => {
     const imported = await importFromFile();
     if (imported) {
-      const nextState = normalizeSequencerState(imported);
+      const nextState = normalizeSequencerState(imported.state);
       if (!nextState) return;
       stop();
       dispatch({ type: 'LOAD_STATE', state: nextState });
       setCurrentSaveId(null);
-      setActivePreset(null);
+      const { name, credit, creditUrl } = imported.preset;
+      if (name || credit || creditUrl) {
+        setActivePreset({
+          sourceEntryId: null,
+          sourcePreset: null,
+          name: name ?? '',
+          inTheStyleOf: false,
+          credit: credit ?? '',
+          creditUrl: creditUrl ?? '',
+          cover: '',
+          links: {},
+          bpm: null,
+          body: null,
+          notes: null,
+        });
+      } else {
+        setActivePreset(null);
+      }
       markClean(nextState);
     }
   }, [dispatch, markClean, stop, setCurrentSaveId, setActivePreset]);

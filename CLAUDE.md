@@ -2,6 +2,10 @@
 
 Browser-based rhythm education game / step sequencer. Build patterns, play them live for accuracy scoring, share challenges with friends.
 
+## Naming
+
+This project is called **Drumlet**. Any references to "jamee" or "jammee" (old codename) are stale — rename them to "drumlet" / "Drumlet" when encountered, in code, comments, docs, identifiers, file/folder names, and UI strings.
+
 ## Stack
 
 - React 19 + Vite 8 + Tailwind 4
