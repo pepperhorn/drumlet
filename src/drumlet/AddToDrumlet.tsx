@@ -1,7 +1,7 @@
 import { memo, useState } from 'react'
 import { savePresetToLibrary } from './drumletBridge'
 
-interface Props { preset: any; presetName: string }
+interface Props { preset: unknown; presetName: string }
 
 function AddToDrumletImpl({ preset, presetName }: Props) {
   const [busy, setBusy] = useState(false)
@@ -14,8 +14,8 @@ function AddToDrumletImpl({ preset, presetName }: Props) {
     try {
       const ref = await savePresetToLibrary(preset, presetName || 'Untitled preset')
       setDone(ref)
-    } catch (e: any) {
-      setError(e?.message ?? 'failed to save')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'failed to save')
     } finally {
       setBusy(false)
     }

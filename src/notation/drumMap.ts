@@ -1,39 +1,36 @@
 /**
- * Maps drum sound names to VexFlow percussion key notation.
+ * Maps drum sound names to percussion staff positions.
  */
 
 import type { Track } from '../state/sequencerReducer.js';
 
 type HeadType = 'filled' | 'x' | 'xo' | 'diamond' | 'triangle';
 
-const HEAD_SUFFIX: Record<HeadType, string> = {
-  filled:   '',
-  x:        '/x2',
-  xo:       '/cx',
-  diamond:  '/d2',
-  triangle: '/t2',
-};
-
 type Pos = '-0.5' | '0' | '1' | '1.5' | '2' | '2.5' | '3' | '3.5' | '4' | '4.5' | '5' | '5.5';
 
-const POS_TO_KEY: Record<Pos, [string, number]> = {
-  '-0.5': ['d', 4],
-  '0':    ['e', 4],
-  '1':    ['g', 4],
-  '1.5':  ['a', 4],
-  '2':    ['b', 4],
-  '2.5':  ['c', 5],
-  '3':    ['d', 5],
-  '3.5':  ['e', 5],
-  '4':    ['f', 5],
-  '4.5':  ['g', 5],
-  '5':    ['a', 5],
-  '5.5':  ['b', 5],
+const POS_TO_MEI_PITCH: Record<Pos, [string, number]> = {
+  '-0.5': ['f', 3],
+  '0':    ['g', 3],
+  '1':    ['a', 3],
+  '1.5':  ['b', 3],
+  '2':    ['c', 4],
+  '2.5':  ['d', 4],
+  '3':    ['e', 4],
+  '3.5':  ['f', 4],
+  '4':    ['f', 4],
+  '4.5':  ['g', 4],
+  '5':    ['f', 4],
+  '5.5':  ['g', 4],
 };
 
 export interface NotationInfo {
   pos: number;
   head: HeadType;
+}
+
+export interface MeiPitch {
+  pname: string;
+  oct: number;
 }
 
 const NOTATION_MAP: Record<string, NotationInfo> = {
@@ -93,13 +90,10 @@ export function getNotation(track: Pick<Track, 'kitSample' | 'group'>): Notation
   return NOTATION_MAP[key] ?? NOTATION_MAP[key.toLowerCase()] ?? { pos: 2.5, head: 'filled' };
 }
 
-export function toVexKey(notation: NotationInfo): string {
+export function toMeiPitch(notation: NotationInfo): MeiPitch {
   const posStr = String(notation.pos) as Pos;
-  const mapping = POS_TO_KEY[posStr];
-  if (!mapping) {
-    return 'c/5' + (HEAD_SUFFIX[notation.head] ?? '');
-  }
-  const [pitch, octave] = mapping;
-  const suffix = HEAD_SUFFIX[notation.head] ?? '';
-  return `${pitch}/${octave}${suffix}`;
+  const mapping = POS_TO_MEI_PITCH[posStr];
+  if (!mapping) return { pname: 'd', oct: 4 };
+  const [pname, oct] = mapping;
+  return { pname, oct };
 }

@@ -887,7 +887,7 @@ function Drumlet() {
           <button
             className="action-btn action-new-btn px-3 py-1.5 rounded-lg bg-mint/10 text-xs lg:text-sm font-medium text-mint hover:bg-mint/20 transition-colors cursor-pointer flex items-center gap-1.5"
             onClick={handleNewPattern}
-            title="New empty pattern (kick / snare / hihat, TR-808)"
+            title="New empty pattern (hi-hat / snare / kick, TR-808)"
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
               <path d="M8 3v10" /><path d="M3 8h10" />
@@ -1114,6 +1114,8 @@ function Drumlet() {
           onAddSectionHeading={(step, label) => dispatch({ type: 'ADD_SECTION_HEADING', step, label })}
           onUpdateSectionHeading={(id, label) => dispatch({ type: 'UPDATE_SECTION_HEADING', id, label })}
           onRemoveSectionHeading={(id) => dispatch({ type: 'REMOVE_SECTION_HEADING', id })}
+          notationView={notationView}
+          onToggleNotation={() => setNotationView((v) => !v)}
           canUndo={canUndo}
           canRedo={canRedo}
           onUndo={undo}
@@ -1191,8 +1193,6 @@ function Drumlet() {
             onSelectStep={playMode ? undefined : setSelectedStep}
             sectionHeadings={currentPage.sectionHeadings}
             activeCell={activeCell}
-            notationView={notationView}
-            onToggleNotation={() => setNotationView((v) => !v)}
             onAddSectionHeading={(step, label) => dispatch({ type: 'ADD_SECTION_HEADING', step, label })}
             onUpdateSectionHeading={(id, label) => dispatch({ type: 'UPDATE_SECTION_HEADING', id, label })}
             onMoveSectionHeading={(id, step) => dispatch({ type: 'MOVE_SECTION_HEADING', id, step })}

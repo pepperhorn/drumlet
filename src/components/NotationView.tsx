@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback, useMemo, useSyncExternalStore, memo } from 'react';
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
-import type { Page, Track, NoteValueKey } from '../state/sequencerReducer.js';
+import type { Page, Track, NoteValueKey, SectionHeading } from '../state/sequencerReducer.js';
 import { renderDrumStaff, type RenderDrumStaffResult, type StepPosition, type MergedTrack } from '../notation/renderStaff.js';
 import { downloadSVG, downloadPNG } from '../notation/notationExport.js';
 import { effectiveStep } from '../util/stepHelpers.js';
@@ -11,6 +11,7 @@ type SizeKey = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 const SIZE_CYCLE: SizeKey[] = ['sm', 'md', 'lg', 'xl', '2xl'];
 const SIZE_LABELS: Record<SizeKey, string> = { sm: 'S', md: 'M', lg: 'L', xl: 'XL', '2xl': '2X' };
 const SIZE_FONT: Record<SizeKey, number> = { sm: 9, md: 11, lg: 14, xl: 18, '2xl': 24 };
+const SCORE_SCALE: Record<SizeKey, number> = { sm: 36, md: 41, lg: 45, xl: 52, '2xl': 62 };
 
 const BARS_PER_LINE_OPTIONS = [0, 2, 3, 4]; // 0 = ∞ (single scrolling line)
 
@@ -63,10 +64,11 @@ function interpolateX(positions: StepPosition[], stepFloat: number): number {
 interface MergedResult {
   mergedTracks: MergedTrack[];
   totalSteps: number;
+  sectionHeadings: SectionHeading[];
 }
 
 function mergePages(pages: Page[] | undefined, stepsPerPage: number): MergedResult {
-  if (!pages || pages.length === 0) return { mergedTracks: [], totalSteps: 0 };
+  if (!pages || pages.length === 0) return { mergedTracks: [], totalSteps: 0, sectionHeadings: [] };
 
   const firstPage = pages[0]!;
   const mergedTracks: MergedTrack[] = firstPage.tracks.map((track, trackIdx) => {
@@ -80,7 +82,14 @@ function mergePages(pages: Page[] | undefined, stepsPerPage: number): MergedResu
     return { ...track, steps: allSteps };
   });
 
-  return { mergedTracks, totalSteps: pages.length * stepsPerPage };
+  const sectionHeadings = pages.flatMap((page, pageIdx) => (
+    page.sectionHeadings ?? []
+  ).map((heading) => ({
+    ...heading,
+    step: pageIdx * stepsPerPage + heading.step,
+  })));
+
+  return { mergedTracks, totalSteps: pages.length * stepsPerPage, sectionHeadings };
 }
 
 interface Part {
@@ -174,7 +183,7 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
   const stepNv = NOTE_VALUES.find((n) => n.key === (stepValue || noteValue)) ?? beatNv;
   const stepsPerBeat = Math.round(beatNv.beatsPerStep / stepNv.beatsPerStep) || 1;
 
-  const { mergedTracks: allMergedTracks, totalSteps } = mergePages(pages, stepsPerPage);
+  const { mergedTracks: allMergedTracks, totalSteps, sectionHeadings } = mergePages(pages, stepsPerPage);
 
   const mergedTracks = allMergedTracks.filter((t) => activePart.trackIds.has(t.id));
   const partTrackCount = mergedTracks.length;
@@ -191,7 +200,8 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
 
   const stepsFingerprint = mergedTracks.map((t) => t.steps.join(',')).join('|');
   const tracksFingerprint = mergedTracks.map((t) => `${t.id}:${t.color}:${t.group}:${t.kitSample}:${t.velMode}`).join('|');
-  const dataKey = `${stepsFingerprint}|${tracksFingerprint}|${totalSteps}|${noteValue}|${stepValue}|${beatsPerBar}|${effectiveBarsPerLine}|${useColor}|${numStaffLines}`;
+  const sectionsFingerprint = sectionHeadings.map((h) => `${h.step}:${h.label}`).join('|');
+  const dataKey = `${stepsFingerprint}|${tracksFingerprint}|${sectionsFingerprint}|${totalSteps}|${noteValue}|${stepValue}|${beatsPerBar}|${effectiveBarsPerLine}|${useColor}|${numStaffLines}|${countSize}`;
 
   useEffect(() => {
     if (prevDataRef.current === dataKey) return;
@@ -203,8 +213,9 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
 
     if (mergedTracks.length === 0 || totalSteps === 0) return;
 
-    try {
-      const result = renderDrumStaff(el, {
+    let cancelled = false;
+
+    renderDrumStaff(el, {
         mergedTracks,
         totalSteps,
         noteValueKey: stepValue || noteValue || '1/4',
@@ -214,20 +225,30 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
         barsPerLine: effectiveBarsPerLine,
         useColor,
         numStaffLines,
+        scale: SCORE_SCALE[countSize],
+        sectionHeadings,
+      })
+      .then((result) => {
+        if (cancelled) return;
+        setLayout(result);
+        setLayoutInfo({
+          stepPositions: result.stepPositions,
+          svgWidth: result.svgWidth,
+          svgHeight: result.svgHeight,
+        });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setLayout(null);
+        setLayoutInfo(null);
+        console.error('Verovio render error:', err);
+        el.textContent = 'Notation rendering error';
       });
-      setLayout(result);
-      setLayoutInfo({
-        stepPositions: result.stepPositions,
-        svgWidth: result.svgWidth,
-        svgHeight: result.svgHeight,
-      });
-    } catch (err) {
-      setLayout(null);
-      setLayoutInfo(null);
-      console.error('VexFlow render error:', err);
-      el.textContent = 'Notation rendering error';
-    }
-  }, [dataKey, mergedTracks, totalSteps, noteValue, stepValue, stepsPerBeat, beatsPerBar, effectiveBarsPerLine, useColor, numStaffLines]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dataKey, mergedTracks, totalSteps, noteValue, stepValue, stepsPerBeat, beatsPerBar, effectiveBarsPerLine, useColor, numStaffLines, countSize, sectionHeadings]);
 
   const globalStep = (currentPageIndex || 0) * stepsPerPage + (currentStep >= 0 ? currentStep : -1);
   let playhead: { x: number; y: number; line: number } | null = null;
@@ -370,7 +391,7 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
         <button
           className="notation-count-btn px-2 py-1 rounded-lg bg-gray-100 text-muted hover:bg-gray-200 text-xs font-mono font-semibold cursor-pointer transition-colors"
           onClick={() => setCountSize((prev) => SIZE_CYCLE[(SIZE_CYCLE.indexOf(prev) + 1) % SIZE_CYCLE.length]!)}
-          title={`Beat count size: ${countSize}`}
+          title={`Notation size: ${countSize}`}
         >
           Size: {SIZE_LABELS[countSize]}
         </button>
@@ -418,7 +439,7 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
       </div>
 
       <div className="notation-score-wrap" style={{ position: 'relative', display: 'block', minHeight: 160, paddingTop: 8, paddingBottom: 12 }}>
-        <div ref={containerRef} className="vexflow-container" style={{ display: 'block' }} />
+        <div ref={containerRef} className="verovio-container" style={{ display: 'block' }} />
         {playhead && (
           <div
             className="notation-playhead"

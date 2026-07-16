@@ -8,7 +8,7 @@ A browser-based rhythm education game and step sequencer. Build patterns, play t
 
 - **Step sequencer** with multi-page patterns (with pagination for long songs), time signature changes, swing, humanize, per-step velocities, and sub-cell stutter beats
 - **Real drum machine samples** (TR-808, LM-2, CR-8000 and more) via [smplr](https://github.com/danigb/smplr)
-- **Notation view** powered by VexFlow alongside the grid
+- **Notation view** powered by Verovio alongside the grid
 - **Play-along modes** for practice, scored challenges, and "Telephone" rhythm chains
 - **Library + plugin runtime** so factory grooves, lessons, and (later) third-party content all share the same UI surface
 - **Themes** — built-in Light and Dark Studio, plus a runtime theming schema so plugins can ship custom themes (see [`docs/theme-plugin.md`](docs/theme-plugin.md))
@@ -29,7 +29,7 @@ Then open http://localhost:5173 (or the port Vite picks).
 
 - React 19 + Vite 8 + Tailwind 4 + TypeScript (strict)
 - [smplr](https://github.com/danigb/smplr) for drum samples, single shared `AudioContext`
-- [VexFlow](https://www.vexflow.com/) for notation rendering
+- [Verovio](https://www.verovio.org/) for notation rendering
 - Optional `apps.pepperhorn.com` (Directus 11) backend for OTP-based user accounts, the rip pipeline, and curated library content — the app runs fully without it
 
 ## Sharing & file formats

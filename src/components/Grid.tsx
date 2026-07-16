@@ -67,8 +67,6 @@ interface GridProps {
   onSelectStep?: (step: number | null) => void;
   sectionHeadings?: SectionHeading[];
   activeCell: CellRef | null;
-  notationView: boolean;
-  onToggleNotation?: () => void;
   onAddSectionHeading: (step: number, label: string) => void;
   onUpdateSectionHeading: (id: string, label: string) => void;
   onMoveSectionHeading: (id: string, step: number) => void;
@@ -103,8 +101,6 @@ function Grid({
   onSelectStep,
   sectionHeadings,
   activeCell,
-  notationView,
-  onToggleNotation,
   onAddSectionHeading,
   onUpdateSectionHeading,
   onMoveSectionHeading,
@@ -348,32 +344,6 @@ function Grid({
             <path d="M3.5 4l.7 9a1 1 0 0 0 1 1h5.6a1 1 0 0 0 1-1l.7-9" />
             <path d="M6.5 7v5M9.5 7v5" />
           </svg>
-        </button>
-      )}
-      {onToggleNotation && (
-        <button
-          className={`notation-toggle-btn w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center cursor-pointer transition-all
-            ${notationView
-              ? 'bg-text text-white'
-              : 'bg-gray-100 text-muted hover:bg-gray-200 hover:text-text'
-            }`}
-          onClick={onToggleNotation}
-          title={notationView ? 'Switch back to pattern' : 'Switch to notation view'}
-        >
-          {notationView ? (
-            <svg className="notation-toggle-icon-grid" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <rect x="2" y="2" width="5" height="5" rx="1" />
-              <rect x="9" y="2" width="5" height="5" rx="1" />
-              <rect x="2" y="9" width="5" height="5" rx="1" />
-              <rect x="9" y="9" width="5" height="5" rx="1" />
-            </svg>
-          ) : (
-            <svg className="notation-toggle-icon-note" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <ellipse cx="5" cy="12" rx="2.5" ry="1.8" fill="currentColor" stroke="none" />
-              <path d="M7.5 12V3l5 -1.5V10" />
-              <ellipse cx="10" cy="10" rx="2.5" ry="1.8" fill="currentColor" stroke="none" />
-            </svg>
-          )}
         </button>
       )}
       <button

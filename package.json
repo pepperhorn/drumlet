@@ -22,6 +22,7 @@
     "smplr": "^0.20.0",
     "tailwindcss": "^4.2.2",
     "uuid": "^13.0.0",
+    "verovio": "^6.2.0",
     "vexflow": "^5.0.0"
   },
   "devDependencies": {

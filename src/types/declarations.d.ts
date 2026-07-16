@@ -58,3 +58,20 @@ declare module 'vexflow' {
   export const VoiceMode: any;
   export default m;
 }
+
+declare module 'verovio/wasm' {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  export default function createVerovioModule(): Promise<any>;
+}
+
+declare module 'verovio/esm' {
+  export class VerovioToolkit {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    constructor(verovioModule: any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setOptions(options: Record<string, any>): void;
+    loadData(data: string): number | boolean;
+    renderToSVG(pageNo?: number, xmlDeclaration?: boolean): string;
+    getLog(): string;
+  }
+}
