@@ -1,12 +1,10 @@
 /**
- * SVG and PNG download utilities for VexFlow notation.
+ * SVG and PNG download utilities for notation.
  *
- * VexFlow renders noteheads, clefs, and time signatures as <text> elements
- * styled with the Petaluma webfont. When the SVG is opened standalone (in a
- * viewer that doesn't have Petaluma installed) or rasterized via <img>, those
- * glyphs vanish. Fix: collect the @font-face rules VexFlow injected into
- * document.styleSheets and embed them inline so the exported SVG is fully
- * self-contained.
+ * Some notation glyphs can be emitted as font-backed <text> elements. When the
+ * SVG is opened standalone or rasterized via <img>, those glyphs can vanish if
+ * the font is not available. Fix: collect matching @font-face rules and embed
+ * them inline so exported SVGs are self-contained where the renderer uses text.
  */
 
 const MUSIC_FONT_FAMILIES = ['Petaluma', 'Petaluma Script', 'Bravura'];

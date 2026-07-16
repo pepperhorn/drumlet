@@ -58,6 +58,8 @@ interface PageTabsProps {
   onAddSectionHeading?: (step: number, label: string) => void;
   onUpdateSectionHeading?: (id: string, label: string) => void;
   onRemoveSectionHeading?: (id: string) => void;
+  notationView?: boolean;
+  onToggleNotation?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   onUndo?: () => void;
@@ -81,6 +83,8 @@ function PageTabs({
   onAddSectionHeading,
   onUpdateSectionHeading,
   onRemoveSectionHeading,
+  notationView = false,
+  onToggleNotation,
   canUndo = false,
   canRedo = false,
   onUndo,
@@ -135,6 +139,42 @@ function PageTabs({
 
   return (
     <div ref={containerRef} className="page-tabs relative flex items-center gap-2 lg:gap-3 bg-card rounded-2xl shadow-sm border border-border px-3 lg:px-4 py-2 lg:py-2.5 overflow-x-auto grid-scroll">
+      {onToggleNotation && (
+        <>
+          <button
+            className={`notation-toggle-btn h-8 px-2.5 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all shrink-0 text-xs lg:text-sm font-semibold
+              ${notationView
+                ? 'bg-text text-white'
+                : 'bg-gray-50 text-muted hover:bg-gray-100 hover:text-text'
+              }`}
+            onClick={onToggleNotation}
+            title={notationView ? 'Switch to Grid Editor' : 'Switch to Notation View'}
+            aria-label={notationView ? 'Switch to Grid Editor' : 'Switch to Notation View'}
+          >
+            {notationView ? (
+              <svg className="notation-toggle-icon-grid" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <rect x="2" y="2" width="5" height="5" rx="1" />
+                <rect x="9" y="2" width="5" height="5" rx="1" />
+                <rect x="2" y="9" width="5" height="5" rx="1" />
+                <rect x="9" y="9" width="5" height="5" rx="1" />
+              </svg>
+            ) : (
+              <span
+                className="notation-toggle-icon-note block w-[15px] text-center"
+                style={{ fontFamily: 'Petaluma', fontSize: 17, lineHeight: 1 }}
+                aria-hidden="true"
+              >
+                
+              </span>
+            )}
+            <span className="notation-toggle-label whitespace-nowrap">
+              {notationView ? 'Grid Editor' : 'Notation View'}
+            </span>
+          </button>
+          <div className="page-divider w-px h-6 bg-border shrink-0" />
+        </>
+      )}
+
       {usePagination ? (
         <div className="page-pager flex items-center gap-1 shrink-0">
           <button

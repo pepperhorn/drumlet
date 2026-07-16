@@ -108,6 +108,9 @@ export function usePluginSession({
   // Reset defaults when mode changes during setup
   useEffect(() => {
     if (!pluginOpen || pluginStatus !== 'setup' || !selectedModePlugin) return;
+    // Mode selection owns this setup form; changing modes should replace the
+    // draft controls with that mode's defaults.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPluginInputMode(selectedModePlugin.defaults?.inputMode ?? 'pads');
     setPluginLoops(selectedModePlugin.defaults?.loops ?? 1);
     setPluginTargetScore(selectedModePlugin.defaults?.targetScore ?? 85);

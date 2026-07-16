@@ -5,9 +5,8 @@
 // the items collection directly (the old @directus/sdk path) skipped all of
 // that and never triggered the flows.
 
-const BASE =
-  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_DIRECTUS_URL) ??
-  'https://apps.pepperhorn.com'
+const meta = import.meta as ImportMeta & { env?: { VITE_DIRECTUS_URL?: string } }
+const BASE = meta.env?.VITE_DIRECTUS_URL ?? 'https://apps.pepperhorn.com'
 
 const FLOW_UPSERT = 'ffd9c4cc-5e14-46a6-a011-7baebba7f171'
 const FLOW_LIST = '55b04a7b-a384-4d75-ac8c-68439054dcbf'
@@ -29,7 +28,7 @@ function token(): string {
  * thrown "Invalid or expired session" comes back as a non-ok response —
  * surface a message the caller can show, and log the real detail.
  */
-async function callFlow(flowId: string, body: Record<string, unknown>): Promise<any> {
+async function callFlow(flowId: string, body: Record<string, unknown>): Promise<unknown> {
   let res: Response
   try {
     res = await fetch(`${BASE}/flows/trigger/${flowId}`, {
@@ -48,7 +47,7 @@ async function callFlow(flowId: string, body: Record<string, unknown>): Promise<
     let backendMsg = ''
     try {
       const errBody = await res.json()
-      backendMsg = errBody?.errors?.[0]?.message || ''
+      backendMsg = errorMessageFromResponse(errBody)
     } catch {
       /* non-JSON error body */
     }
@@ -66,6 +65,20 @@ async function callFlow(flowId: string, body: Record<string, unknown>): Promise<
   // Webhook flows return the last operation's value; mirror useAuth's
   // tolerance for an optional `data` envelope.
   return json?.data ?? json
+}
+
+function errorMessageFromResponse(value: unknown): string {
+  if (!value || typeof value !== 'object') return ''
+  const errors = (value as { errors?: unknown }).errors
+  if (!Array.isArray(errors)) return ''
+  const first = errors[0]
+  if (!first || typeof first !== 'object') return ''
+  const message = (first as { message?: unknown }).message
+  return typeof message === 'string' ? message : ''
+}
+
+function flowRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? value as Record<string, unknown> : {}
 }
 
 export interface SavedPresetRef {
@@ -103,7 +116,8 @@ export async function savePresetToLibrary(
     kind: 'preset',
     payload: presetDoc,
   })
-  return { external_id: data?.external_id ?? external_id, name }
+  const record = flowRecord(data)
+  return { external_id: typeof record.external_id === 'string' ? record.external_id : external_id, name }
 }
 
 /** List the presets the signed-in user has saved to the shared library. */
@@ -112,8 +126,11 @@ export async function listMyLibraryPresets(): Promise<LibrarySave[]> {
     token: token(),
     app_slug: APP_SLUG,
   })
-  const saves = Array.isArray(data?.saves) ? data.saves : []
-  return saves.filter((s: any) => s?.kind === 'preset')
+  const record = flowRecord(data)
+  const saves = Array.isArray(record.saves) ? record.saves : []
+  return saves.filter((save): save is LibrarySave => (
+    !!save && typeof save === 'object' && (save as { kind?: unknown }).kind === 'preset'
+  ))
 }
 
 /** Remove a preset from the shared library by its external id. */
@@ -125,5 +142,9 @@ export async function deletePresetFromLibrary(
     app_slug: APP_SLUG,
     external_id: externalId,
   })
-  return { deleted: Boolean(data?.deleted), external_id: data?.external_id ?? externalId }
+  const record = flowRecord(data)
+  return {
+    deleted: Boolean(record.deleted),
+    external_id: typeof record.external_id === 'string' ? record.external_id : externalId,
+  }
 }

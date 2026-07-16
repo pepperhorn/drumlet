@@ -2,6 +2,17 @@
 
 All notable changes to Drumlet are documented here.
 
+## [0.1.3.0] - 2026-05-26
+
+### Added
+- **Pattern name + credit survive export/import** — `.drumlet` files now embed the song title and "by …" credit, so re-importing a file restores the header inputs instead of dropping them.
+
+### Changed
+- **Default track order is now Hihat → Snare → Kick** (top to bottom on the grid and stave) for both fresh patterns and the New pattern button. Hihat keeps its green, snare its orange, kick its red regardless of position.
+
+### Fixed
+- **Notation stave cutoff** — the clef and time signature on the first line were eating space inside the stave, so the last beat of a bar was rendered past the final barline. The VexFlow formatter now sizes against the stave's actual note area, keeping every note inside the bar.
+
 ## [0.1.2.0] - 2026-05-20
 
 ### Added

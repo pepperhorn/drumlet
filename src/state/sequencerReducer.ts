@@ -117,7 +117,14 @@ export const TRACK_COLORS = [
   '#B39DDB', '#FFAB91', '#66D9A0', '#F48FB1',
 ] as const;
 
-const DEFAULT_GROUPS = ['kick', 'snare', 'hihat-close', 'clap'] as const;
+const DEFAULT_GROUPS = ['hihat-close', 'snare', 'kick'] as const;
+
+const GROUP_COLORS: Record<string, string> = {
+  'hihat-close': '#A8E06C',
+  'snare': '#FFB347',
+  'kick': '#FF6B6B',
+  'clap': '#5BC0EB',
+};
 
 /* ── Step / Track / Page / State types ────────────────────── */
 
@@ -240,8 +247,8 @@ function makeTrack(index: number, stepsPerPage: number): Track {
   const group = DEFAULT_GROUPS[index] ?? 'kick';
   return {
     id: uuid(),
-    name: group.charAt(0).toUpperCase() + group.slice(1),
-    color: TRACK_COLORS[index % TRACK_COLORS.length]!,
+    name: group === 'hihat-close' ? 'Hihat' : group.charAt(0).toUpperCase() + group.slice(1),
+    color: GROUP_COLORS[group] ?? TRACK_COLORS[index % TRACK_COLORS.length]!,
     sourceType: 'drumMachine',
     instrument: 'TR-808',
     group,
@@ -266,14 +273,12 @@ function makePage(name: string, stepsPerPage: number, tracks: Track[] | null = n
   };
 }
 
-const NEW_PATTERN_GROUPS = ['kick', 'snare', 'hihat-close'] as const;
-
 export function createNewPatternState(): SequencerState {
   const stepsPerPage = 16;
-  const tracks: Track[] = NEW_PATTERN_GROUPS.map((group, i) => ({
+  const tracks: Track[] = DEFAULT_GROUPS.map((group, i) => ({
     id: uuid(),
     name: group === 'hihat-close' ? 'Hihat' : group.charAt(0).toUpperCase() + group.slice(1),
-    color: TRACK_COLORS[i % TRACK_COLORS.length]!,
+    color: GROUP_COLORS[group] ?? TRACK_COLORS[i % TRACK_COLORS.length]!,
     sourceType: 'drumMachine',
     instrument: 'TR-808',
     group,

@@ -73,6 +73,9 @@ function SoundPicker({
   }, [isOpen, customKits.length]);
 
   useEffect(() => {
+    // The picker keeps its own preview selection, and closing the modal is the
+    // moment that local draft state should be discarded.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!isOpen) setPendingSelection(null);
   }, [isOpen]);
 

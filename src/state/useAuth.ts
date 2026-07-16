@@ -87,24 +87,21 @@ function clearToken(): void {
 
 export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [initialToken] = useState(getStoredToken);
+  const [isLoading, setIsLoading] = useState(() => initialToken !== null);
   const [isNewUser, setIsNewUser] = useState(false);
 
   const isLoggedIn = !!user;
 
   useEffect(() => {
-    const token = getStoredToken();
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
+    const token = initialToken;
+    if (!token) return;
 
     fetch(`${API_BASE}/${FLOW_VERIFY_SESSION}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, app_slug: APP_SLUG }),
     })
-      .then((r) => r.json())
       .then(async (r) => {
         // Only treat a definitive "session invalid" answer as a reason to
         // log out. A transient 500 / network blip must NOT clear a valid
@@ -130,7 +127,7 @@ export function useAuth(): UseAuthReturn {
         clearToken();
       })
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [initialToken]);
 
   const requestOtp = useCallback(async (email: string): Promise<boolean> => {
     let res: Response;
