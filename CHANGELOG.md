@@ -2,6 +2,18 @@
 
 All notable changes to Drumlet are documented here.
 
+## [0.1.4.0] - 2026-10-22
+
+### Added
+- **Must Have Grooves** — 98 stock rhythms (4–8 bars each) across 17 styles, from rock, funk and jazz to rumba, ballroom rhumba, bossa nova, samba and Afro-Cuban 6/8, at beginner and intermediate levels. Each loads as chained bars with a description and practice tip. Filter by level and style, or search. Acoustic grooves use the acoustic sample kit; electronic styles (house, techno, trap, synth-pop, reggaeton…) load on the TR-808 or LM-2.
+- **Tabbed Library** — Must Have Grooves, Classic Grooves (the hit library and lessons), Kits and Your Library. The last tab you used is remembered.
+- **Kits tab** — every sound patch in one place, with one-tap "Apply to all tracks" that re-voices the whole pattern and matches each part to the kit's nearest sound.
+- **Save prompt** — after you change a pattern, a bar offers "Save to My Bank" (keeps a copy in your local library) or a `.drumlet` download.
+- **Embeddable manifest** — `src/data/stockRhythms.json` plus a framework-free `stockRhythmToState()` loader so other sites can embed the grooves. Rebuild from source with `npm run build:rhythms`.
+
+### Changed
+- **Mobile portrait layout** — tighter spacing, a large tempo control with hold-to-repeat −/+, a bigger Play/Stop, 40px+ buttons, and a grid that fits a whole 16-step bar (two rows of 8) with full, readable track names.
+
 ## [0.1.3.0] - 2026-05-26
 
 ### Added

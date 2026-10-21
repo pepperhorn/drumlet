@@ -1,14 +1,15 @@
 {
   "name": "drumlet",
   "private": true,
-  "version": "0.1.3.0",
+  "version": "0.1.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:rhythms": "node scripts/build-stock-rhythms.mjs"
   },
   "dependencies": {
     "@directus/sdk": "^17.0.2",
