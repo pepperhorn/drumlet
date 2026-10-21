@@ -1,4 +1,4 @@
-import { memo, useRef, useCallback, useState, type KeyboardEvent } from 'react';
+import { memo, useRef, useCallback, useState, useEffect, type KeyboardEvent } from 'react';
 import { TIME_SIGNATURES } from '../state/sequencerReducer.js';
 import type { NoteValueKey } from '../state/sequencerReducer.js';
 
@@ -9,24 +9,34 @@ interface BpmInputProps {
   bpm: number;
   onSetBpm: (bpm: number) => void;
   compact?: boolean;
+  /** Large borderless readout used inside the mobile tempo control. */
+  large?: boolean;
 }
 
-export function BpmInput({ bpm, onSetBpm, compact }: BpmInputProps) {
+const BPM_MIN = 20;
+const BPM_MAX = 300;
+const clampBpm = (v: number) => Math.max(BPM_MIN, Math.min(BPM_MAX, v));
+
+export function BpmInput({ bpm, onSetBpm, compact, large }: BpmInputProps) {
   const [text, setText] = useState<string | null>(null);
   const commit = useCallback((raw: string | null) => {
     const v = parseInt(raw ?? '', 10);
     setText(null);
-    if (!isNaN(v)) onSetBpm(Math.max(20, Math.min(300, v)));
+    if (!isNaN(v)) onSetBpm(clampBpm(v));
   }, [onSetBpm]);
+
+  const className = large
+    ? 'bpm-input bpm-input-large w-full min-w-0 h-8 p-0 bg-transparent border-none text-center font-mono font-bold text-[28px] leading-none text-text outline-none focus:text-sky'
+    : compact
+      ? 'bpm-input w-12 h-8 px-1 rounded-lg bg-bg border border-border text-center font-mono font-semibold text-xs outline-none focus:border-sky transition-colors'
+      : 'bpm-input w-16 h-8 lg:w-20 lg:h-9 px-2 rounded-lg bg-bg border border-border text-center font-mono font-semibold text-sm lg:text-base outline-none focus:border-sky transition-colors';
 
   return (
     <input
       type="text"
       inputMode="numeric"
-      className={compact
-        ? 'bpm-input w-12 h-8 px-1 rounded-lg bg-bg border border-border text-center font-mono font-semibold text-xs outline-none focus:border-sky transition-colors'
-        : 'bpm-input w-16 h-8 lg:w-20 lg:h-9 px-2 rounded-lg bg-bg border border-border text-center font-mono font-semibold text-sm lg:text-base outline-none focus:border-sky transition-colors'
-      }
+      aria-label="Tempo (BPM)"
+      className={className}
       value={text !== null ? text : bpm}
       onFocus={(e) => { setText(String(bpm)); e.currentTarget.select(); }}
       onBlur={() => commit(text)}
@@ -38,6 +48,79 @@ export function BpmInput({ bpm, onSetBpm, compact }: BpmInputProps) {
     />
   );
 }
+
+interface TempoStepButtonProps {
+  delta: number;
+  bpm: number;
+  onSetBpm: (bpm: number) => void;
+}
+
+/** −/+ tempo button with press-and-hold auto-repeat (touch friendly). */
+function TempoStepButton({ delta, bpm, onSetBpm }: TempoStepButtonProps) {
+  const bpmRef = useRef(bpm);
+  useEffect(() => { bpmRef.current = bpm; }, [bpm]);
+  const timerRef = useRef<number | null>(null);
+  const stop = useCallback(() => {
+    if (timerRef.current != null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+  useEffect(() => stop, [stop]);
+  const step = useCallback(() => {
+    const next = clampBpm(bpmRef.current + delta);
+    bpmRef.current = next;
+    onSetBpm(next);
+  }, [delta, onSetBpm]);
+  const start = useCallback(() => {
+    stop();
+    step();
+    const repeat = (delay: number) => {
+      timerRef.current = window.setTimeout(() => { step(); repeat(Math.max(40, delay * 0.8)); }, delay);
+    };
+    repeat(400);
+  }, [step, stop]);
+
+  const label = delta < 0 ? 'Decrease tempo' : 'Increase tempo';
+  return (
+    <button
+      type="button"
+      className={`tempo-step-btn ${delta < 0 ? 'tempo-step-down' : 'tempo-step-up'} w-12 h-full shrink-0 flex items-center justify-center text-sky active:bg-sky/15 cursor-pointer select-none touch-manipulation transition-colors ${delta < 0 ? 'rounded-l-xl' : 'rounded-r-xl'}`}
+      onPointerDown={(e) => { if (e.button !== 0) return; e.preventDefault(); start(); }}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); step(); } }}
+      onContextMenu={(e) => e.preventDefault()}
+      aria-label={label}
+      title={label}
+    >
+      <svg className="tempo-step-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+        <path d="M4 10h12" />
+        {delta > 0 && <path d="M10 4v12" />}
+      </svg>
+    </button>
+  );
+}
+
+interface MobileTempoControlProps {
+  bpm: number;
+  onSetBpm: (bpm: number) => void;
+}
+
+/** Prominent tempo control for portrait mobile: big readout with −/+ steppers. */
+export const MobileTempoControl = memo(function MobileTempoControl({ bpm, onSetBpm }: MobileTempoControlProps) {
+  return (
+    <div className="mobile-tempo flex items-stretch h-14 flex-1 min-w-0 rounded-xl bg-bg border border-border shadow-[inset_0_1px_2px_rgba(26,26,46,0.04)]">
+      <TempoStepButton delta={-1} bpm={bpm} onSetBpm={onSetBpm} />
+      <div className="mobile-tempo-readout flex-1 min-w-0 flex flex-col items-center justify-center border-x border-border/70">
+        <BpmInput bpm={bpm} onSetBpm={onSetBpm} large />
+        <span className="mobile-tempo-label text-sm font-display font-semibold text-muted leading-none mt-0.5">BPM</span>
+      </div>
+      <TempoStepButton delta={1} bpm={bpm} onSetBpm={onSetBpm} />
+    </div>
+  );
+});
 
 const STEP_OPTIONS: { key: NoteValueKey; label: string; glyph: string }[] = [
   { key: '1/16', label: '16th',    glyph: '\uE1D9' },

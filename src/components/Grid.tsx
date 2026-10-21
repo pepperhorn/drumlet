@@ -9,6 +9,16 @@ import type { Track, SectionHeading, CellRef, NoteValueKey, VelMode } from '../s
 const lgQuery = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : null;
 function subscribeToLg(cb: () => void) { lgQuery?.addEventListener('change', cb); return () => lgQuery?.removeEventListener('change', cb); }
 function getIsLg(): boolean { return lgQuery?.matches ?? false; }
+const mdQuery = typeof window !== 'undefined' ? window.matchMedia('(min-width: 768px)') : null;
+function subscribeToMd(cb: () => void) { mdQuery?.addEventListener('change', cb); return () => mdQuery?.removeEventListener('change', cb); }
+function getIsMd(): boolean { return mdQuery?.matches ?? true; }
+
+/** Portrait-mobile cell sizing bounds (px). Cells flex to fill the row between these. */
+const MOBILE_CELL_MIN = 30;
+const MOBILE_CELL_MAX = 48;
+/** Mobile track-label column width (px) — must match `w-[84px]` in colWidth. */
+const MOBILE_LABEL_COL = 84;
+const MOBILE_COL_GAP = 6;    // gap-x-1.5
 
 const BEAT_LABELS: Record<number, string[]> = {
   1: [''],
@@ -38,6 +48,8 @@ const SIZE_PX: Record<SizeKey, [number, number]> = {
   md: [11, 13],
   lg: [13, 15],
 };
+/** Step-number font sizes on portrait mobile (< md) — DESIGN.md min 14px. */
+const SIZE_PX_MOBILE: Record<SizeKey, number> = { sm: 14, md: 16, lg: 18 };
 
 const BAR_LINE_STYLE: CSSProperties = {
   borderLeftWidth: 2,
@@ -132,6 +144,7 @@ function Grid({
   const outerRef = useRef<HTMLDivElement | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const isLg = useSyncExternalStore(subscribeToLg, getIsLg);
+  const isMd = useSyncExternalStore(subscribeToMd, getIsMd);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -143,7 +156,7 @@ function Grid({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const fontSize = SIZE_PX[countSize][isLg ? 1 : 0];
+  const fontSize = isMd ? SIZE_PX[countSize][isLg ? 1 : 0] : SIZE_PX_MOBILE[countSize];
 
   const nv = NOTE_VALUES.find((n) => n.key === noteValue) ?? NOTE_VALUES[3];
   const stepsPerBeat = Math.round(1 / nv.beatsPerStep) || 1;
@@ -154,16 +167,13 @@ function Grid({
   const stepsPerBar = beatsPerBar * realStepsPerBeat;
   const totalBars = Math.max(1, Math.ceil(stepsPerPage / stepsPerBar));
 
-  const anyExpanded = expandedTracks.size > 0;
-
   // Estimate widths to pick how many full bars fit per row.
-  // Cell sizes follow w-9 md:w-10 lg:w-11 (36/40/44) with ml-0.5 between steps,
-  // ml-1.5 between beats. Track-controls col is w-24 (96) at base, w-[180px]
-  // when any track is expanded, lg:w-[220px].
+  // Cell sizes follow md:w-10 lg:w-11 (40/44) with ml-0.5 between steps,
+  // ml-1.5 between beats. Track-controls col is md:w-24 (96), lg:w-[220px].
   const cellWidthPx = isLg ? 44 : 40;
   const subBeatGapPx = 2;     // ml-0.5
   const beatGapExtraPx = 4;   // ml-1.5 vs ml-0.5 = extra 4px at beat boundaries
-  const trackControlsWidthPx = isLg ? 220 : anyExpanded ? 180 : 96;
+  const trackControlsWidthPx = isLg ? 220 : 96;
   const gridPadPx = 32;       // p-4 left + right
   const colGapPx = 12;        // gap-3 between track-controls and steps
   const barWidthPx = stepsPerBar * (cellWidthPx + subBeatGapPx)
@@ -171,12 +181,43 @@ function Grid({
   const availableForCellsPx = containerWidth > 0
     ? containerWidth - trackControlsWidthPx - gridPadPx - colGapPx
     : 0;
+
+  // Portrait mobile (< md): instead of fixed-size cells that overflow and
+  // scroll sideways, pick how many beats fit per row at a legible touch size
+  // and stretch cells to fill the available width.
+  const mobileLayout = useMemo(() => {
+    if (isMd || containerWidth <= 0) return null;
+    // containerWidth comes from ResizeObserver contentRect (already excludes p-2 padding).
+    const avail = containerWidth - MOBILE_LABEL_COL - MOBILE_COL_GAP - 2;
+    const gapsFor = (start: number, n: number) => {
+      let g = 0;
+      for (let i = 1; i < n; i++) g += (start + i) % stepsPerBeat === 0 ? 4 : 2; // ml-1 / ml-0.5
+      return g + 2; // first cell's ml-0.5
+    };
+    const cellFor = (n: number) => Math.floor((avail - gapsFor(0, n)) / n);
+    const maxBeats = Math.max(1, Math.ceil(stepsPerPage / stepsPerBeat));
+    const candidates: number[] = [];
+    for (let beats = maxBeats; beats >= 1; beats--) candidates.push(Math.min(stepsPerPage, beats * stepsPerBeat));
+    // Prefer row lengths that split the page evenly (16 → 8 + 8, not 6 + 6 + 4)
+    // so rows line up musically; fall back to any whole-beat length.
+    const fits = (n: number) => cellFor(n) >= MOBILE_CELL_MIN;
+    let rowSteps = candidates.find((n) => stepsPerPage % n === 0 && fits(n))
+      ?? candidates.find(fits)
+      ?? stepsPerBeat;
+    // Balance rows so the last one isn't a short stub (e.g. 12 + 4).
+    const rows = Math.ceil(stepsPerPage / rowSteps);
+    const balanced = Math.ceil(Math.ceil(stepsPerPage / rows) / stepsPerBeat) * stepsPerBeat;
+    rowSteps = Math.min(rowSteps, Math.max(stepsPerBeat, balanced));
+    const cell = Math.max(24, Math.min(MOBILE_CELL_MAX, cellFor(rowSteps)));
+    return { rowSteps, cell };
+  }, [isMd, containerWidth, stepsPerPage, stepsPerBeat]);
+
   // Before first measure, render single row (existing behavior). Once measured,
   // wrap to as many bars as cleanly fit, minimum one bar per row.
   const barsPerRow = containerWidth > 0
     ? Math.min(totalBars, Math.max(1, Math.floor(availableForCellsPx / barWidthPx)))
     : totalBars;
-  const stepsPerRow = barsPerRow * stepsPerBar;
+  const stepsPerRow = mobileLayout ? mobileLayout.rowSteps : barsPerRow * stepsPerBar;
 
   const systems = useMemo(() => {
     const out: { stepStart: number; stepCount: number }[] = [];
@@ -202,7 +243,7 @@ function Grid({
     });
   }, []);
 
-  const colWidth = `${anyExpanded ? 'w-[180px]' : 'w-24'} lg:w-[220px] shrink-0 transition-[width] duration-200 overflow-hidden`;
+  const colWidth = `w-[84px] md:w-24 lg:w-[220px] shrink-0 transition-[width] duration-200 overflow-hidden`;
 
   const headings = useMemo(() => sectionHeadings ?? [], [sectionHeadings]);
   const headingByStep = useMemo(() => {
@@ -283,13 +324,13 @@ function Grid({
     <>
       {onCopyCell && (
         <button
-          className={`cell-copy-btn w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center transition-all
+          className={`cell-copy-btn w-9 h-9 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center transition-all
             ${canCopy ? 'bg-gray-100 text-muted hover:bg-sky/15 hover:text-sky cursor-pointer' : 'bg-gray-50 text-muted/40 cursor-not-allowed'}`}
           onClick={canCopy ? onCopyCell : undefined}
           disabled={!canCopy}
           title="Copy active cell (⌘C)"
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="grid-tool-icon w-4 h-4 md:w-3.5 md:h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="5" y="5" width="9" height="9" rx="1.5" />
             <path d="M3 11V3.5a1 1 0 0 1 1-1H11" />
           </svg>
@@ -297,13 +338,13 @@ function Grid({
       )}
       {onCutCell && (
         <button
-          className={`cell-cut-btn w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center transition-all
+          className={`cell-cut-btn w-9 h-9 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center transition-all
             ${canCopy ? 'bg-gray-100 text-muted hover:bg-coral/15 hover:text-coral cursor-pointer' : 'bg-gray-50 text-muted/40 cursor-not-allowed'}`}
           onClick={canCopy ? onCutCell : undefined}
           disabled={!canCopy}
           title="Cut active cell (⌘X)"
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="grid-tool-icon w-4 h-4 md:w-3.5 md:h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="4" cy="12" r="2" />
             <circle cx="12" cy="12" r="2" />
             <line x1="5.5" y1="10.5" x2="13" y2="2" />
@@ -313,13 +354,13 @@ function Grid({
       )}
       {onPasteCell && (
         <button
-          className={`cell-paste-btn w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center transition-all
+          className={`cell-paste-btn w-9 h-9 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center transition-all
             ${canPaste ? 'bg-gray-100 text-muted hover:bg-mint/15 hover:text-mint cursor-pointer' : 'bg-gray-50 text-muted/40 cursor-not-allowed'}`}
           onClick={canPaste ? onPasteCell : undefined}
           disabled={!canPaste}
           title="Paste into active cell (⌘V)"
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="grid-tool-icon w-4 h-4 md:w-3.5 md:h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="4" y="3" width="8" height="11" rx="1" />
             <rect x="6" y="1.5" width="4" height="2.5" rx="0.5" fill="currentColor" stroke="none" />
           </svg>
@@ -330,7 +371,7 @@ function Grid({
       )}
       {onToggleDeleteMode && (
         <button
-          className={`track-delete-toggle-btn w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center cursor-pointer transition-all
+          className={`track-delete-toggle-btn w-9 h-9 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center cursor-pointer transition-all
             ${deleteMode
               ? 'bg-coral text-white'
               : 'bg-gray-100 text-muted hover:bg-coral/15 hover:text-coral'
@@ -338,7 +379,7 @@ function Grid({
           onClick={onToggleDeleteMode}
           title={deleteMode ? 'Cancel delete' : 'Delete a track'}
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="grid-tool-icon w-4 h-4 md:w-3.5 md:h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M2.5 4h11" />
             <path d="M6 4V2.5h4V4" />
             <path d="M3.5 4l.7 9a1 1 0 0 0 1 1h5.6a1 1 0 0 0 1-1l.7-9" />
@@ -347,14 +388,14 @@ function Grid({
         </button>
       )}
       <button
-        className="count-mode-btn px-2.5 py-1 rounded-lg text-xs lg:text-sm font-mono font-medium cursor-pointer transition-colors bg-gray-100 text-muted hover:bg-gray-200"
+        className="count-mode-btn h-9 md:h-auto px-3 md:px-2.5 md:py-1 rounded-lg text-sm md:text-xs lg:text-sm font-mono font-medium cursor-pointer transition-colors bg-gray-100 text-muted hover:bg-gray-200"
         onClick={() => setCountMode((m) => m === 'step' ? 'beat' : 'step')}
         title={countMode === 'step' ? 'Switch to beat count' : 'Switch to step count'}
       >
         {countMode === 'step' ? 'Steps' : 'Count'}
       </button>
       <button
-        className="count-size-btn px-2.5 py-1 rounded-lg text-xs lg:text-sm font-mono font-medium cursor-pointer transition-colors bg-gray-100 text-muted hover:bg-gray-200"
+        className="count-size-btn h-9 md:h-auto px-3 md:px-2.5 md:py-1 rounded-lg text-sm md:text-xs lg:text-sm font-mono font-medium cursor-pointer transition-colors bg-gray-100 text-muted hover:bg-gray-200"
         onClick={() => setCountSize((s) => SIZE_CYCLE[(SIZE_CYCLE.indexOf(s) + 1) % SIZE_CYCLE.length]!)}
         title={`Count size: ${countSize}`}
       >
@@ -363,8 +404,13 @@ function Grid({
     </>
   );
 
+  const systemHasHeading = (stepStart: number, stepCount: number) => {
+    for (let i = stepStart; i < stepStart + stepCount; i++) if (headingByStep[i]) return true;
+    return false;
+  };
+
   const renderSectionHeadings = (stepStart: number, stepCount: number) => (
-    <div className="section-headings flex items-center gap-3 mb-0.5">
+    <div className={`section-headings items-center gap-x-1.5 md:gap-3 mb-0.5 ${systemHasHeading(stepStart, stepCount) ? 'flex' : 'hidden md:flex'}`}>
       <div className={`section-headings-spacer ${colWidth}`} />
       <div className="section-headings-cells flex items-center">
         {Array.from({ length: stepCount }, (_, localIdx) => {
@@ -374,9 +420,9 @@ function Grid({
           return (
             <div
               key={globalIdx}
-              className={`section-heading-slot w-9 h-6 md:w-10 md:h-6 lg:w-11 lg:h-6 flex items-center justify-start
+              className={`section-heading-slot w-[var(--cell-w,2.25rem)] h-6 md:w-10 md:h-6 lg:w-11 lg:h-6 flex items-center justify-start
                 border border-transparent rounded-md cursor-pointer select-none
-                ${localIdx > 0 && globalIdx % stepsPerBeat === 0 ? 'ml-1.5' : 'ml-0.5'}
+                ${localIdx > 0 && globalIdx % stepsPerBeat === 0 ? 'ml-1 md:ml-1.5' : 'ml-0.5'}
                 ${heading ? '' : 'hover:bg-sky/5'}
                 ${dragHeading && !heading ? 'hover:bg-sky/10' : ''}
               `}
@@ -387,7 +433,7 @@ function Grid({
             >
               {heading ? (
                 <span
-                  className="section-heading-label text-[10px] lg:text-xs font-display font-semibold text-sky truncate leading-tight px-0.5 cursor-grab active:cursor-grabbing"
+                  className="section-heading-label text-sm md:text-[10px] lg:text-xs font-display font-semibold text-sky truncate leading-tight px-0.5 cursor-grab active:cursor-grabbing"
                   draggable
                   onDragStart={(e) => handleDragStart(heading, e)}
                   onDragEnd={handleDragEnd}
@@ -406,10 +452,11 @@ function Grid({
   );
 
   const renderStepNumbers = (stepStart: number, stepCount: number, showToggle: boolean) => (
-    <div className="step-numbers flex items-center gap-3 mb-1">
-      <div className={`grid-count-toggle ${colWidth} flex justify-end gap-1`}>
+    <div className="step-numbers flex items-center gap-x-1.5 md:gap-3 mb-0.5 md:mb-1">
+      <div className={`grid-count-toggle ${colWidth} hidden md:flex justify-end gap-1`}>
         {showToggle && renderCountToggleButtons()}
       </div>
+      <div className={`grid-count-toggle-spacer md:hidden ${colWidth}`} />
       <div className="step-numbers-cells flex items-center">
         {Array.from({ length: stepCount }, (_, localIdx) => {
           const globalIdx = stepStart + localIdx;
@@ -423,10 +470,10 @@ function Grid({
           return (
             <div
               key={globalIdx}
-              className={`step-number w-9 h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 flex items-center justify-center
+              className={`step-number w-[var(--cell-w,2.25rem)] h-7 md:w-10 md:h-10 lg:w-11 lg:h-11 flex items-center justify-center
                 rounded-md border font-mono select-none transition-colors
                 ${onSelectStep ? 'cursor-pointer' : ''}
-                ${localIdx > 0 && globalIdx % stepsPerBeat === 0 ? 'ml-1.5' : 'ml-0.5'}
+                ${localIdx > 0 && globalIdx % stepsPerBeat === 0 ? 'ml-1 md:ml-1.5' : 'ml-0.5'}
                 ${isSelected
                   ? 'bg-sky/15 border-sky text-sky font-bold'
                   : `border-transparent hover:bg-sky/5 ${currentStep === globalIdx ? 'text-sky font-bold' : ''} ${countMode === 'beat' && isBeatStart ? 'font-semibold text-text' : 'text-muted'}`
@@ -445,7 +492,7 @@ function Grid({
   );
 
   const renderBeatMarkers = (stepStart: number, stepCount: number) => (
-    <div className="beat-markers flex items-center gap-3 mb-2">
+    <div className="beat-markers flex items-center gap-x-1.5 md:gap-3 mb-1 md:mb-2">
       <div className={`beat-markers-spacer ${colWidth}`} />
       <div className="beat-markers-cells flex items-center">
         {Array.from({ length: stepCount }, (_, localIdx) => {
@@ -456,8 +503,8 @@ function Grid({
           return (
             <div
               key={globalIdx}
-              className={`beat-marker w-9 md:w-10 lg:w-11 h-0.5 rounded-full border border-transparent
-                ${localIdx > 0 && globalIdx % stepsPerBeat === 0 ? 'ml-1.5' : 'ml-0.5'}`}
+              className={`beat-marker w-[var(--cell-w,2.25rem)] md:w-10 lg:w-11 h-0.5 rounded-full border border-transparent
+                ${localIdx > 0 && globalIdx % stepsPerBeat === 0 ? 'ml-1 md:ml-1.5' : 'ml-0.5'}`}
               style={{
                 backgroundColor: currentBeatIdx === beatIdx
                   ? 'var(--color-sky)'
@@ -472,7 +519,14 @@ function Grid({
   );
 
   return (
-    <div ref={outerRef} className="sequencer-grid bg-card rounded-2xl shadow-sm border border-border p-4 overflow-x-auto grid-scroll relative">
+    <div
+      ref={outerRef}
+      className="sequencer-grid bg-card rounded-2xl shadow-sm border border-border p-2 md:p-4 overflow-x-auto grid-scroll relative"
+      style={mobileLayout ? ({ '--cell-w': `${mobileLayout.cell}px` } as CSSProperties) : undefined}
+    >
+      <div className="grid-toolbar-mobile md:hidden flex items-center justify-end gap-1.5 mb-1.5">
+        {renderCountToggleButtons()}
+      </div>
       {deleteMode && (
         <div className="track-delete-banner mb-2 px-3 py-2 rounded-lg bg-coral/10 border border-coral/30 text-xs lg:text-sm text-coral flex items-center justify-between gap-2">
           <span className="track-delete-banner-text">Pick a track to delete — it will be removed from all pages.</span>
@@ -492,12 +546,12 @@ function Grid({
           {systems.map((sys, systemIdx) => (
             <div
               key={systemIdx}
-              className={`grid-system ${systemIdx > 0 ? 'mt-4 pt-4 border-t border-dashed border-border/60' : ''}`}
+              className={`grid-system ${systemIdx > 0 ? 'mt-2 pt-2 md:mt-4 md:pt-4 border-t border-dashed border-border/60' : ''}`}
             >
               {renderSectionHeadings(sys.stepStart, sys.stepCount)}
 
               {systemIdx === 0 && onSelectStep && selectedStep == null && (
-                <div className="step-numbers-hint flex items-center gap-5 mb-0.5">
+                <div className="step-numbers-hint hidden md:flex items-center gap-5 mb-0.5">
                   <div className={`step-numbers-hint-spacer ${colWidth}`} />
                   <div className="step-numbers-hint-text text-[10px] lg:text-xs text-muted/70 italic">
                     click a count to add a Section title
@@ -549,9 +603,9 @@ function Grid({
 
 
       {onAddTrack && (
-        <div className="add-track mt-2">
+        <div className="add-track mt-1.5 md:mt-2">
           <button
-            className={`add-track-btn ${colWidth} px-4 py-1.5 rounded-lg bg-gray-50 text-muted text-sm hover:bg-gray-100 hover:text-text transition-colors cursor-pointer border border-dashed border-border`}
+            className={`add-track-btn w-full md:w-24 lg:w-[220px] h-10 md:h-auto px-4 py-1.5 rounded-lg bg-gray-50 text-muted text-sm hover:bg-gray-100 hover:text-text transition-colors cursor-pointer border border-dashed border-border`}
             onClick={onAddTrack}
           >
             + Add Track

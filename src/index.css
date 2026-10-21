@@ -143,21 +143,8 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-/* Mobile: compact grid cells (below md breakpoint 768px) */
-@media (max-width: 767px) {
-  .track-name-btn {
-    font-size: 12px !important;
-  }
-  .step-cell {
-    width: 28px !important;
-    height: 28px !important;
-    font-size: 10px !important;
-  }
-  .step-number {
-    width: 28px !important;
-    height: 28px !important;
-  }
-}
+/* Mobile (< md): grid cell size comes from the --cell-w custom property
+   that Grid.tsx computes to fill the available width (see mobileLayout). */
 
 /* Track row drop target */
 .drop-target {

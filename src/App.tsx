@@ -8,9 +8,10 @@ import { exportMidi } from './state/midiExport.js';
 import { maxLevel } from './audio/velocityConfig.js';
 import { isSplit, isMulti, effectiveStep } from './util/stepHelpers.js';
 import Grid from './components/Grid.js';
-import Transport, { BpmInput } from './components/Transport.js';
+import Transport, { MobileTempoControl } from './components/Transport.js';
 import PageTabs from './components/PageTabs.js';
 import Library from './components/Library.js';
+import SavePrompt from './components/SavePrompt.js';
 import ShareModal from './components/ShareModal.js';
 const NotationView = lazy(() => import('./components/NotationView.js'));
 import MpcPads from './components/MpcPads.js';
@@ -108,7 +109,7 @@ function Drumlet() {
     libraryOpen, libraryEditMode, currentSaveId, isDirty, activePreset,
     setLibraryOpen, setLibraryEditMode, setActivePreset, setCurrentSaveId,
     openLibrary, handleEditEntry, handleDeleteEntry, handleSaveEdit, handleSave,
-    handleLoadUserEntry, handleLoadLibraryState, loadStateIntoSequencer, markClean,
+    handleLoadUserEntry, handleLoadLibraryState, handleApplyKit, loadStateIntoSequencer, markClean,
     buildActivePresetFromLibraryItem,
   } = library;
 
@@ -399,6 +400,22 @@ function Drumlet() {
   } : undefined), [state, activePreset]);
   const handleMidiExport = useCallback(() => exportMidi(state), [state]);
 
+  // Quick-save edits into the local user bank: update an existing save, or
+  // store a fresh "my version" copy of a loaded preset / scratch pattern.
+  const handleQuickSaveToBank = useCallback(() => {
+    if (currentSaveId) {
+      handleSave();
+      return;
+    }
+    const baseName = activePreset?.name && activePreset.name !== 'Untitled' ? activePreset.name : null;
+    handleSaveEdit({
+      ...(activePreset ?? {}),
+      sourceEntryId: null,
+      sourcePreset: activePreset?.sourcePreset ?? null,
+      name: baseName ? `${baseName} (my version)` : 'My pattern',
+    });
+  }, [activePreset, currentSaveId, handleSave, handleSaveEdit]);
+
   // Load shared state from URL on mount
   useEffect(() => {
     // #dottl= takes precedence — raw dottl-spec JSON, used by external tools/rippers
@@ -650,9 +667,9 @@ function Drumlet() {
   }, []);
 
   return (
-    <div className={`drumlet-app min-h-screen bg-bg ${embed ? 'p-2 md:p-3' : 'p-4 md:p-6 lg:p-8'}`}>
+    <div className={`drumlet-app min-h-screen bg-bg ${embed ? 'p-2 md:p-3' : 'p-3 md:p-6 lg:p-8'}`}>
       {/* Header — on mobile landscape, includes mini transport */}
-      <div className="drumlet-header flex items-center justify-between mb-3 md:mb-6 gap-2" style={embed ? { display: 'none' } : undefined}>
+      <div className="drumlet-header flex items-center justify-between mb-2 md:mb-6 gap-2" style={embed ? { display: 'none' } : undefined}>
         <div className="drumlet-header-left flex items-center gap-2 md:gap-3 shrink-0">
           <h1 className="drumlet-title text-xl md:text-3xl lg:text-4xl font-display font-bold text-text tracking-tight">
             drumlet
@@ -708,176 +725,66 @@ function Drumlet() {
             />
           </span>
           <button
-            className="action-btn action-new-btn-mobile md:hidden px-2 py-1 rounded-lg bg-mint/10 text-[10px] font-medium text-mint cursor-pointer flex items-center gap-1"
-            onClick={handleNewPattern}
-            title="New pattern"
-          >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-              <path d="M8 3v10" /><path d="M3 8h10" />
-            </svg>
-            New
-          </button>
-          <button
-            className="action-btn md:hidden px-2 py-1 rounded-lg bg-sky/10 text-[10px] font-medium text-sky cursor-pointer flex items-center gap-1"
+            className="action-btn action-library-btn-mobile md:hidden h-10 px-3 rounded-xl bg-sky/10 text-sm font-medium text-sky cursor-pointer flex items-center gap-1.5 active:scale-95 transition-transform"
             onClick={openLibrary}
+            title="Library"
+            aria-label="Library"
           >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <svg className="action-library-icon-mobile" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <rect x="2" y="2" width="4" height="5" rx="0.5" /><rect x="2" y="9" width="4" height="5" rx="0.5" />
               <rect x="8" y="2" width="6" height="12" rx="0.5" /><line x1="10" y1="5" x2="12" y2="5" />
               <line x1="10" y1="7" x2="12" y2="7" /><line x1="10" y1="9" x2="12" y2="9" />
             </svg>
-            Library
+            <span className="action-library-label-mobile max-[379px]:hidden">Library</span>
           </button>
           <button
-            className="action-btn md:hidden px-2 py-1 rounded-lg bg-coral/10 text-[10px] font-medium text-coral cursor-pointer flex items-center gap-1"
+            className="action-btn action-plugins-btn-mobile md:hidden h-10 px-3 rounded-xl bg-coral/10 text-sm font-medium text-coral cursor-pointer flex items-center gap-1.5 active:scale-95 transition-transform"
             onClick={() => openPluginModal(PRACTICE_PLUGIN_ID)}
+            title="Plugins"
+            aria-label="Plugins"
           >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <svg className="action-plugins-icon-mobile" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <path d="M8 1.5v13" />
               <path d="M1.5 8h13" />
               <path d="M3 3l10 10" />
               <path d="M13 3L3 13" />
             </svg>
-            Plugins
+            <span className="action-plugins-label-mobile max-[379px]:hidden">Plugins</span>
           </button>
         </div>
 
-        <div className="mobile-mini-transport flex items-center gap-1 md:hidden flex-wrap justify-end">
-          <button
-            className={`mobile-save-btn relative w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 border
-              ${isDirty
-                ? 'bg-sky/10 text-sky border-sky/30'
-                : 'bg-gray-50 text-muted border-border'}`}
-            onClick={handleSave}
-            title={currentSaveId ? (isDirty ? 'Save changes' : 'Saved') : 'Save to your library'}
-          >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 2.5h8l2.5 2.5v8A1.5 1.5 0 0 1 12 14.5H4A1.5 1.5 0 0 1 2.5 13V4A1.5 1.5 0 0 1 4 2.5z" />
-              <path d="M5 2.5v4h5v-4" />
-              <path d="M5 11h6" />
-            </svg>
-            {isDirty && <span className="mobile-save-dot absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-coral" />}
-          </button>
-
-          <button
-            className={`mobile-play-btn w-9 h-9 rounded-xl flex items-center justify-center text-white cursor-pointer transition-all active:scale-95
-              ${isPlaying ? 'bg-stop' : 'bg-play'}`}
-            onClick={handlePlay}
-          >
-            {isPlaying ? (
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="12" height="12" rx="1" /></svg>
-            ) : (
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2 L14 8 L4 14 Z" /></svg>
-            )}
-          </button>
-          <BpmInput bpm={state.bpm} onSetBpm={(v) => dispatch({ type: 'SET_BPM', bpm: v })} compact />
-          <select
-            className="mobile-time-sig h-8 px-1 rounded-lg bg-gray-100 text-[10px] font-mono font-semibold text-muted cursor-pointer border-none outline-none"
-            value={`${state.beatsPerBar}/${TIME_SIGNATURES.find(ts => ts.num === state.beatsPerBar && ts.noteValue === state.noteValue)?.denom ?? 4}`}
-            onChange={(e) => {
-              const ts = TIME_SIGNATURES.find((t) => t.label === e.target.value);
-              if (ts) dispatch({ type: 'SET_TIME_SIG', beatsPerBar: ts.num, noteValue: ts.noteValue as NoteValueKey });
-            }}
-          >
-            {TIME_SIGNATURES.map((ts) => (
-              <option key={ts.label} value={ts.label}>{ts.label}</option>
-            ))}
-          </select>
-          <div className="mobile-step-div flex items-center h-8 rounded-lg bg-gray-100 px-0.5">
-            {[
-              { key: '1/16' as NoteValueKey, glyph: '\uE1D9' },
-              { key: '1/8'  as NoteValueKey, glyph: '\uE1D7' },
-              { key: '1/4'  as NoteValueKey, glyph: '\uE1D5' },
-            ].map((opt) => (
-              <button
-                key={opt.key}
-                className={`mobile-step-btn w-6 h-full flex items-center justify-center cursor-pointer rounded transition-colors
-                  ${state.stepValue === opt.key ? 'bg-sky/15 text-sky' : 'text-muted hover:text-text'}`}
-                onClick={() => dispatch({ type: 'SET_STEP_VALUE', stepValue: opt.key })}
-              >
-                <span className="mobile-step-glyph block" style={{ fontFamily: 'Petaluma', fontSize: '18px', lineHeight: 0 }}>{opt.glyph}</span>
-              </button>
-            ))}
-          </div>
-          <button
-            className={`mobile-preview-btn w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-all active:scale-95
-              ${previewMode
-                ? 'bg-sky/15 text-sky'
-                : 'bg-gray-100 text-muted'
-              }`}
-            onClick={() => setPreviewMode((p) => !p)}
-            title={previewMode ? 'Preview on' : 'Preview off'}
-          >
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 8 A6 6 0 0 1 16 8" />
-              <rect x="3" y="8" width="3.5" height="5.5" rx="1" />
-              <rect x="13.5" y="8" width="3.5" height="5.5" rx="1" />
-              <line x1="10" y1="2" x2="10" y2="5" />
-            </svg>
-          </button>
-          <button
-            className={`mobile-mode-btn w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors
-              ${playMode ? 'bg-coral/15 text-coral' : 'bg-gray-100 text-muted'}`}
-            onClick={() => setPlayMode((p) => !p)}
-            title={playMode ? 'Switch to edit mode' : 'Switch to pad mode'}
-          >
-            {playMode ? (
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                <rect x="1" y="1" width="6" height="6" rx="1" /><rect x="9" y="1" width="6" height="6" rx="1" />
-                <rect x="1" y="9" width="6" height="6" rx="1" /><rect x="9" y="9" width="6" height="6" rx="1" />
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                <rect x="2" y="2" width="12" height="3" rx="0.5" /><rect x="2" y="7" width="12" height="3" rx="0.5" />
-                <rect x="2" y="12" width="12" height="2" rx="0.5" />
-              </svg>
-            )}
-          </button>
-          {/* Theme toggle — mobile */}
-          <button
-            className="mobile-theme-toggle-btn w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-95 border bg-gray-100 text-muted border-border"
-            onClick={() => setPreference(isDark ? 'light' : 'dark')}
-            title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-            aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-          >
-            {isDark ? (
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="8" cy="8" r="3" />
-                <path d="M8 1.5v1.5M8 13v1.5M1.5 8h1.5M13 8h1.5M3.3 3.3l1.1 1.1M11.6 11.6l1.1 1.1M3.3 12.7l1.1-1.1M11.6 4.4l1.1-1.1" />
-              </svg>
-            ) : (
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z" />
-              </svg>
-            )}
-          </button>
-
+        <div className="mobile-header-icons flex items-center gap-1.5 md:hidden">
           {/* User icon — mobile */}
           <button
-            className={`mobile-user-btn w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-95 border
+            className={`mobile-user-btn w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-95 border
               ${auth.isLoggedIn
                 ? 'bg-sky/15 text-sky border-sky/30'
                 : 'bg-gray-100 text-muted border-border'}`}
             onClick={() => auth.isLoggedIn ? setUserMenuOpen((v) => !v) : setAuthOpen(true)}
             title={auth.isLoggedIn ? auth.user?.user_handle : 'Sign in'}
+            aria-label={auth.isLoggedIn ? `Account: ${auth.user?.user_handle ?? ''}` : 'Sign in'}
           >
             {auth.isLoggedIn ? (
-              <span className="mobile-user-initials text-[9px] font-bold">
+              <span className="mobile-user-initials text-sm font-bold">
                 {(auth.user?.first_name?.[0] || auth.user?.user_handle?.[0] || '').toUpperCase()}
               </span>
             ) : (
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="mobile-user-icon" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="8" cy="5.5" r="3" />
                 <path d="M2.5 14.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
               </svg>
             )}
           </button>
-          {/* More controls (swing, humanize, actions) */}
+          {/* More controls (new, theme, swing, humanize, share/export) */}
           <button
-            className="mobile-more-btn w-8 h-8 rounded-lg bg-gray-100 text-muted hover:text-text flex items-center justify-center cursor-pointer"
+            className={`mobile-more-btn w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-colors
+              ${showFullTransport ? 'bg-sky/15 text-sky' : 'bg-gray-100 text-muted hover:text-text'}`}
             onClick={() => setShowFullTransport((v) => !v)}
+            title="More controls"
+            aria-label="More controls"
+            aria-expanded={showFullTransport}
           >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <svg className="mobile-more-icon" width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <circle cx="3" cy="8" r="1.5" /><circle cx="8" cy="8" r="1.5" /><circle cx="13" cy="8" r="1.5" />
             </svg>
           </button>
@@ -993,26 +900,139 @@ function Drumlet() {
         </div>
       </div>
 
+      {!embed && (
+        <div className="mobile-transport md:hidden mb-2 bg-card rounded-2xl shadow-sm border border-border p-2 flex flex-col gap-2">
+          <div className="mobile-transport-main flex items-center gap-2">
+            <button
+              className={`mobile-play-btn w-14 h-14 rounded-2xl flex items-center justify-center text-white cursor-pointer transition-all active:scale-95 shrink-0
+                ${isPlaying ? 'bg-stop shadow-[0_2px_6px_rgba(239,68,68,0.25)]' : 'bg-play shadow-[0_2px_6px_rgba(34,197,94,0.25)]'}`}
+              onClick={handlePlay}
+              title={isPlaying ? 'Stop' : 'Play'}
+              aria-label={isPlaying ? 'Stop' : 'Play'}
+            >
+              {isPlaying ? (
+                <svg className="mobile-play-icon-stop" width="22" height="22" viewBox="0 0 16 16" fill="currentColor"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5" /></svg>
+              ) : (
+                <svg className="mobile-play-icon-play" width="24" height="24" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 2.2 L14 8 L4.5 13.8 Z" /></svg>
+              )}
+            </button>
+            <MobileTempoControl bpm={state.bpm} onSetBpm={(v) => dispatch({ type: 'SET_BPM', bpm: v })} />
+            <label className="mobile-time-sig-wrap flex flex-col items-center justify-center h-14 w-16 shrink-0 rounded-xl bg-gray-100">
+              <select
+                className="mobile-time-sig w-full bg-transparent text-center text-lg font-mono font-bold text-text cursor-pointer border-none outline-none appearance-none leading-none"
+                aria-label="Time signature"
+                value={`${state.beatsPerBar}/${TIME_SIGNATURES.find(ts => ts.num === state.beatsPerBar && ts.noteValue === state.noteValue)?.denom ?? 4}`}
+                onChange={(e) => {
+                  const ts = TIME_SIGNATURES.find((t) => t.label === e.target.value);
+                  if (ts) dispatch({ type: 'SET_TIME_SIG', beatsPerBar: ts.num, noteValue: ts.noteValue as NoteValueKey });
+                }}
+              >
+                {TIME_SIGNATURES.map((ts) => (
+                  <option className="mobile-time-sig-option" key={ts.label} value={ts.label}>{ts.label}</option>
+                ))}
+              </select>
+              <span className="mobile-time-sig-label text-sm font-display font-semibold text-muted leading-none mt-1">Meter</span>
+            </label>
+          </div>
+          <div className="mobile-transport-secondary flex items-center gap-1.5">
+            <div className="mobile-step-div flex items-center h-10 rounded-xl bg-gray-100 p-0.5" role="group" aria-label="Step value">
+              {[
+                { key: '1/16' as NoteValueKey, glyph: '\uE1D9', label: '16th notes' },
+                { key: '1/8'  as NoteValueKey, glyph: '\uE1D7', label: '8th notes' },
+                { key: '1/4'  as NoteValueKey, glyph: '\uE1D5', label: 'Quarter notes' },
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  className={`mobile-step-btn w-10 h-full flex items-center justify-center cursor-pointer rounded-lg transition-colors
+                    ${state.stepValue === opt.key ? 'bg-sky/15 text-sky' : 'text-muted hover:text-text'}`}
+                  onClick={() => dispatch({ type: 'SET_STEP_VALUE', stepValue: opt.key })}
+                  title={opt.label}
+                  aria-label={opt.label}
+                  aria-pressed={state.stepValue === opt.key}
+                >
+                  <span className="mobile-step-glyph block" style={{ fontFamily: 'Petaluma', fontSize: '24px', lineHeight: 0 }}>{opt.glyph}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              className={`mobile-preview-btn w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0
+                ${previewMode
+                  ? 'bg-sky/15 text-sky'
+                  : 'bg-gray-100 text-muted'
+                }`}
+              onClick={() => setPreviewMode((p) => !p)}
+              title={previewMode ? 'Preview on' : 'Preview off'}
+              aria-label={previewMode ? 'Preview on' : 'Preview off'}
+              aria-pressed={previewMode}
+            >
+              <svg className="mobile-preview-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 8 A6 6 0 0 1 16 8" />
+                <rect x="3" y="8" width="3.5" height="5.5" rx="1" />
+                <rect x="13.5" y="8" width="3.5" height="5.5" rx="1" />
+                <line x1="10" y1="2" x2="10" y2="5" />
+              </svg>
+            </button>
+            <button
+              className={`mobile-mode-btn w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-colors shrink-0
+                ${playMode ? 'bg-coral/15 text-coral' : 'bg-gray-100 text-muted'}`}
+              onClick={() => setPlayMode((p) => !p)}
+              title={playMode ? 'Switch to edit mode' : 'Switch to pad mode'}
+              aria-label={playMode ? 'Switch to edit mode' : 'Switch to pad mode'}
+            >
+              {playMode ? (
+                <svg className="mobile-mode-icon-pads" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <rect x="1" y="1" width="6" height="6" rx="1" /><rect x="9" y="1" width="6" height="6" rx="1" />
+                  <rect x="1" y="9" width="6" height="6" rx="1" /><rect x="9" y="9" width="6" height="6" rx="1" />
+                </svg>
+              ) : (
+                <svg className="mobile-mode-icon-grid" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <rect x="2" y="2" width="12" height="3" rx="0.5" /><rect x="2" y="7" width="12" height="3" rx="0.5" />
+                  <rect x="2" y="12" width="12" height="2" rx="0.5" />
+                </svg>
+              )}
+            </button>
+            <div className="mobile-transport-spacer flex-1" />
+            <button
+              className={`mobile-save-btn relative h-10 px-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95 border shrink-0 text-sm font-medium
+                ${isDirty
+                  ? 'bg-sky/10 text-sky border-sky/30'
+                  : 'bg-gray-50 text-muted border-border'}`}
+              onClick={handleSave}
+              title={currentSaveId ? (isDirty ? 'Save changes' : 'Saved') : 'Save to your library'}
+              aria-label={currentSaveId ? (isDirty ? 'Save changes' : 'Saved') : 'Save to your library'}
+            >
+              <svg className="mobile-save-icon" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 2.5h8l2.5 2.5v8A1.5 1.5 0 0 1 12 14.5H4A1.5 1.5 0 0 1 2.5 13V4A1.5 1.5 0 0 1 4 2.5z" />
+                <path d="M5 2.5v4h5v-4" />
+                <path d="M5 11h6" />
+              </svg>
+              <span className="mobile-save-label max-[359px]:hidden">Save</span>
+              {isDirty && <span className="mobile-save-dot absolute top-1 right-1 w-2 h-2 rounded-full bg-coral" />}
+            </button>
+          </div>
+        </div>
+      )}
+
       {showFullTransport && (
-        <div className="mobile-expanded-controls md:hidden mb-3 bg-card rounded-2xl shadow-sm border border-border px-3 py-2.5">
+        <div className="mobile-expanded-controls md:hidden mb-2 bg-card rounded-2xl shadow-sm border border-border px-3 py-2.5">
           <div className="mobile-expanded-row flex items-center gap-3 flex-wrap">
             <div className="mobile-swing flex items-center gap-2">
               <div className="mobile-swing-dial flex flex-col items-center gap-0.5">
-                <span className="mobile-swing-label text-[9px] text-muted font-semibold uppercase tracking-wide">Swing</span>
+                <span className="mobile-swing-label text-sm text-muted font-semibold uppercase tracking-wide">Swing</span>
                 <input
                   type="range"
-                  className="mobile-swing-slider w-20 h-1 accent-amber cursor-pointer"
+                  className="mobile-swing-slider w-24 h-1 accent-amber cursor-pointer"
                   min={0} max={100}
                   value={state.swing}
                   onChange={(e) => dispatch({ type: 'SET_SWING', swing: Number(e.target.value) })}
                 />
-                <span className="mobile-swing-value text-[9px] font-mono text-muted">{state.swing}</span>
+                <span className="mobile-swing-value text-sm font-mono text-muted">{state.swing}</span>
               </div>
               <div className="swing-target-toggle flex flex-col gap-0.5">
                 {(['8th', '16th'] as const).map((t) => (
                   <button
                     key={t}
-                    className={`mobile-swing-target-btn px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold cursor-pointer transition-colors leading-tight
+                    className={`mobile-swing-target-btn px-2 py-1 rounded text-sm font-mono font-semibold cursor-pointer transition-colors leading-tight
                       ${(state.swingTarget || '8th') === t ? 'bg-amber/15 text-amber' : 'text-muted/50 hover:text-muted'}`}
                     onClick={() => dispatch({ type: 'SET_SWING_TARGET', swingTarget: t })}
                   >
@@ -1022,18 +1042,18 @@ function Drumlet() {
               </div>
             </div>
             <div className="mobile-humanize flex flex-col items-center gap-0.5">
-              <span className="mobile-humanize-label text-[9px] text-muted font-semibold uppercase tracking-wide">Human</span>
+              <span className="mobile-humanize-label text-sm text-muted font-semibold uppercase tracking-wide">Human</span>
               <input
                 type="range"
-                className="mobile-humanize-slider w-20 h-1 accent-lavender cursor-pointer"
+                className="mobile-humanize-slider w-24 h-1 accent-lavender cursor-pointer"
                 min={0} max={100}
                 value={state.humanize}
                 onChange={(e) => dispatch({ type: 'SET_HUMANIZE', humanize: Number(e.target.value) })}
               />
-              <span className="mobile-humanize-value text-[9px] font-mono text-muted">{state.humanize}</span>
+              <span className="mobile-humanize-value text-sm font-mono text-muted">{state.humanize}</span>
             </div>
             <button
-              className="mobile-tap-btn px-2 py-1 rounded-lg bg-gray-100 text-[10px] font-semibold text-muted cursor-pointer active:scale-95"
+              className="mobile-tap-btn h-10 px-4 rounded-xl bg-gray-100 text-sm font-semibold text-muted cursor-pointer active:scale-95"
               onClick={() => {
                 const now = performance.now();
                 tapTimesRef.current.push(now);
@@ -1055,10 +1075,38 @@ function Drumlet() {
             </button>
           </div>
           <div className="mobile-action-btns flex items-center gap-1.5 mt-2 flex-wrap">
-            <button className="action-btn px-2.5 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-muted cursor-pointer" onClick={() => { setShareOpen(true); setShowFullTransport(false); }}>Share</button>
-            <button className="action-btn px-2.5 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-muted cursor-pointer" onClick={handleImport}>Import</button>
-            <button className="action-btn px-2.5 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-muted cursor-pointer" onClick={handleExport}>Export</button>
-            <button className="action-btn px-2.5 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-muted cursor-pointer" onClick={handleMidiExport}>MIDI</button>
+            <button
+              className="action-btn action-new-btn-mobile h-10 px-3 rounded-xl bg-mint/10 text-sm font-medium text-mint cursor-pointer flex items-center gap-1.5"
+              onClick={() => { handleNewPattern(); setShowFullTransport(false); }}
+              title="New pattern"
+            >
+              <svg className="action-new-icon-mobile" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                <path d="M8 3v10" /><path d="M3 8h10" />
+              </svg>
+              New
+            </button>
+            <button
+              className="mobile-theme-toggle-btn h-10 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer bg-gray-100 text-sm font-medium text-muted"
+              onClick={() => setPreference(isDark ? 'light' : 'dark')}
+              title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+              aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+            >
+              {isDark ? (
+                <svg className="mobile-theme-icon-sun" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="8" cy="8" r="3" />
+                  <path d="M8 1.5v1.5M8 13v1.5M1.5 8h1.5M13 8h1.5M3.3 3.3l1.1 1.1M11.6 11.6l1.1 1.1M3.3 12.7l1.1-1.1M11.6 4.4l1.1-1.1" />
+                </svg>
+              ) : (
+                <svg className="mobile-theme-icon-moon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z" />
+                </svg>
+              )}
+              {isDark ? 'Light' : 'Dark'}
+            </button>
+            <button className="action-btn h-10 px-3 rounded-xl bg-gray-50 text-sm font-medium text-muted cursor-pointer" onClick={() => { setShareOpen(true); setShowFullTransport(false); }}>Share</button>
+            <button className="action-btn h-10 px-3 rounded-xl bg-gray-50 text-sm font-medium text-muted cursor-pointer" onClick={handleImport}>Import</button>
+            <button className="action-btn h-10 px-3 rounded-xl bg-gray-50 text-sm font-medium text-muted cursor-pointer" onClick={handleExport}>Export</button>
+            <button className="action-btn h-10 px-3 rounded-xl bg-gray-50 text-sm font-medium text-muted cursor-pointer" onClick={handleMidiExport}>MIDI</button>
             {auth.isLoggedIn && (
               <AddToDrumlet
                 preset={state}
@@ -1096,7 +1144,7 @@ function Drumlet() {
         />
       </div>
 
-      <div className="page-tabs-wrap mb-4" style={embed ? { display: 'none' } : undefined}>
+      <div className="page-tabs-wrap mb-2 md:mb-4" style={embed ? { display: 'none' } : undefined}>
         <PageTabs
           pages={state.pages}
           currentPageIndex={state.currentPageIndex}
@@ -1124,7 +1172,7 @@ function Drumlet() {
       </div>
 
       {activePreset && (
-        <div className="preset-header flex items-center gap-3 mb-4">
+        <div className="preset-header flex items-center gap-3 mb-2 md:mb-4">
           {activePreset.cover && (
             <img
               src={activePreset.cover}
@@ -1219,7 +1267,7 @@ function Drumlet() {
       )}
 
       {activePreset?.body && (
-        <div className="preset-body mt-4 bg-card rounded-2xl shadow-sm border border-border px-5 py-4">
+        <div className="preset-body mt-2 md:mt-4 bg-card rounded-2xl shadow-sm border border-border px-5 py-4">
           <p className="preset-body-text text-sm lg:text-base text-text/80 leading-relaxed">{activePreset.body}</p>
           {activePreset?.notes && (
             <p className="preset-body-notes text-xs lg:text-sm text-muted mt-2 pt-2 border-t border-border italic">{activePreset.notes}</p>
@@ -1263,6 +1311,7 @@ function Drumlet() {
         onDeleteEntry={handleDeleteEntry}
         onLoadUserEntry={handleLoadUserEntry}
         onActivateLibraryItem={handleActivateLibraryItem}
+        onApplyKit={handleApplyKit}
         editMode={libraryEditMode}
         onSaveEdit={handleSaveEdit}
         onCancelEdit={() => setLibraryEditMode(null)}
@@ -1373,6 +1422,17 @@ function Drumlet() {
             <span className="audio-start-hint text-xs text-muted">Audio requires a user gesture to begin</span>
           </button>
         </div>
+      )}
+
+      {!embed && !libraryOpen && (
+        <SavePrompt
+          isDirty={isDirty}
+          patternName={activePreset?.name && activePreset.name !== 'Untitled' ? activePreset.name : null}
+          isUserSave={!!currentSaveId}
+          sourceKey={`${currentSaveId ?? activePreset?.sourcePreset ?? activePreset?.name ?? 'scratch'}:${state.pages[0]?.id ?? ''}`}
+          onSaveToBank={handleQuickSaveToBank}
+          onDownload={handleExport}
+        />
       )}
     </div>
   );

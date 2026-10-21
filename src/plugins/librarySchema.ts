@@ -126,6 +126,8 @@ export interface LibraryCollection {
   label: string;
   itemKind: string;
   items: LibraryItem[];
+  /** Optional grouping: collections sharing a section render together under one heading. */
+  section?: string;
 }
 
 export function getFieldValue<T = unknown>(item: unknown, fieldId: string, fallback: T | null = null): T {

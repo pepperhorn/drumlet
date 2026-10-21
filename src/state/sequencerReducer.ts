@@ -239,7 +239,9 @@ export type SequencerAction =
   | { type: 'TOGGLE_SUBSTEP'; trackIndex: number; stepIndex: number; subIndex: number }
   | { type: 'SET_SUBSTEP'; trackIndex: number; stepIndex: number; subIndex: number; velocity: number }
   | { type: 'REPLACE_CELL'; trackIndex: number; stepIndex: number; step: Step }
-  | { type: 'LOAD_STATE'; state: SequencerState };
+  | { type: 'LOAD_STATE'; state: SequencerState }
+  /** Like LOAD_STATE but recorded in undo history (e.g. applying a kit). */
+  | { type: 'REPLACE_PATTERN'; state: SequencerState };
 
 /* ── Factories ────────────────────────────────────────────── */
 
@@ -745,6 +747,7 @@ export function sequencerReducer(state: SequencerState, action: SequencerAction)
     }
 
     case 'LOAD_STATE':
+    case 'REPLACE_PATTERN':
       return { ...action.state };
 
     default:
