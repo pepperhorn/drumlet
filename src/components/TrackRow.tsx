@@ -2,7 +2,8 @@ import { memo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import Cell from './Cell.js';
-import TrackControls from './TrackControls.js';
+import TrackControls, { TrackMobilePanel } from './TrackControls.js';
+import { shortTrackLabel } from '../util/trackLabel.js';
 import { isSplit, masterVelocity, effectiveStep } from '../util/stepHelpers.js';
 import type { Track, CellRef, VelMode } from '../state/sequencerReducer.js';
 
@@ -96,7 +97,7 @@ function TrackRow({
     <div
       ref={slimControls ? undefined : setNodeRef}
       style={slimControls ? undefined : style}
-      className={`track-row flex items-start gap-3 py-1.5 relative ${track.mute ? 'opacity-40' : ''} ${isDragging ? 'track-row-dragging' : ''} ${deleteMode ? 'track-row-delete-mode' : ''}`}
+      className={`track-row py-0.5 md:py-1.5 relative ${track.mute ? 'opacity-40' : ''} ${isDragging ? 'track-row-dragging' : ''} ${deleteMode ? 'track-row-delete-mode' : ''}`}
     >
       {deleteMode && onPickForDelete && (
         <button
@@ -112,13 +113,20 @@ function TrackRow({
           Delete "{track.name}"
         </button>
       )}
+      <div className="track-row-main flex items-start gap-x-1.5 md:gap-3">
       {slimControls ? (
-        <div className={`track-slim-title ${colWidth} flex items-center gap-2 pl-2 pr-1`}>
+        <div
+          className={`track-slim-title ${colWidth} flex items-center gap-2 pl-1.5 md:pl-2 pr-1 min-h-[var(--cell-w,2.25rem)] md:min-h-0 border-l-[3px] md:border-l-0 rounded-l-sm`}
+          style={{ borderLeftColor: track.color }}
+        >
           <span
-            className="track-slim-dot w-2.5 h-2.5 rounded-full shrink-0"
+            className="track-slim-dot hidden md:block w-2.5 h-2.5 rounded-full shrink-0"
             style={{ backgroundColor: track.color }}
           />
-          <span className="track-slim-name text-xs lg:text-sm font-medium text-text truncate">
+          <span className="track-slim-name-mobile md:hidden text-sm font-display font-semibold text-text leading-tight line-clamp-2 break-words min-w-0">
+            {shortTrackLabel(track.name)}
+          </span>
+          <span className="track-slim-name hidden md:inline text-xs lg:text-sm font-medium text-text truncate">
             {track.name}
           </span>
         </div>
@@ -137,7 +145,7 @@ function TrackRow({
         />
       )}
 
-      <div className="track-steps flex items-start mt-0.5">
+      <div className="track-steps flex items-start md:mt-0.5">
         {slice.map((stepData, localIdx) => {
           const globalStepIdx = stepStart + localIdx;
           const effective = effectiveStep(stepData);
@@ -167,6 +175,17 @@ function TrackRow({
           );
         })}
       </div>
+      </div>
+
+      {expanded && !slimControls && (
+        <TrackMobilePanel
+          track={track}
+          trackIndex={trackIndex}
+          onChangeProp={onChangeProp}
+          onChangeVelMode={onChangeVelMode}
+          dragHandleProps={sortableEnabled ? { ...attributes, ...listeners } : null}
+        />
+      )}
     </div>
   );
 }

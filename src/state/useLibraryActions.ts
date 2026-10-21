@@ -4,6 +4,8 @@ import { normalizeSequencerState } from './normalizeSequencerState.js';
 import { applyPatchToState, getFieldValue } from '../plugins/librarySchema.js';
 import type { SequencerState, SequencerAction } from './sequencerReducer.js';
 import type { LibraryEntry, UserLibraryAPI } from './userLibrary.js';
+import { applyKitToState } from '../audio/kitRegistry.js';
+import type { KitDefinition } from '../audio/kitRegistry.js';
 
 const applyPatchToStateFn = applyPatchToState as (state: unknown, patch: unknown) => unknown;
 const getFieldValueFn = getFieldValue as <T>(item: unknown, field: string, fallback?: T) => T;
@@ -135,6 +137,11 @@ export function useLibraryActions({ state, dispatch, stop, userLibrary }: UseLib
     }), entry.id, true);
   }, [buildActivePreset, loadStateIntoSequencer]);
 
+  /** Swap every track on every page to a new kit; keeps steps, playback and the library open. */
+  const handleApplyKit = useCallback((kit: KitDefinition): void => {
+    dispatch({ type: 'REPLACE_PATTERN', state: applyKitToState(state, kit) });
+  }, [dispatch, state]);
+
   const openLibrary = useCallback((): void => {
     setLibraryEditMode(null);
     setLibraryOpen(true);
@@ -226,6 +233,7 @@ export function useLibraryActions({ state, dispatch, stop, userLibrary }: UseLib
     handleSave,
     handleLoadUserEntry,
     handleLoadLibraryState,
+    handleApplyKit,
     loadStateIntoSequencer,
     markClean,
     buildActivePreset,

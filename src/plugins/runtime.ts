@@ -1,6 +1,7 @@
 import { audioFollowCorePlugin } from './audioFollowCore.js';
 import { factoryLibraryPlugin } from './factoryLibraryPlugin.js';
 import { lessonLibraryPlugin } from './lessonLibraryPlugin.js';
+import { stockRhythmsPlugin } from './stockRhythmsPlugin.js';
 import { modePlugins } from './modePlugins.js';
 import type { LibraryCollection } from './librarySchema.js';
 
@@ -68,6 +69,7 @@ const STATIC_PLUGINS: Plugin[] = [
   audioFollowCorePlugin as unknown as CapabilityPlugin,
   factoryLibraryPlugin as unknown as LibraryPlugin,
   lessonLibraryPlugin as unknown as LibraryPlugin,
+  stockRhythmsPlugin,
   ...(modePlugins as unknown as ModePlugin[]),
 ];
 

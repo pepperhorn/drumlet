@@ -138,11 +138,11 @@ function PageTabs({
   }, [existingHeading, onRemoveSectionHeading]);
 
   return (
-    <div ref={containerRef} className="page-tabs relative flex items-center gap-2 lg:gap-3 bg-card rounded-2xl shadow-sm border border-border px-3 lg:px-4 py-2 lg:py-2.5 overflow-x-auto grid-scroll">
+    <div ref={containerRef} className="page-tabs relative flex flex-wrap md:flex-nowrap items-center gap-x-2 gap-y-1.5 lg:gap-3 bg-card rounded-2xl shadow-sm border border-border px-2 md:px-3 lg:px-4 py-2 lg:py-2.5 md:overflow-x-auto grid-scroll">
       {onToggleNotation && (
         <>
           <button
-            className={`notation-toggle-btn h-8 px-2.5 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all shrink-0 text-xs lg:text-sm font-semibold
+            className={`notation-toggle-btn h-10 w-10 md:w-auto md:h-8 md:px-2.5 rounded-xl md:rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all shrink-0 text-xs lg:text-sm font-semibold
               ${notationView
                 ? 'bg-text text-white'
                 : 'bg-gray-50 text-muted hover:bg-gray-100 hover:text-text'
@@ -160,18 +160,18 @@ function PageTabs({
               </svg>
             ) : (
               <span
-                className="notation-toggle-icon-note block w-[15px] text-center"
-                style={{ fontFamily: 'Petaluma', fontSize: 17, lineHeight: 1 }}
+                className="notation-toggle-icon-note block w-[20px] md:w-[15px] text-center [--notation-glyph-size:24px] md:[--notation-glyph-size:17px]"
+                style={{ fontFamily: 'Petaluma', fontSize: 'var(--notation-glyph-size, 17px)', lineHeight: 1 }}
                 aria-hidden="true"
               >
                 
               </span>
             )}
-            <span className="notation-toggle-label whitespace-nowrap">
+            <span className="notation-toggle-label hidden md:inline whitespace-nowrap">
               {notationView ? 'Grid Editor' : 'Notation View'}
             </span>
           </button>
-          <div className="page-divider w-px h-6 bg-border shrink-0" />
+          <div className="page-divider hidden md:block w-px h-6 bg-border shrink-0" />
         </>
       )}
 
@@ -253,11 +253,11 @@ function PageTabs({
           </button>
         </div>
       ) : (
-        <div className="page-tab-list flex items-center gap-1">
+        <div className="page-tab-list flex flex-wrap md:flex-nowrap items-center gap-1">
           {pages.map((page, i) => (
             <button
               key={page.id}
-              className={`page-tab px-3 py-1 rounded-lg text-sm lg:text-base font-medium cursor-pointer transition-all
+              className={`page-tab h-10 md:h-auto px-3 md:py-1 rounded-xl md:rounded-lg whitespace-nowrap text-sm lg:text-base font-medium cursor-pointer transition-all
                 ${i === currentPageIndex
                   ? 'bg-sky text-white shadow-sm'
                   : 'bg-gray-50 text-muted hover:bg-gray-100 hover:text-text'
@@ -273,23 +273,52 @@ function PageTabs({
             </button>
           ))}
           <button
-            className="page-add-btn w-7 h-7 rounded-lg bg-gray-50 text-muted hover:bg-gray-100 hover:text-text text-sm cursor-pointer transition-colors flex items-center justify-center"
+            className="page-add-btn w-10 h-10 md:w-7 md:h-7 rounded-xl md:rounded-lg bg-gray-50 text-muted hover:bg-gray-100 hover:text-text text-lg md:text-sm cursor-pointer transition-colors flex items-center justify-center"
             onClick={onAddPage}
             title="Add page"
+            aria-label="Add page"
           >
             +
           </button>
         </div>
       )}
 
-      <div className="page-divider w-px h-6 bg-border shrink-0" />
+      <div className="page-divider hidden md:block w-px h-6 bg-border shrink-0" />
 
-      <div className="steps-selector flex items-center gap-1 shrink-0">
-        <span className="steps-selector-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide mr-1">Steps</span>
+      <label className="steps-select-mobile md:hidden flex items-center h-10 pl-3 pr-1 rounded-xl bg-gray-50 shrink-0">
+        <span className="steps-select-mobile-label text-sm font-display font-semibold text-muted mr-1">Steps</span>
+        <select
+          className="steps-select-mobile-input h-full bg-transparent text-sm font-mono font-bold text-sky border-none outline-none cursor-pointer"
+          value={stepsPerPage}
+          onChange={(e) => onSetStepsPerPage(Number(e.target.value))}
+          aria-label="Steps per page"
+        >
+          {(stepOptions ?? [{ steps: 16 }]).map(({ steps }) => (
+            <option className="steps-select-mobile-option" key={steps} value={steps}>{steps}</option>
+          ))}
+        </select>
+      </label>
+
+      <label className="split-select-mobile md:hidden flex items-center h-10 pl-3 pr-1 rounded-xl bg-gray-50 shrink-0">
+        <span className="split-select-mobile-label text-sm font-display font-semibold text-muted mr-1">Split</span>
+        <select
+          className={`split-select-mobile-input h-full bg-transparent text-sm font-mono font-bold border-none outline-none cursor-pointer ${splitMode == null ? 'text-muted' : 'text-violet'}`}
+          value={String(splitMode)}
+          onChange={(e) => onSetSplitMode(e.target.value === 'null' ? null : (Number(e.target.value) as SplitCount))}
+          aria-label="Split cells"
+        >
+          {SPLIT_OPTIONS.map((val) => (
+            <option className="split-select-mobile-option" key={String(val)} value={String(val)}>{SPLIT_LABELS[String(val)]}</option>
+          ))}
+        </select>
+      </label>
+
+      <div className="steps-selector hidden md:flex items-center gap-1 shrink-0">
+        <span className="steps-selector-label text-sm md:text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide mr-1">Steps</span>
         {(stepOptions ?? [{ steps: 16 }]).map(({ steps }) => (
           <button
             key={steps}
-            className={`steps-option px-2 py-0.5 rounded text-xs lg:text-sm font-mono cursor-pointer transition-colors
+            className={`steps-option min-w-9 h-9 md:min-w-0 md:h-auto px-2 md:py-0.5 rounded-lg md:rounded text-sm md:text-xs lg:text-sm font-mono cursor-pointer transition-colors
               ${stepsPerPage === steps
                 ? 'bg-sky/10 text-sky font-bold'
                 : 'text-muted hover:text-text'
@@ -301,14 +330,14 @@ function PageTabs({
         ))}
       </div>
 
-      <div className="page-divider w-px h-6 bg-border shrink-0" />
+      <div className="page-divider hidden md:block w-px h-6 bg-border shrink-0" />
 
-      <div className="split-selector flex items-center gap-1 shrink-0">
-        <span className="split-selector-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide mr-1">Split</span>
+      <div className="split-selector hidden md:flex items-center gap-1 shrink-0">
+        <span className="split-selector-label text-sm md:text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide mr-1">Split</span>
         {SPLIT_OPTIONS.map((val) => (
           <button
             key={String(val)}
-            className={`split-option px-2 py-0.5 rounded text-xs lg:text-sm font-mono cursor-pointer transition-colors
+            className={`split-option min-w-9 h-9 md:min-w-0 md:h-auto px-2 md:py-0.5 rounded-lg md:rounded text-sm md:text-xs lg:text-sm font-mono cursor-pointer transition-colors
               ${splitMode === val
                 ? 'bg-violet/10 text-violet font-bold'
                 : 'text-muted hover:text-text'
@@ -321,12 +350,12 @@ function PageTabs({
         ))}
       </div>
 
-      <div className="page-divider w-px h-6 bg-border shrink-0" />
+      <div className="page-divider hidden md:block w-px h-6 bg-border shrink-0" />
 
       {(onUndo || onRedo) && (
         <div className="history-controls flex items-center gap-0.5 shrink-0">
           <button
-            className={`undo-btn w-8 h-7 rounded-lg flex items-center justify-center transition-all
+            className={`undo-btn w-10 h-10 md:w-8 md:h-7 rounded-xl md:rounded-lg flex items-center justify-center transition-all
               ${canUndo
                 ? 'bg-gray-50 text-muted hover:bg-sky/15 hover:text-sky cursor-pointer'
                 : 'bg-gray-50 text-muted/40 cursor-not-allowed'}`}
@@ -335,13 +364,13 @@ function PageTabs({
             title="Undo (⌘Z)"
             aria-label="Undo"
           >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="undo-icon w-[18px] h-[18px] md:w-3.5 md:h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 7h7a3.5 3.5 0 0 1 0 7H6" />
               <path d="M5.5 4.5L3 7l2.5 2.5" />
             </svg>
           </button>
           <button
-            className={`redo-btn w-8 h-7 rounded-lg flex items-center justify-center transition-all
+            className={`redo-btn w-10 h-10 md:w-8 md:h-7 rounded-xl md:rounded-lg flex items-center justify-center transition-all
               ${canRedo
                 ? 'bg-gray-50 text-muted hover:bg-sky/15 hover:text-sky cursor-pointer'
                 : 'bg-gray-50 text-muted/40 cursor-not-allowed'}`}
@@ -350,7 +379,7 @@ function PageTabs({
             title="Redo (⌘⇧Z / ⌘Y)"
             aria-label="Redo"
           >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="redo-icon w-[18px] h-[18px] md:w-3.5 md:h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M13 7H6a3.5 3.5 0 0 0 0 7h4" />
               <path d="M10.5 4.5L13 7l-2.5 2.5" />
             </svg>
@@ -360,7 +389,7 @@ function PageTabs({
 
       <button
         ref={sectionBtnRef}
-        className={`section-btn shrink-0 px-3 py-1 rounded-lg text-xs lg:text-sm font-semibold cursor-pointer transition-all border
+        className={`section-btn ${sectionEnabled ? '' : 'hidden md:block'} shrink-0 h-10 md:h-auto px-3 md:py-1 rounded-xl md:rounded-lg text-sm md:text-xs lg:text-sm font-semibold cursor-pointer transition-all border
           ${sectionEnabled
             ? (existingHeading
                 ? 'bg-sky/15 text-sky border-sky/40 hover:bg-sky/25'
@@ -377,7 +406,7 @@ function PageTabs({
       </button>
 
       <button
-        className="clear-page-btn shrink-0 px-3 py-1 rounded-lg text-xs text-muted bg-gray-50 hover:bg-red-50 hover:text-stop cursor-pointer transition-colors"
+        className="clear-page-btn shrink-0 h-10 md:h-auto px-3 md:py-1 rounded-xl md:rounded-lg text-sm md:text-xs text-muted bg-gray-50 hover:bg-red-50 hover:text-stop cursor-pointer transition-colors"
         onClick={onClearPage}
         title="Clear all steps on this page"
       >

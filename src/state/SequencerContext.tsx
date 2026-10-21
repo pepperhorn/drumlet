@@ -25,12 +25,17 @@ const NON_HISTORY_ACTIONS = new Set<string>([
   'SET_CURRENT_PAGE',
 ]);
 
+// Continuous controls (hold-to-repeat tempo, swing/humanize dials) fire many
+// actions per gesture; consecutive ones collapse into a single undo step.
+const COALESCED_ACTIONS = new Set<string>(['SET_BPM', 'SET_SWING', 'SET_HUMANIZE']);
+
 export type HistoryAction = { type: 'UNDO' } | { type: 'REDO' };
 
 interface HistoryState {
   past: SequencerState[];
   present: SequencerState;
   future: SequencerState[];
+  lastActionType?: string;
 }
 
 function historyReducer(
@@ -58,11 +63,14 @@ function historyReducer(
   const next = sequencerReducer(hist.present, action);
   if (next === hist.present) return hist;
   if (NON_HISTORY_ACTIONS.has(action.type) || action.type === 'LOAD_STATE') {
-    return { past: hist.past, present: next, future: hist.future };
+    return { ...hist, present: next };
+  }
+  if (COALESCED_ACTIONS.has(action.type) && hist.lastActionType === action.type) {
+    return { ...hist, present: next, future: [] };
   }
   const newPast = [...hist.past, hist.present];
   if (newPast.length > HISTORY_LIMIT) newPast.shift();
-  return { past: newPast, present: next, future: [] };
+  return { past: newPast, present: next, future: [], lastActionType: action.type };
 }
 
 function loadSavedState(): SequencerState | null {

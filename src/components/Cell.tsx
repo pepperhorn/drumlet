@@ -67,9 +67,9 @@ function Cell({
   // Split cell — collapsed view: show color-coded segments
   if (splitData && !isExpanded) {
     return (
-      <div className={`step-cell-split-wrap ${isBeatStart ? 'ml-1.5' : 'ml-0.5'}`} style={isBarStart ? BAR_LINE_STYLE : undefined}>
+      <div className={`step-cell-split-wrap ${isBeatStart ? 'ml-1 md:ml-1.5' : 'ml-0.5'}`} style={isBarStart ? BAR_LINE_STYLE : undefined}>
         <button
-          className={`step-cell step-cell-split relative w-9 h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
+          className={`step-cell step-cell-split relative w-[var(--cell-w,2.25rem)] h-[var(--cell-w,2.25rem)] md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
             flex items-stretch overflow-hidden select-none
             border-violet/40
             ${isActive ? 'cell-active ring-2 ring-violet/60' : ''}
@@ -105,9 +105,9 @@ function Cell({
   // Split cell — expanded view: full-size sub-cells
   if (splitData && isExpanded) {
     return (
-      <div className={`step-cell-expanded-wrap ${isBeatStart ? 'ml-1.5' : 'ml-0.5'}`} style={isBarStart ? BAR_LINE_STYLE : undefined}>
+      <div className={`step-cell-expanded-wrap ${isBeatStart ? 'ml-1 md:ml-1.5' : 'ml-0.5'}`} style={isBarStart ? BAR_LINE_STYLE : undefined}>
         <button
-          className={`step-cell step-cell-split-master relative w-9 h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
+          className={`step-cell step-cell-split-master relative w-[var(--cell-w,2.25rem)] h-[var(--cell-w,2.25rem)] md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
             flex items-stretch overflow-hidden select-none
             border-violet ring-1 ring-violet/30
             ${isPlayhead ? 'playhead-active ring-2 ring-sky' : ''}
@@ -138,8 +138,8 @@ function Cell({
             return (
               <button
                 key={i}
-                className={`step-subcell w-9 h-7 md:w-10 md:h-8 lg:w-11 lg:h-9 rounded-sm border cursor-pointer
-                  flex items-center justify-center text-[9px] md:text-[10px] lg:text-xs font-mono font-semibold select-none
+                className={`step-subcell w-[var(--cell-w,2.25rem)] h-7 md:w-10 md:h-8 lg:w-11 lg:h-9 rounded-sm border cursor-pointer
+                  flex items-center justify-center text-xs md:text-[10px] lg:text-xs font-mono font-semibold select-none
                   ${subVel === 0 ? 'bg-cell border-border hover:bg-cell-hover' : 'border-transparent'}`}
                 style={subVel > 0 ? {
                   backgroundColor: color,
@@ -168,15 +168,15 @@ function Cell({
   // Normal cell (non-split)
   return (
     <button
-      className={`step-cell cell-hit relative w-9 h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
-        flex items-center justify-center text-[10px] md:text-xs lg:text-sm font-mono font-semibold select-none overflow-hidden
+      className={`step-cell cell-hit relative w-[var(--cell-w,2.25rem)] h-[var(--cell-w,2.25rem)] md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
+        flex items-center justify-center text-sm md:text-xs lg:text-sm font-mono font-semibold select-none overflow-hidden
         ${velocity === 0
           ? 'bg-cell border-border hover:bg-cell-hover'
           : 'border-transparent'
         }
         ${isActive ? 'cell-active ring-2 ring-violet/60' : ''}
         ${isPlayhead ? 'playhead-active ring-2 ring-sky' : ''}
-        ${isBeatStart ? 'ml-1.5' : 'ml-0.5'}
+        ${isBeatStart ? 'ml-1 md:ml-1.5' : 'ml-0.5'}
       `}
       style={{
         ...(velocity > 0 ? { backgroundColor: color, opacity } : {}),
