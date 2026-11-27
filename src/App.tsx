@@ -8,7 +8,8 @@ import { exportMidi } from './state/midiExport.js';
 import { maxLevel } from './audio/velocityConfig.js';
 import { isSplit, isMulti, effectiveStep } from './util/stepHelpers.js';
 import Grid from './components/Grid.js';
-import Transport, { MobileTempoControl } from './components/Transport.js';
+import EndlessGrid from './components/EndlessGrid.js';
+import Transport, { GrooveLoopButton, MobileTempoControl } from './components/Transport.js';
 import PageTabs from './components/PageTabs.js';
 import Library from './components/Library.js';
 import SavePrompt from './components/SavePrompt.js';
@@ -34,6 +35,7 @@ import { ACTION_KINDS, getFieldValue } from './plugins/librarySchema.js';
 import type { LibraryItem, LibraryAction } from './plugins/librarySchema.js';
 import { createPluginRuntime } from './plugins/runtime.js';
 import { PRACTICE_PLUGIN_ID } from './plugins/modePlugins.js';
+import { readViewMode, writeViewMode, type ViewMode } from './state/viewMode.js';
 
 const PAD_KEYS = ['A', 'S', 'D', 'F', 'J', 'K', 'L', ';'];
 
@@ -105,6 +107,8 @@ function Drumlet() {
   const [soundPickerTrackIndex, setSoundPickerTrackIndex] = useState<number | null>(null);
   const [activePadTrackIds, setActivePadTrackIds] = useState<Set<string>>(new Set());
   const [embed] = useState(() => isEmbedMode());
+  const [viewMode, setViewMode] = useState(() => embed ? 'paged' : readViewMode());
+  const endless = viewMode === 'endless';
   const [authOpen, setAuthOpen] = useState(() => {
     try { return !!localStorage.getItem('drumlet-auth-flow'); } catch { return false; }
   });
@@ -120,12 +124,40 @@ function Drumlet() {
   const stateRef = useRef<SequencerState>(state);
   stateRef.current = {
     ...state,
+    // View preference is independent of the loaded pattern and its undo history.
+    playMode: endless ? 'groove' : 'page',
     _onPageAdvance: (nextPage: number) => {
       dispatch({ type: 'SET_CURRENT_PAGE', pageIndex: nextPage });
     },
   };
 
-  const { isPlaying, currentStep, toggle, stop } = useTransport(stateRef, audioEngine);
+  const { isPlaying, currentStep, currentGlobalStep, currentPlayPage, seek, toggle, stop } = useTransport(stateRef, audioEngine);
+  const playingGlobalStep = isPlaying ? currentGlobalStep : -1;
+  const pagedGridStep = isPlaying && currentPlayPage === state.currentPageIndex ? currentStep : -1;
+  const loopGroove = state.loopGroove ?? true;
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    if (mode === viewMode) return;
+    if (mode === 'paged' && isPlaying && currentPlayPage >= 0 && currentPlayPage < state.pages.length) {
+      dispatch({ type: 'SET_CURRENT_PAGE', pageIndex: currentPlayPage });
+    }
+    setSelectedStep(null);
+    dispatch({ type: 'SET_ACTIVE_CELL', cell: null });
+    setViewMode(mode);
+    writeViewMode(mode);
+  };
+
+  const handleToggleGrooveLoop = () => dispatch({ type: 'SET_LOOP_GROOVE', loopGroove: !loopGroove });
+
+  const handleEndlessToggleStep = useCallback((pageIndex: number, trackIndex: number, stepIndex: number) => {
+    // TOGGLE_CELL addresses the selected page. Selecting it is not an undo step.
+    if (pageIndex !== stateRef.current.currentPageIndex) {
+      setSelectedStep(null);
+      dispatch({ type: 'SET_ACTIVE_CELL', cell: null });
+      dispatch({ type: 'SET_CURRENT_PAGE', pageIndex });
+    }
+    dispatch({ type: 'TOGGLE_CELL', trackIndex, stepIndex });
+  }, [dispatch]);
 
   const library = useLibraryActions({ state, dispatch, stop, userLibrary });
   const {
@@ -338,7 +370,10 @@ function Drumlet() {
       await startAudioIfNeeded();
 
       if (!isPlaying) {
-        const tracks = stateRef.current.pages[stateRef.current.currentPageIndex]?.tracks ?? [];
+        const { pages, currentPageIndex, playMode } = stateRef.current;
+        const tracks = playMode === 'groove'
+          ? [...new Map(pages.flatMap((page) => page.tracks.map((track) => [track.id, track] as const))).values()]
+          : pages[currentPageIndex]?.tracks ?? [];
         console.log('[app] Verifying', tracks.length, 'instruments before play...');
         await Promise.all(tracks.map((t) => {
           const buffer = customBuffersRef.current.get(t.id);
@@ -958,7 +993,8 @@ function Drumlet() {
               <span className="mobile-time-sig-label text-sm font-display font-semibold text-muted leading-none mt-1">Meter</span>
             </label>
           </div>
-          <div className="mobile-transport-secondary flex items-center gap-1.5">
+          <div className="mobile-transport-secondary flex flex-wrap items-center gap-1.5">
+            {endless && <GrooveLoopButton loop={loopGroove} onToggle={handleToggleGrooveLoop} />}
             <div className="mobile-step-div flex items-center h-10 rounded-xl bg-gray-100 p-0.5" role="group" aria-label="Step value">
               {[
                 { key: '1/16' as NoteValueKey, glyph: '\uE1D9', label: '16th notes' },
@@ -1017,7 +1053,8 @@ function Drumlet() {
             </button>
             <div className="mobile-transport-spacer flex-1" />
             <button
-              className={`mobile-save-btn relative h-10 px-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95 border shrink-0 text-sm font-medium
+              className={`mobile-save-btn relative h-10 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95 border shrink-0 text-sm font-medium
+                ${endless ? 'w-10 min-[400px]:w-auto min-[400px]:px-3' : 'px-3'}
                 ${isDirty
                   ? 'bg-sky/10 text-sky border-sky/30'
                   : 'bg-gray-50 text-muted border-border'}`}
@@ -1030,7 +1067,7 @@ function Drumlet() {
                 <path d="M5 2.5v4h5v-4" />
                 <path d="M5 11h6" />
               </svg>
-              <span className="mobile-save-label max-[359px]:hidden">Save</span>
+              <span className={`mobile-save-label ${endless ? 'max-[399px]:hidden' : 'max-[359px]:hidden'}`}>Save</span>
               {isDirty && <span className="mobile-save-dot absolute top-1 right-1 w-2 h-2 rounded-full bg-coral" />}
             </button>
           </div>
@@ -1155,6 +1192,7 @@ function Drumlet() {
           isDirty={isDirty}
           hasSaveId={Boolean(currentSaveId)}
           chainMode={state.chainMode}
+          grooveLoop={endless ? { enabled: loopGroove, onToggle: handleToggleGrooveLoop } : undefined}
           onSave={handleSave}
           onTogglePlay={handlePlay}
           onToggleChainMode={() => dispatch({ type: 'TOGGLE_CHAIN_MODE' })}
@@ -1187,6 +1225,8 @@ function Drumlet() {
           onUpdateSectionHeading={(id, label) => dispatch({ type: 'UPDATE_SECTION_HEADING', id, label })}
           onRemoveSectionHeading={(id) => dispatch({ type: 'REMOVE_SECTION_HEADING', id })}
           notationView={notationView}
+          viewMode={viewMode}
+          onSetViewMode={handleViewModeChange}
           onToggleNotation={() => {
             setNotationStartedAt(Date.now());
             if (!notationView) void prefetchNotation().catch(() => {});
@@ -1244,8 +1284,10 @@ function Drumlet() {
           <NotationBoundary
             pages={state.pages}
             stepsPerPage={state.stepsPerPage}
-            currentStep={currentStep}
-            currentPageIndex={state.currentPageIndex}
+            currentStep={isPlaying ? currentStep : -1}
+            currentPageIndex={isPlaying && currentPlayPage >= 0 ? currentPlayPage : state.currentPageIndex}
+            layout={endless ? 'endless' : 'wrapped'}
+            currentGlobalStep={playingGlobalStep}
             noteValue={state.noteValue}
             beatsPerBar={state.beatsPerBar}
             stepValue={state.stepValue}
@@ -1255,11 +1297,28 @@ function Drumlet() {
         </div>
       )}
 
-      {!notationView && currentPage && (
+      {!notationView && endless && currentPage && (
+        <div className={`grid-wrap ${playMode ? 'pb-28' : ''}`}>
+          <EndlessGrid
+            pages={state.pages}
+            stepsPerPage={state.stepsPerPage}
+            noteValue={state.noteValue}
+            stepValue={state.stepValue}
+            beatsPerBar={state.beatsPerBar}
+            currentGlobalStep={playingGlobalStep}
+            isPlaying={isPlaying}
+            editable={!playMode}
+            onToggleStep={handleEndlessToggleStep}
+            onSeek={seek}
+          />
+        </div>
+      )}
+
+      {!notationView && !endless && currentPage && (
         <div className={`grid-wrap ${playMode ? 'pb-28' : ''}`}>
           <Grid
             tracks={currentPage.tracks}
-            currentStep={currentStep}
+            currentStep={pagedGridStep}
             stepsPerPage={state.stepsPerPage}
             noteValue={state.noteValue}
             stepValue={state.stepValue}

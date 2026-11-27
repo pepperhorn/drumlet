@@ -170,6 +170,35 @@ function SaveIcon() {
   );
 }
 
+function LoopIcon() {
+  return (
+    <svg className="transport-loop-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 6.5h7.5a3 3 0 0 1 0 6H6.5M5 4.5L3 6.5l2 2M11 14.5l2-2l-2-2" />
+    </svg>
+  );
+}
+
+export function GrooveLoopButton({ loop, onToggle }: { loop: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      className={`transport-groove-loop-btn hw-btn relative w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center shrink-0 cursor-pointer
+        ${loop ? 'text-amber' : 'text-muted hover:text-text'}`}
+      onClick={onToggle}
+      title={loop ? 'Repeat the whole groove' : 'Stop at the end of the groove'}
+      aria-label="Loop groove"
+      aria-pressed={loop}
+    >
+      <span
+        className={`transport-groove-loop-led hw-led absolute top-1.5 right-1.5 ${loop ? 'hw-led-on' : ''}`}
+        style={{ color: 'var(--color-amber)' }}
+        aria-hidden="true"
+      />
+      <LoopIcon />
+    </button>
+  );
+}
+
 interface TransportProps {
   bpm: number;
   noteValue: NoteValueKey;
@@ -183,6 +212,7 @@ interface TransportProps {
   isDirty: boolean;
   hasSaveId: boolean;
   chainMode: boolean;
+  grooveLoop?: { enabled: boolean; onToggle: () => void };
   onSave: () => void;
   onTogglePlay: () => void;
   onToggleChainMode: () => void;
@@ -208,6 +238,7 @@ function Transport({
   isDirty,
   hasSaveId,
   chainMode,
+  grooveLoop,
   onSave,
   onTogglePlay,
   onToggleChainMode,
@@ -289,34 +320,32 @@ function Transport({
         )}
       </button>
 
-      <button
-        className={`transport-chain-btn hw-btn relative w-11 h-11 rounded-xl flex items-center justify-center cursor-pointer
-          ${chainMode ? 'text-amber' : 'text-muted hover:text-text'}`}
-        onClick={onToggleChainMode}
-        title={chainMode
-          ? 'Chain mode: advance through pages on each loop (click to switch to Loop)'
-          : 'Loop mode: repeat the current page (click to switch to Chain)'}
-        aria-label={chainMode ? 'Chain mode' : 'Loop mode'}
-      >
-        <span
-          className={`transport-chain-led hw-led absolute top-1.5 right-1.5 ${chainMode ? 'hw-led-on' : ''}`}
-          style={{ color: 'var(--color-amber)' }}
-          aria-hidden="true"
-        />
-        {chainMode ? (
-          <svg className="transport-chain-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2.5 8h8" />
-            <path d="M7.5 4.5l3 3.5l-3 3.5" />
-            <path d="M13 3v10" />
-          </svg>
-        ) : (
-          <svg className="transport-loop-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 6.5h7.5a3 3 0 0 1 0 6H6.5" />
-            <path d="M5 4.5L3 6.5l2 2" />
-            <path d="M11 14.5l2-2l-2-2" />
-          </svg>
+      {grooveLoop
+        ? <GrooveLoopButton loop={grooveLoop.enabled} onToggle={grooveLoop.onToggle} />
+        : (
+          <button
+            className={`transport-chain-btn hw-btn relative w-11 h-11 rounded-xl flex items-center justify-center cursor-pointer
+              ${chainMode ? 'text-amber' : 'text-muted hover:text-text'}`}
+            onClick={onToggleChainMode}
+            title={chainMode
+              ? 'Chain mode: advance through pages on each loop (click to switch to Loop)'
+              : 'Loop mode: repeat the current page (click to switch to Chain)'}
+            aria-label={chainMode ? 'Chain mode' : 'Loop mode'}
+          >
+            <span
+              className={`transport-chain-led hw-led absolute top-1.5 right-1.5 ${chainMode ? 'hw-led-on' : ''}`}
+              style={{ color: 'var(--color-amber)' }}
+              aria-hidden="true"
+            />
+            {chainMode ? (
+              <svg className="transport-chain-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2.5 8h8" />
+                <path d="M7.5 4.5l3 3.5l-3 3.5" />
+                <path d="M13 3v10" />
+              </svg>
+            ) : <LoopIcon />}
+          </button>
         )}
-      </button>
 
       <div className="transport-bpm flex items-center gap-2">
         <span className="transport-bpm-label legend">BPM</span>

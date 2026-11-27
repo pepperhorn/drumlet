@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo, useRef, useState, type CSSProperties } from
 import { prefetchNotation } from './notationPrefetch.js';
 import SectionHeadingEditor from './SectionHeadingEditor.js';
 import type { Page, SectionHeading, SplitCount } from '../state/sequencerReducer.js';
+import type { ViewMode } from '../state/viewMode.js';
 
 const SPLIT_OPTIONS: (SplitCount | null)[] = [null, 2, 3, 4];
 const SPLIT_LABELS: Record<string, string> = { 'null': '\u2014', '2': '2', '3': '3', '4': '4' };
@@ -65,6 +66,8 @@ interface PageTabsProps {
   onRemoveSectionHeading?: (id: string) => void;
   notationView?: boolean;
   onToggleNotation?: () => void;
+  viewMode: ViewMode;
+  onSetViewMode: (mode: ViewMode) => void;
   canUndo?: boolean;
   canRedo?: boolean;
   onUndo?: () => void;
@@ -90,6 +93,8 @@ function PageTabs({
   onRemoveSectionHeading,
   notationView = false,
   onToggleNotation,
+  viewMode,
+  onSetViewMode,
   canUndo = false,
   canRedo = false,
   onUndo,
@@ -143,9 +148,9 @@ function PageTabs({
   }, [existingHeading, onRemoveSectionHeading]);
 
   return (
-    <div ref={containerRef} className="page-tabs relative flex flex-wrap md:flex-nowrap items-center gap-x-2 gap-y-1.5 lg:gap-3 bg-card rounded-2xl shadow-sm border border-border px-2 md:px-3 lg:px-4 py-2 lg:py-2.5 md:overflow-x-auto grid-scroll">
-      {onToggleNotation && (
-        <>
+    <div ref={containerRef} className="page-tabs relative flex flex-wrap items-center gap-x-2 gap-y-1.5 lg:gap-3 bg-card rounded-2xl shadow-sm border border-border px-2 md:px-3 lg:px-4 py-2 lg:py-2.5 md:overflow-x-auto grid-scroll">
+      <div className="page-tabs-view-controls flex shrink-0 items-center gap-2">
+        {onToggleNotation && (
           <button
             className={`notation-toggle-btn hw-btn h-10 w-10 md:w-auto md:h-8 md:px-2.5 rounded-xl md:rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shrink-0 text-sm md:text-xs lg:text-sm font-semibold
               ${notationView ? 'text-text' : 'text-muted hover:text-text'}`}
@@ -174,12 +179,26 @@ function PageTabs({
               {notationView ? 'Grid Editor' : 'Notation'}
             </span>
           </button>
-          <div className="page-divider hidden md:block w-px h-6 bg-border shrink-0" />
-        </>
-      )}
+        )}
+        <div className="page-tabs-view-toggle flex items-center gap-1" role="group" aria-label="Pattern view">
+          {(['paged', 'endless'] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className={`page-tabs-view-btn hw-btn h-10 md:h-8 px-2.5 rounded-xl md:rounded-lg text-sm md:text-xs lg:text-sm font-semibold cursor-pointer
+                ${mode === viewMode ? 'hw-btn-accent text-text' : 'text-muted hover:text-text'}`}
+              aria-pressed={mode === viewMode}
+              onClick={() => onSetViewMode(mode)}
+            >
+              {mode === 'paged' ? 'Paged' : 'Endless'}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="page-divider hidden md:block w-px h-6 bg-border shrink-0" />
 
       {usePagination ? (
-        <div className="page-pager flex items-center gap-1 shrink-0">
+        <div className="page-pager flex flex-wrap items-center gap-1">
           <button
             className="page-prev-btn hw-btn w-7 h-7 rounded-lg text-muted hover:text-text text-sm cursor-pointer flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
             onClick={() => onSetPage(Math.max(0, currentPageIndex - 1))}
@@ -255,11 +274,11 @@ function PageTabs({
           </button>
         </div>
       ) : (
-        <div className="page-tab-list flex flex-wrap md:flex-nowrap items-center gap-1">
+        <div className="page-tab-list flex flex-wrap items-center gap-1">
           {pages.map((page, i) => (
             <button
               key={page.id}
-              className={`page-tab hw-btn font-legend font-semibold uppercase tracking-[0.12em] h-10 md:h-auto px-3 md:py-1 rounded-xl md:rounded-lg whitespace-nowrap text-sm cursor-pointer
+              className={`page-tab hw-btn font-legend font-semibold uppercase tracking-[0.12em] h-10 md:h-auto px-1.5 md:px-3 md:py-1 rounded-xl md:rounded-lg whitespace-nowrap text-sm cursor-pointer
                 ${i === currentPageIndex ? 'hw-btn-accent' : 'text-muted hover:text-text'}`}
               style={{ '--hw-accent': 'var(--color-sky)' } as CSSProperties}
               aria-pressed={i === currentPageIndex}
