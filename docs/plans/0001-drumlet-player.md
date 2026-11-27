@@ -70,7 +70,20 @@ Merge order = task order.
   - `getKitBaseUrl(): string`
   - `pickAudioFormat(canPlay: (mime: string) => string): 'ogg' | 'm4a'` — `'ogg'` when `canPlay('audio/ogg; codecs="vorbis"')` is non-empty, else `'m4a'`.
   - `kitSampleUrl(kitId: string, file: string, fmt: 'ogg' | 'm4a'): string` — swaps the extension of `file` to `fmt`.
-  - `resolveKitSampleKey(manifest: KitManifest, wanted: string): string` — exact key, else nearest by `KIT_FALLBACKS` (`snare*→snare-on1`, `hh*|hat*→hh-closed1`, `tom*→hi-tom`, `cymbal*|crash*→crash`, `ride*→ride`, `rim*|stick*→crossstick`, anything else→`kick`).
+  - `resolveKitSampleKey(manifest: KitManifest, wanted: string): string` — exact key, else the first matching rule of the ordered `KIT_FALLBACKS` (lower-cased `wanted`, substring/prefix matches; amended 2026-11-27 after t1 review r1 — the app's group names are in `src/audio/drumGroups.ts`):
+    1. hat-like (`hh*`, `hihat*`, `hat*`) **and** contains `open` → `hh-open`
+    2. contains `foot` or `pedal` → `hh-foot`
+    3. `hh*`, `hihat*`, `hat*`, `tambourine`, `cabasa`, `maraca*`, `shaker` → `hh-closed1`
+    4. `kick*`, `bass-drum*` → `kick`
+    5. `rim*`, `stick*`, `clave*` → `crossstick`
+    6. `snare*`, `clap*` → `snare-on1`
+    7. contains `tom` or `conga`, **and** low (`-l`, `-ll`, `-lll`, `-low`, `-3`, `floor`) → `floor-tom`
+    8. contains `tom` or `conga` (incl. `mid-tom`, `tom-m`, `tom-h…`, `tom-1/2`) → `hi-tom`
+    9. contains `bell` (`ride-bell`, `cowbell`) → `ride-bell`
+    10. `ride*` → `ride`
+    11. `crash*`, `cymbal*` → `crash`
+    12. anything else → `kick`
+    Only rules whose target exists in the manifest apply; otherwise fall through to the next rule.
   - `loadKitManifest`, `loadKitSample` keep their signatures but build URLs via the above.
 
 - [ ] **Step 1:** Write `scripts/encode-acoustic-kit.sh <src-dir> <out-dir>` reproducing the A/B variant B (ffmpeg `atrim`+`afade`, `-ac 1|2`, `-ar 44100`, libvorbis `-q:a 3`, aac 64k/96k). Run it into a temp dir from the current samples; confirm ogg total ≈ 335 KB.
@@ -78,7 +91,8 @@ Merge order = task order.
 - [ ] **Step 3: Failing tests** in `customKits.test.ts`:
   - `pickAudioFormat(() => 'probably') === 'ogg'`; `pickAudioFormat(() => '') === 'm4a'`
   - `setKitBaseUrl('https://x/kits')` → `kitSampleUrl('acoustic1','acoustic-Kick.ogg','m4a') === 'https://x/kits/acoustic1/acoustic-Kick.m4a'`
-  - `resolveKitSampleKey(m,'snare-rim') === 'snare-on1'`, `'tom-low' → 'hi-tom'`, `'cowbell' → 'kick'`, `'ride-bell' → 'ride-bell'`
+  - `resolveKitSampleKey(m,'snare-rim') === 'snare-on1'`, `'hihat-closed' → 'hh-closed1'`, `'hihat-open' → 'hh-open'`, `'hhopen' → 'hh-open'`, `'mid-tom' → 'hi-tom'`, `'tom-low' → 'floor-tom'`, `'rimshot' → 'crossstick'`, `'cowbell' → 'ride-bell'`, `'ride-bell' → 'ride-bell'`, `'cymbal' → 'crash'`, `'woodblock' → 'kick'`
+  - table test: every group name in `src/audio/drumGroups.ts` resolves, and none that isn't kick-like resolves to `kick`
   - `loadKitSample` with `fetch` mocked to reject → rejects with an `Error` (caller handles); with fetch ok + `decodeAudioData` stub → resolves.
 - [ ] **Step 4:** `npm test -- customKits` → FAIL. Implement. → PASS.
 - [ ] **Step 5:** In `useAudioEngine.ts`, when a kit track's `kitSample` is missing from the manifest, call `resolveKitSampleKey`. Manual check in the app: acoustic grooves sound identical to the A/B page's B.

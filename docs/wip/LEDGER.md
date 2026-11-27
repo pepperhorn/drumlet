@@ -11,7 +11,7 @@ Next ID: 0003
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t1-review-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t1-kit-loader | https://github.com/pepperhorn/drumlet/pull/28 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 2aeae39 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | changes-requested | child 0001-t1-impl-r2 | codex/gpt-6.2-sol (t1) | orch/0001-t1-kit-loader | https://github.com/pepperhorn/drumlet/pull/28 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 2aeae39 | 2026-11-27 |
 
 ## Done / closed
 
@@ -33,6 +33,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0001 in-review→changes-requested — t1 review r1 (opus) @ 2aeae39: kit fallback maps app hihat-* groups to kick (plan table was wrong; plan Task 1 KIT_FALLBACKS amended); fix r2 sent to implementer thread
 2026-11-27 0001 dispatched→in-review — t1 PR #28 head 2aeae39 (codex gpt-6.2-sol); review r1 claudeAgent claude-opus-5-5
 2026-11-27 0001 t1 delegated → codex gpt-6.2-sol (reasoningEffort high), base c585c5e
 2026-11-27 0001 planned→dispatched — t1 handoff written (base 3384c8f)
