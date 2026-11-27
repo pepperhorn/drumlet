@@ -52,5 +52,7 @@ None.
 ---
 ## Receiver ack
 
+I will keep the notation card populated through engine load and score rendering, prefetch when appropriate, make Auto fit the score to the card, and replace the font-dependent toggle icon, and write durations from each beat’s onsets while preserving split steps and per-step playback positions. I will verify the production cache policy, manual layouts, and the 360 px and 412 px phone layouts within the owned files. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)

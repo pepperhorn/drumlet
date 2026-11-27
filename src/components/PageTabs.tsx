@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { prefetchNotation } from './notationPrefetch.js';
 import SectionHeadingEditor from './SectionHeadingEditor.js';
 import type { Page, SectionHeading, SplitCount } from '../state/sequencerReducer.js';
 
@@ -39,6 +40,10 @@ interface StepOption {
 interface AnchorRect {
   left: number;
   bottom: number;
+}
+
+function warmNotation() {
+  void prefetchNotation().catch(() => {});
 }
 
 interface PageTabsProps {
@@ -145,9 +150,11 @@ function PageTabs({
             className={`notation-toggle-btn hw-btn h-10 w-10 md:w-auto md:h-8 md:px-2.5 rounded-xl md:rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shrink-0 text-sm md:text-xs lg:text-sm font-semibold
               ${notationView ? 'text-text' : 'text-muted hover:text-text'}`}
             aria-pressed={notationView}
+            onPointerDown={notationView ? undefined : warmNotation}
+            onFocus={notationView ? undefined : warmNotation}
             onClick={onToggleNotation}
-            title={notationView ? 'Switch to Grid Editor' : 'Switch to Notation View'}
-            aria-label={notationView ? 'Switch to Grid Editor' : 'Switch to Notation View'}
+            title={notationView ? 'Switch to Grid Editor' : 'Notation'}
+            aria-label={notationView ? 'Switch to Grid Editor' : 'Notation'}
           >
             {notationView ? (
               <svg className="notation-toggle-icon-grid" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -157,16 +164,14 @@ function PageTabs({
                 <rect x="9" y="9" width="5" height="5" rx="1" />
               </svg>
             ) : (
-              <span
-                className="notation-toggle-icon-note block w-[20px] md:w-[15px] text-center [--notation-glyph-size:24px] md:[--notation-glyph-size:17px]"
-                style={{ fontFamily: 'Petaluma', fontSize: 'var(--notation-glyph-size, 17px)', lineHeight: 1 }}
-                aria-hidden="true"
-              >
-                
-              </span>
+              <svg className="notation-toggle-icon-note size-[18px] md:size-[15px]" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true">
+                <path d="M6 4.5 16 2v10h-1.5V6L7.5 7.75v6.75H6z" />
+                <ellipse cx="4.7" cy="14.5" rx="2.9" ry="1.9" transform="rotate(-20 4.7 14.5)" />
+                <ellipse cx="13.2" cy="12" rx="2.9" ry="1.9" transform="rotate(-20 13.2 12)" />
+              </svg>
             )}
             <span className="notation-toggle-label font-legend font-semibold uppercase tracking-[0.12em] hidden md:inline whitespace-nowrap text-xs">
-              {notationView ? 'Grid Editor' : 'Notation View'}
+              {notationView ? 'Grid Editor' : 'Notation'}
             </span>
           </button>
           <div className="page-divider hidden md:block w-px h-6 bg-border shrink-0" />
