@@ -6,7 +6,7 @@
 - Branch: `orch/0009-pad-names-followups`
 - Worktree: `/home/shaun/.t3/worktrees/drumlet/t3-083effbc-0beddf959bc87846`
 - Base: `d9f23f2`, which contains pinned base `3af5989`
-- PR: draft against `main`, opened after this handoff commit
+- PR: [#42](https://github.com/pepperhorn/drumlet/pull/42), draft against `main`
 - Status: done
 
 ## Goal and scope
