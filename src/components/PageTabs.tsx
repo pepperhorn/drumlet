@@ -2,9 +2,11 @@ import { memo, useCallback, useMemo, useRef, useState, type CSSProperties } from
 import { prefetchNotation } from './notationPrefetch.js';
 import SectionHeadingEditor from './SectionHeadingEditor.js';
 import type { Page, SectionHeading, SplitCount } from '../state/sequencerReducer.js';
+import type { ViewMode } from '../state/viewMode.js';
 
 const SPLIT_OPTIONS: (SplitCount | null)[] = [null, 2, 3, 4];
 const SPLIT_LABELS: Record<string, string> = { 'null': '\u2014', '2': '2', '3': '3', '4': '4' };
+const VIEW_MODES = [['paged', 'Paged'], ['endless', 'Endless']] as const;
 
 const PAGINATION_THRESHOLD = 10;
 
@@ -65,6 +67,8 @@ interface PageTabsProps {
   onRemoveSectionHeading?: (id: string) => void;
   notationView?: boolean;
   onToggleNotation?: () => void;
+  viewMode: ViewMode;
+  onSetViewMode: (mode: ViewMode) => void;
   canUndo?: boolean;
   canRedo?: boolean;
   onUndo?: () => void;
@@ -90,6 +94,8 @@ function PageTabs({
   onRemoveSectionHeading,
   notationView = false,
   onToggleNotation,
+  viewMode,
+  onSetViewMode,
   canUndo = false,
   canRedo = false,
   onUndo,
@@ -144,10 +150,10 @@ function PageTabs({
 
   return (
     <div ref={containerRef} className="page-tabs relative flex flex-wrap md:flex-nowrap items-center gap-x-2 gap-y-1.5 lg:gap-3 bg-card rounded-2xl shadow-sm border border-border px-2 md:px-3 lg:px-4 py-2 lg:py-2.5 md:overflow-x-auto grid-scroll">
-      {onToggleNotation && (
-        <>
+      <div className="page-tabs-view-controls flex shrink-0 items-center gap-2">
+        {onToggleNotation && (
           <button
-            className={`notation-toggle-btn hw-btn h-10 w-10 md:w-auto md:h-8 md:px-2.5 rounded-xl md:rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shrink-0 text-sm md:text-xs lg:text-sm font-semibold
+            className={`notation-toggle-btn hw-btn h-10 w-10 md:size-8 min-[1440px]:w-auto min-[1440px]:px-2.5 rounded-xl md:rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shrink-0 text-sm md:text-xs lg:text-sm font-semibold
               ${notationView ? 'text-text' : 'text-muted hover:text-text'}`}
             aria-pressed={notationView}
             onPointerDown={notationView ? undefined : warmNotation}
@@ -170,16 +176,37 @@ function PageTabs({
                 <ellipse cx="13.2" cy="12" rx="2.9" ry="1.9" transform="rotate(-20 13.2 12)" />
               </svg>
             )}
-            <span className="notation-toggle-label font-legend font-semibold uppercase tracking-[0.12em] hidden md:inline whitespace-nowrap text-xs">
+            <span className="notation-toggle-label font-legend font-semibold uppercase tracking-[0.12em] hidden min-[1440px]:inline whitespace-nowrap text-xs">
               {notationView ? 'Grid Editor' : 'Notation'}
             </span>
           </button>
-          <div className="page-divider hidden md:block w-px h-6 bg-border shrink-0" />
-        </>
-      )}
+        )}
+        <div className="page-tabs-view-toggle flex items-center gap-1" role="group" aria-label="Pattern view">
+          {VIEW_MODES.map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              className={`page-tabs-view-btn hw-btn h-10 md:size-8 px-2.5 md:px-0 inline-flex items-center justify-center rounded-xl md:rounded-lg text-sm font-semibold cursor-pointer
+                ${mode === viewMode ? 'hw-btn-accent text-text' : 'text-muted hover:text-text'}`}
+              aria-label={label}
+              aria-pressed={mode === viewMode}
+              title={label}
+              onClick={() => onSetViewMode(mode)}
+            >
+              <span className="page-tabs-view-label md:hidden">{label}</span>
+              <svg className="page-tabs-view-icon hidden md:block" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                {mode === 'paged'
+                  ? <path d="M3.5 2.5h8l3 3v10h-11zM11.5 2.5v3h3M6 8.5h6M6 11.5h6" />
+                  : <path d="M2 5.5h14v7H2zM6 7.75v2.5M9 7.75v2.5M12 7.75v2.5M4 3.5 2 5.5l2 2M14 10.5l2 2-2 2" />}
+              </svg>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="page-divider hidden md:block w-px h-6 bg-border shrink-0" />
 
       {usePagination ? (
-        <div className="page-pager flex items-center gap-1 shrink-0">
+        <div className="page-pager flex flex-wrap md:flex-nowrap md:shrink-0 items-center gap-1">
           <button
             className="page-prev-btn hw-btn w-7 h-7 rounded-lg text-muted hover:text-text text-sm cursor-pointer flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
             onClick={() => onSetPage(Math.max(0, currentPageIndex - 1))}
@@ -259,7 +286,7 @@ function PageTabs({
           {pages.map((page, i) => (
             <button
               key={page.id}
-              className={`page-tab hw-btn font-legend font-semibold uppercase tracking-[0.12em] h-10 md:h-auto px-3 md:py-1 rounded-xl md:rounded-lg whitespace-nowrap text-sm cursor-pointer
+              className={`page-tab hw-btn font-legend font-semibold uppercase tracking-[0.12em] h-10 md:h-auto px-1.5 md:px-3 md:py-1 rounded-xl md:rounded-lg whitespace-nowrap text-sm cursor-pointer
                 ${i === currentPageIndex ? 'hw-btn-accent' : 'text-muted hover:text-text'}`}
               style={{ '--hw-accent': 'var(--color-sky)' } as CSSProperties}
               aria-pressed={i === currentPageIndex}
