@@ -44,5 +44,7 @@ None.
 ---
 ## Receiver ack
 
+I’ll encode every page and its section headings in v4, keep v1–v3 decoding to one page, and verify the v3 fixture against the encoder at `f8c05d6`. I’ll change only the codec, its tests, and the two task handoffs. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
