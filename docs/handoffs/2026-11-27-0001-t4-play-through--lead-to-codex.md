@@ -45,5 +45,9 @@ None.
 ---
 ## Receiver ack
 
+I’ll add groove play-through, whole-groove looping or stop at the end, and global-step seeking and reporting. Paged playback will retain its current chain behavior. I’ll test scheduler and animation-frame cleanup on unmount, verify the app in paged mode, and keep edits within Task 4’s owned files and handoffs.
+
+GBrain: unavailable (MCP transport closed). No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
