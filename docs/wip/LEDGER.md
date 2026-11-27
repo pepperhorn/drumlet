@@ -14,7 +14,7 @@ Next ID: 0009
 | 0006 | [quick] Notation beat counts restart each bar | dispatched | child 0006-impl-r1 | codex/gpt-6.2-sol | orch/0006-beat-counts-per-bar | — | — | — | — | — | docs/handoffs/2026-11-27-0006-beat-counts-per-bar--lead-to-codex.md | 2026-11-27 |
 | 0007 | [quick] Stop renderStaff test timing out | dispatched | child 0007-impl-r1 | codex/gpt-6.2-sol | orch/0007-flaky-renderstaff-test | — | — | — | — | — | docs/handoffs/2026-11-27-0007-flaky-renderstaff-test--lead-to-codex.md | 2026-11-27 |
 | 0008 | [quick] Screen-reader names for step pads | dispatched | child 0008-impl-r1 | codex/gpt-6.2-sol | orch/0008-pad-screen-reader-names | — | — | — | — | — | docs/handoffs/2026-11-27-0008-pad-screen-reader-names--lead-to-codex.md | 2026-11-27 |
-| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | child 0001-t7-impl-r1, child 0001-t8-impl-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t7-review-r1 (t7 #37), child 0001-t8-impl-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/37 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -60,6 +60,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0001 t7 PR #37 head 79cd9c0 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-4cbaa03a-006b175ef1b3a193; 198 tests); review r1 claudeAgent claude-opus-5-5
 2026-11-27 0008 implementer blocked on scope: lead approved one-prop Grid.tsx change (beat size → TrackRow) and limiting sub-step tests to the paged grid
 2026-11-27 0006/0007/0008 delegated in parallel → codex gpt-6.2-sol (high), base 3939539; threads thread:delegated-task:command%3Amcp%3Ab2ebda65-81ee-4554-a7a1-2b8cd4f6186d%3Adelegate-task%3A000{6,7,8}-impl-r1
 2026-11-27 owner accepted S18, S15, S11 → quick items 0006, 0007, 0008 (disjoint Owns with each other and with t7/t8)
