@@ -11,7 +11,7 @@ Next ID: 0003
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t2-review-r1 (t2 #29), review 0001-t4-review-r1 (t4 #30) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/29, https://github.com/pepperhorn/drumlet/pull/30 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | changes-requested | child 0001-t2-impl-r2 (t2 #29), review 0001-t4-review-r1 (t4 #30) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/29, https://github.com/pepperhorn/drumlet/pull/30 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -36,6 +36,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0001 t2 in-review→changes-requested — opus r1 @ 4756f09: per-page track ids break engine cache (blocking); lead decision: v4 uses shared track table + per-page step strings (plan Task 2 amended), chainMode on for multi-page; fix r2 sent
 2026-11-27 0001 t4 PR #30 head 8bbe9d6 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-eeb54834-d9f137a9d21066a6); review r1 claudeAgent claude-opus-5-5
 2026-11-27 0001 t2 PR #29 head 4756f09 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-34002d3d-f46d07781c04ab9f); review r1 claudeAgent claude-opus-5-5. t4 still implementing
 2026-11-27 0001 t2 + t4 delegated in parallel → codex gpt-6.2-sol (high), base a947869; threads thread:delegated-task:command%3Amcp%3A066d5e40-7895-4940-a3bb-f3084117f784%3Adelegate-task%3A0001-t2-impl-r1 / …%3A0001-t4-impl-r1

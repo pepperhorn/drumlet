@@ -103,10 +103,13 @@ Merge order = task order.
 **Files:** Modify `src/state/shareCodec.ts` · Test `src/state/shareCodec.test.ts`
 
 **Interfaces:**
-- `encodeState(state, pluginMeta?)` now emits `v: 4` with `pg: { n: string; h?: [step:number,label:string][]; t: EncodedTrack[] }[]` (every page; `t` top-level field dropped for v4).
+- `encodeState(state, pluginMeta?)` now emits `v: 4` with a **shared track table** and per-page steps only (amended 2026-11-27 after t2 review r1, to keep URLs ~4× shorter):
+  - `t: EncodedTrackMeta[]` — one entry per track (everything in today's `EncodedTrack` except `s`), taken from page 0's track order; a track that exists only on a later page is appended.
+  - `pg: { n?: string; h?: [step:number,label:string][]; s: (string | 0)[] }[]` — `s[i]` is the step string for table track `i`; `0` = track absent/all-rest on that page; `n` omitted when it equals the default page name.
+- `decodePayload(encoded)` accepts v1–v4; v1–v3 → one page; v4 → `state.pages.length === pg.length`, section headings restored, **one track id per table index reused on every page** (the audio engine caches instruments by track id), and `chainMode: true` when there is more than one page.
 - `decodePayload(encoded)` accepts v1–v4; v1–v3 → one page; v4 → `state.pages.length === pg.length`, section headings restored.
 
-- [ ] **Step 1: Failing tests:** round-trip a 3-page state with headings (`pages.length===3`, page 2 track 0 steps equal, heading `{step:4,label:'Chorus'}` on page 3); a fixture v3 code (generate one from the current `main` encoder and paste as a constant) decodes to 1 page with the same steps; garbage string → `null`.
+- [ ] **Step 1: Failing tests:** round-trip a 3-page state with headings (`pages.length===3`, page 2 track 0 steps equal, heading `{step:4,label:'Chorus'}` on page 3); decoded `pages[0].tracks[i].id === pages[2].tracks[i].id` for every i; `chainMode === true` for multi-page; a mixed dm/sf/kit + velMode 1/3/7 + split-step state round-trips; a fixture v3 code (generate one from the pre-change encoder and paste as a constant) decodes to 1 page with the same steps; the encoded share URL for stock groove `cuban-cha-cha` is ≤ 1,600 chars; garbage string → `null`.
 - [ ] **Step 2:** Run → FAIL. Implement. Run → PASS.
 - [ ] **Step 3:** Commit `feat(share): v4 share codes carry every page`.
 
