@@ -44,6 +44,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0003 scope change (owner): onset-based note durations replace upright-rest fix; spec/plan/handoff amended d077bf2; steered running implementer
 2026-11-27 0003 delegated → codex gpt-6.2-sol (high), base 3b1e73c (added upright rests from owner screenshot); thread thread:delegated-task:command%3Amcp%3A787164b5-6ca8-42b7-a411-c88e199bf534%3Adelegate-task%3A0003-impl-r1
 2026-11-27 0003 →dispatched — owner bug report (phone): notation "freeze" = 7.9 MB chunk (2.26 MB compressed) with no feedback; score overflows phone; toggle icon glyph from unloaded font. Must merge before 0001-t6 (same files)
 2026-11-27 0001 t3 merged (#31, 21803c6; owner OK; main verify ✓ 137 tests). t5 in-review→changes-requested — opus r1 @ 13fb3f3: 68–189 ms render per playhead step on 8×8 (memo defeated, 3 commits/step); tap pauses auto-follow against spec. Fix r2 sent (target ≤1 commit, ≤10 ms/step). Plan notes added to Task 6 (reuse pattern) and Task 9 (Cell viewport breakpoints)
