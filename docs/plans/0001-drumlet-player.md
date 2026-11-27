@@ -157,6 +157,8 @@ Merge order = task order.
 
 ### Task 6: Endless notation
 
+> Note (2026-11-27, from t5 review): reuse t5's pattern — memoised blocks, playhead target located in a `useLayoutEffect`, one commit per playhead step. Measure render cost per step on an 8-bar groove and report it.
+
 **Files:** Modify `src/components/NotationView.tsx`, `src/notation/renderStaff.ts` · Test `src/notation/renderStaff.test.ts`
 
 **Interfaces:**
@@ -191,6 +193,8 @@ Merge order = task order.
 - [ ] **Step 2:** Run → FAIL. Implement. → PASS. Commit `feat(player): DrumletPlayer component`.
 
 ### Task 9: Package build — `packages/drumlet-player`
+
+> Note (2026-11-27, from t5 review): `Cell` sizes pads with viewport breakpoints (`md:`/`lg:` Tailwind variants), which Global Constraints forbid in player code. t9 must make pad size container-driven for the player (e.g. the existing `--cell-w` custom property set from a container query / ResizeObserver) without changing the app's look.
 
 **Files:** Create `packages/drumlet-player/{package.json,vite.config.ts,tsconfig.build.json,LICENSE,README.md}`, `packages/drumlet-player/scripts/{build-css.mjs,copy-kits.mjs,verify-dist.mjs}`, `src/player/styles/{tailwind.css,base.css}` · Modify root `package.json` (`build:lib`, `verify:lib`), `src/styles/hardware.css` (tokens also on `.drumlet-player` / `.drumlet-player[data-theme="dark"]`), add SPDX MIT header to every `src/` file the package bundles · Root `LICENSE` note on the dual arrangement.
 
