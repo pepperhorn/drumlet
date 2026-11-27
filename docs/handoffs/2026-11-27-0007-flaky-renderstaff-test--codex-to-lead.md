@@ -8,7 +8,7 @@
 - Base: `7e2626c` (amended dispatch)
 - Implementation: `c047ad6`
 - Outcome: Done. Ready for review.
-- PR: Draft to open after the branch is pushed.
+- PR: [#41](https://github.com/pepperhorn/drumlet/pull/41) (draft)
 
 ## What changed
 
