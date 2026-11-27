@@ -1,4 +1,6 @@
+// SPDX-License-Identifier: MIT
 import { v4 as uuid } from 'uuid';
+import type { PlayMode } from '../audio/playPosition.js';
 // JS modules — typed at the boundary until Phase 4 migrates them.
 import { maxLevel as maxLevelImpl, convertStep as convertStepImpl } from '../audio/velocityConfig.js';
 import { isSplit as isSplitImpl, isMulti as isMultiImpl, masterVelocity as masterVelocityImpl } from '../util/stepHelpers.js';
@@ -191,6 +193,8 @@ export interface SequencerState {
   swingTarget: '8th' | '16th';
   humanize: number;
   chainMode: boolean;
+  playMode?: PlayMode;
+  loopGroove?: boolean;
   activeCell: CellRef | null;
   pendingSplit: SplitCount | null;
   /** Internal: scheduler page-advance hook injected at runtime. */
@@ -227,6 +231,8 @@ export type SequencerAction =
   | { type: 'SET_TRACK_VEL_MODE'; trackIndex: number; mode: VelMode }
   | { type: 'SET_STEPS_PER_PAGE'; stepsPerPage: number }
   | { type: 'TOGGLE_CHAIN_MODE' }
+  | { type: 'SET_PLAY_MODE'; playMode: PlayMode }
+  | { type: 'SET_LOOP_GROOVE'; loopGroove: boolean }
   | { type: 'CLEAR_PAGE' }
   | { type: 'ADD_SECTION_HEADING'; step: number; label: string }
   | { type: 'UPDATE_SECTION_HEADING'; id: string; label: string }
@@ -306,6 +312,8 @@ export function createNewPatternState(): SequencerState {
     swingTarget: '8th',
     humanize: 0,
     chainMode: false,
+    playMode: 'page',
+    loopGroove: true,
     activeCell: null,
     pendingSplit: null,
   };
@@ -325,6 +333,8 @@ export function createInitialState(): SequencerState {
     swingTarget: '8th',
     humanize: 0,
     chainMode: false,
+    playMode: 'page',
+    loopGroove: true,
     activeCell: null,
     pendingSplit: null,
   };
@@ -579,6 +589,12 @@ export function sequencerReducer(state: SequencerState, action: SequencerAction)
 
     case 'TOGGLE_CHAIN_MODE':
       return { ...state, chainMode: !state.chainMode };
+
+    case 'SET_PLAY_MODE':
+      return { ...state, playMode: action.playMode };
+
+    case 'SET_LOOP_GROOVE':
+      return { ...state, loopGroove: action.loopGroove };
 
     case 'CLEAR_PAGE': {
       const pages = structuredClone(state.pages);
