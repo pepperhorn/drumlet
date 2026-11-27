@@ -11,7 +11,7 @@ Next ID: 0006
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | lead: delegate t7 + t8 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | child 0001-t7-impl-r1, child 0001-t8-impl-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -57,6 +57,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0001 t7 + t8 delegated in parallel → codex gpt-6.2-sol (high), base 9024a38; threads thread:delegated-task:command%3Amcp%3Afbebc0a5-420a-44e6-ae7f-c62cd135f281%3Adelegate-task%3A0001-t7-impl-r1 / …%3A0001-t8-impl-r1
 2026-11-27 0001 t6 merged (#36, 23c53b9) + 0005 merged (#35, d9291cc); owner OK; main verify ✓ 194 tests. t7 + t8 handoffs written for parallel dispatch (disjoint Owns)
 2026-11-27 0001 t6 review r1 (opus) approved @ 29fd580 (wrapped identical on all 98 grooves; spikes are host noise, not t6); merge needs owner OK. Plan Task 7 note: pass currentGlobalStep -1 when stopped
 2026-11-27 0005 fix r2 pushed @ 3fda96a (single module-level lazy loader; 192 tests); review r2 claudeAgent claude-opus-5-5
