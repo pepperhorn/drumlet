@@ -12,7 +12,7 @@ Next ID: 0006
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 0005 | [quick] Notation Retry without page reload | in-review | review 0005-review-r2 | codex/gpt-6.2-sol | orch/0005-notation-retry-in-place | https://github.com/pepperhorn/drumlet/pull/35 | /home/shaun/.t3/worktrees/drumlet/t3-6bb80683-a6b24001507b175a | — | — | — | docs/handoffs/2026-11-27-0005-notation-retry-in-place--lead-to-codex.md | 2026-11-27 |
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t6-review-r1 (t6 #36) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/36 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | ready | human: approve merge of #36 (t6, >50 code lines) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/36 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -49,11 +49,14 @@ Next ID: 0006
 | S14 | improvement | 2/2 with 16th steps: 5- or 7-sixteenth gaps become note + 16th rest (spec-allowed; no stock groove hits it) | PR #33 review r1; src/notation/beatToEvents.ts | S | notation correctness for user patterns | 0003 review r1 | new |
 | S15 | risk | `src/notation/renderStaff.test.ts` occasionally times out at the 5 s default under parallel load (seen by implementer and reviewer; passes on rerun) — raise its timeout or share the verovio toolkit across tests | PR #35 review r1 | S | stops flaky verify runs | 0005 review r1 | new |
 | S16 | improvement | Add a `vite:preloadError` listener that reloads only when a deploy has removed a lazy chunk (old tabs after a release) | PR #35 review r1 | S | no dead tabs after deploys | 0005 review r1 | new |
+| S17 | improvement | Endless notation >~222 bars: 64-bar chunks show a ~70 px staff break and repeat clef/time sig/bar no. at each join; clip later chunks' opening margin so barlines meet | PR #36 review r1 | S | seamless very long scores (rare) | 0001-t6 review r1 | new |
+| S18 | improvement | Notation beat counts never restart per bar (bar 2 counts from "5"; long strips reach 3-digit counts) | PR #36 review r1 (pre-existing on main) | S | readable counts | 0001-t6 review r1 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0001 t6 review r1 (opus) approved @ 29fd580 (wrapped identical on all 98 grooves; spikes are host noise, not t6); merge needs owner OK. Plan Task 7 note: pass currentGlobalStep -1 when stopped
 2026-11-27 0005 fix r2 pushed @ 3fda96a (single module-level lazy loader; 192 tests); review r2 claudeAgent claude-opus-5-5
 2026-11-27 0005 review r1 (opus) approved @ 2f066fe with a minor regression (engine-phase flash on reopen); lead sent fix r2 before merge
 2026-11-27 0001 t6 PR #36 head 29fd580 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-69c401c9-856a968687d76c84; 190 tests; p95 0.3–0.4 ms, max 16.5/9.7 ms); review r1 claudeAgent claude-opus-5-5

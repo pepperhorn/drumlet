@@ -171,6 +171,8 @@ Merge order = task order.
 
 ### Task 7: App Paged / Endless toggle
 
+> Note (2026-11-27, from t6 review): `NotationView` treats any `currentGlobalStep >= 0` as playing — pass `-1` whenever the transport is stopped.
+
 **Files:** Modify `src/App.tsx`, `src/components/PageTabs.tsx`
 
 - [ ] **Step 1:** Add a `page-tabs-view-toggle` keycap pair (Paged / Endless, `aria-pressed`) beside the Notation View button. Endless sets `playMode:'groove'`, renders `EndlessGrid` (editable, dispatching the existing toggle-step action with the page index) or `NotationView layout="endless"`; Paged restores today's UI. Persist under localStorage key `drumlet-view-mode` (try/catch).
