@@ -12,7 +12,7 @@ Next ID: 0010
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 0009 | [quick] Pad-name follow-ups: global bar numbers, aria-expanded | in-review | review 0009-review-r1 | codex/gpt-6.2-sol | orch/0009-pad-names-followups | https://github.com/pepperhorn/drumlet/pull/42 | /home/shaun/.t3/worktrees/drumlet/t3-083effbc-0beddf959bc87846 | — | — | — | docs/handoffs/2026-11-28-0009-pad-names-followups--lead-to-codex.md | 2026-11-28 |
-| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | child 0001-t8b-impl-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t8b-review-r1 (t8b #43) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/43 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -67,6 +67,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0001 t8b PR #43 head a823c32 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-923c1466-b5e9140f861de063; 249 tests; 8 players → 1 context in Chromium); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0009 dispatched→in-review — PR #42 head 045257e (244 tests); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0001-t8b + 0009 delegated in parallel → codex gpt-6.2-sol (high), base d9f23f2; threads thread:delegated-task:command%3Amcp%3A5f979163-48e8-4f4f-bdcf-db9a107dc8df%3Adelegate-task%3A0001-t8b-impl-r1 / …%3A0009-impl-r1
 2026-11-28 merged #41 (0007, auto), #40 (0008), #37 (t7), #38 (t8) — owner OK; main verify ✓ 243 tests at default timeout. t8b + quick 0009 (S20+S21) handoffs written for parallel dispatch
