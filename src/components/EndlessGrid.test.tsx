@@ -1,5 +1,6 @@
 import { fireEvent, render } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { Profiler } from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createNewPatternState, type Page } from '../state/sequencerReducer.js';
 import EndlessGrid from './EndlessGrid.js';
 
@@ -28,7 +29,19 @@ function fixture() {
   };
 }
 
+function mockGridLayout() {
+  vi.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(300);
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    const step = this.dataset.globalStep;
+    if (step === undefined) return new DOMRect();
+    const scrollEl = this.closest('.endless-grid')!;
+    return new DOMRect(100 + Number(step) * 40 - scrollEl.scrollLeft, 0, 40, 40);
+  });
+}
+
 describe('EndlessGrid', () => {
+  afterEach(() => vi.restoreAllMocks());
+
   it('renders 96 cells, one label per track, and a named join between pages', () => {
     const props = fixture();
     const { container } = render(<EndlessGrid {...props} />);
@@ -71,13 +84,7 @@ describe('EndlessGrid', () => {
   });
 
   it('keeps the moving playhead in view until manual input, then follows again after a playhead tap', () => {
-    vi.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(300);
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
-      const step = this.dataset.globalStep;
-      if (step === undefined) return new DOMRect();
-      const scrollEl = this.closest('.endless-grid')!;
-      return new DOMRect(100 + Number(step) * 40 - scrollEl.scrollLeft, 0, 40, 40);
-    });
+    mockGridLayout();
 
     const props = fixture();
     const { container, rerender } = render(
@@ -91,7 +98,71 @@ describe('EndlessGrid', () => {
     expect(scrollEl.scrollLeft).toBe(95);
     const playhead = container.querySelector('.playhead-active')!;
     fireEvent.pointerDown(playhead);
-    fireEvent.click(playhead);
+    fireEvent.pointerUp(playhead);
+    fireEvent.click(playhead, { detail: 1 });
     expect(scrollEl.scrollLeft).toBe(135);
+  });
+
+  it('commits once when the playhead advances on a 1024-pad groove', () => {
+    mockGridLayout();
+    const props = fixture();
+    const tracks = Array.from({ length: 8 }, (_, i) => ({ ...props.pages[0]!.tracks[0]!, id: String(i) }));
+    const pages = Array.from({ length: 8 }, (_, i) => ({ ...props.pages[0]!, tracks, id: String(i) }));
+    const onRender = vi.fn();
+    const tree = (step: number) => (
+      <Profiler id="endless" onRender={onRender}>
+        <EndlessGrid {...props} pages={pages} currentGlobalStep={step} isPlaying />
+      </Profiler>
+    );
+    const { rerender } = render(tree(15));
+    onRender.mockClear();
+
+    rerender(tree(16));
+    expect(onRender).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([true, false])('keeps following after a non-playhead click (editable=%s)', editable => {
+    mockGridLayout();
+    const props = fixture();
+    const { container, rerender } = render(<EndlessGrid {...props} isPlaying editable={editable} currentGlobalStep={0} />);
+    const cells = container.querySelectorAll('.endless-track-row')[0]!.querySelectorAll('.step-cell');
+    fireEvent.pointerDown(cells[2]!);
+    fireEvent.pointerUp(cells[2]!);
+    fireEvent.click(cells[2]!);
+    if (editable) expect(props.onToggleStep).toHaveBeenCalledExactlyOnceWith(0, 0, 2);
+    else expect(props.onSeek).toHaveBeenCalledExactlyOnceWith(2);
+
+    rerender(<EndlessGrid {...props} isPlaying editable={editable} currentGlobalStep={5} />);
+    expect(container.querySelector('.endless-grid')!.scrollLeft).toBe(95);
+  });
+
+  it('does not treat a drag ending over the playhead as a tap', () => {
+    mockGridLayout();
+    const props = fixture();
+    const renderAt = (step: number) => <EndlessGrid {...props} currentGlobalStep={step} isPlaying editable={false} />;
+    const { container, rerender } = render(renderAt(5));
+    const scroller = container.querySelector('.endless-grid')!;
+    const playhead = container.querySelector('.playhead-active')!;
+    fireEvent.pointerDown(playhead, { pointerId: 1, clientX: 30 });
+    fireEvent.pointerMove(playhead, { pointerId: 1, clientX: 40 });
+    fireEvent.pointerUp(playhead, { pointerId: 1, clientX: 40 });
+    fireEvent.click(playhead, { detail: 1 });
+
+    rerender(renderAt(6));
+    expect(props.onSeek).not.toHaveBeenCalled();
+    expect(scroller.scrollLeft).toBe(95);
+  });
+
+  it('allows Tab to leave a track row and arrows to advance to the next page', () => {
+    const { container } = render(<EndlessGrid {...fixture()} />);
+    const rows = container.querySelectorAll('.endless-track-row');
+    const pads = rows[0]!.querySelectorAll<HTMLButtonElement>('.step-cell');
+    expect(container.querySelectorAll('.step-cell[tabindex="0"]')).toHaveLength(2);
+    pads[15]!.focus();
+    fireEvent.keyDown(pads[15]!, { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(pads[16]);
+    expect(pads[15]!.tabIndex).toBe(-1);
+    expect(pads[16]!.tabIndex).toBe(0);
+    expect(rows[1]!.querySelector('.step-cell[tabindex="0"]')).toBe(rows[1]!.querySelector('.step-cell'));
   });
 });

@@ -1,9 +1,10 @@
-import { act, fireEvent, renderHook } from '@testing-library/react';
+import { act, fireEvent, render, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { useAutoFollow } from './useAutoFollow.js';
 
 function setup(targetX = 50, isPlaying = true) {
-  const scrollEl = document.createElement('div');
+  const { container } = render(null);
+  const scrollEl = container;
   Object.defineProperty(scrollEl, 'clientWidth', { value: 200 });
 
   const hook = renderHook(
@@ -31,9 +32,18 @@ describe('useAutoFollow', () => {
     expect(scrollEl.scrollLeft).toBe(70);
   });
 
-  it('pauses on pointerdown and re-arms on the next play', () => {
+  it('keeps following through a tap, pauses on a drag, and re-arms on the next play', () => {
     const { scrollEl, result, rerender } = setup(180);
-    fireEvent.pointerDown(scrollEl);
+    fireEvent.pointerDown(scrollEl, { pointerId: 1, clientX: 10 });
+    expect(result.current.following).toBe(true);
+    fireEvent.pointerUp(scrollEl, { pointerId: 1, clientX: 10 });
+    expect(result.current.following).toBe(true);
+
+    fireEvent.pointerDown(scrollEl, { pointerId: 2, clientX: 10 });
+    fireEvent.pointerMove(scrollEl, { pointerId: 2, clientX: 12 });
+    expect(result.current.following).toBe(true);
+    fireEvent.pointerMove(scrollEl, { pointerId: 2, clientX: 30 });
+    fireEvent.pointerUp(scrollEl, { pointerId: 2, clientX: 30 });
     expect(result.current.following).toBe(false);
 
     rerender({ targetX: 240, isPlaying: false });
