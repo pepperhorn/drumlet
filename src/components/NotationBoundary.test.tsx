@@ -2,20 +2,24 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { memo } from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { SequencerProvider, useSequencer } from '../state/SequencerContext.js';
-import NotationBoundary from './NotationBoundary.js';
 import { loadNotation } from './notationPrefetch.js';
 
 vi.mock('./notationPrefetch.js', () => ({ loadNotation: vi.fn() }));
 
+const load = vi.mocked(loadNotation);
 const notationModule = {
   default: memo(({ pages, currentPageIndex }) => (
     <output>Page {currentPageIndex + 1}, first step {String(pages[currentPageIndex]?.tracks[0]?.steps[0])}</output>
   )),
 } satisfies Awaited<ReturnType<typeof loadNotation>>;
 
-beforeEach(() => {
+let NotationBoundary: typeof import('./NotationBoundary.js').default;
+
+beforeEach(async () => {
+  vi.resetModules();
+  NotationBoundary = (await import('./NotationBoundary.js')).default;
   localStorage.clear();
-  vi.mocked(loadNotation).mockReset();
+  load.mockReset();
 });
 
 function SequencerNotation() {
@@ -33,11 +37,26 @@ function SequencerNotation() {
   );
 }
 
+it('skips the engine fallback when reopening after a successful load', async () => {
+  load.mockResolvedValue(notationModule);
+  const notation = <SequencerProvider><SequencerNotation /></SequencerProvider>;
+  const { unmount } = render(notation);
+  expect(screen.getByText('Loading notation engine…')).toBeTruthy();
+  await screen.findByText('Page 1, first step 0');
+  unmount();
+
+  render(notation);
+  expect(screen.queryByText('Loading notation engine…')).toBeNull();
+  expect(screen.getByText('Page 1, first step 0')).toBeTruthy();
+  expect(load).toHaveBeenCalledTimes(1);
+});
+
 it('loads notation after an import failure without losing edits, the selected page or undo', async () => {
-  vi.mocked(loadNotation)
+  load
     .mockRejectedValueOnce(new Error('Chunk unavailable'))
     .mockResolvedValueOnce(notationModule);
-  render(<SequencerProvider><SequencerNotation /></SequencerProvider>, { onCaughtError: () => {} });
+  const notation = <SequencerProvider><SequencerNotation /></SequencerProvider>;
+  const { unmount } = render(notation, { onCaughtError: () => {} });
 
   expect((await screen.findByRole('alert')).textContent).toBe('Could not load the notation engine.');
   fireEvent.click(screen.getByRole('button', { name: 'Edit page 2' }));
@@ -46,7 +65,12 @@ it('loads notation after an import failure without losing edits, the selected pa
   expect(await screen.findByText('Page 2, first step 1')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
   expect(screen.getByText('Page 2, first step 0')).toBeTruthy();
-  expect(loadNotation).toHaveBeenCalledTimes(2);
+
+  unmount();
+  render(notation);
+  expect(screen.queryByText('Loading notation engine…')).toBeNull();
+  expect(screen.getByText('Page 1, first step 0')).toBeTruthy();
+  expect(load).toHaveBeenCalledTimes(2);
 });
 
 it('restarts the engine deadline when Retry is clicked after 15 seconds', async () => {
@@ -54,13 +78,13 @@ it('restarts the engine deadline when Retry is clicked after 15 seconds', async 
   try {
     let resolve!: (module: typeof notationModule) => void;
     const promise = new Promise<typeof notationModule>((done) => { resolve = done; });
-    const load = vi.mocked(loadNotation).mockReturnValue(promise);
+    load.mockReturnValue(promise);
     render(<SequencerProvider><SequencerNotation /></SequencerProvider>);
     expect(screen.getByText('Loading notation engine…')).toBeTruthy();
     act(() => vi.advanceTimersByTime(15000));
     expect(screen.getByText('Still loading — slow connection?')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(load).toHaveBeenCalledTimes(2);
+    expect(load).toHaveBeenCalledTimes(1);
     act(() => vi.advanceTimersByTime(14999));
     expect(screen.getByText('Loading notation engine…')).toBeTruthy();
     await act(async () => resolve(notationModule));

@@ -47,6 +47,27 @@ added 271 packages, and audited 272 packages in 18s
 
 The cleanup pass simplified the mock fixture. Lint reported two existing warnings in `AuthModal.tsx`. The build kept a separate `NotationView` chunk.
 
+## Review fix
+
+[PR #35 review](https://github.com/pepperhorn/drumlet/pull/35#pullrequestreview-6085520653)
+
+Each mount created a fresh lazy component, which suspended even when the import promise had already resolved. Reopening now reuses the module-level component. Retry from the error card replaces it. Retry from the slow card restarts the 15-second timer and keeps the pending component and download.
+
+The reopen test reproduced the engine flash on the reviewed head. It now checks that notes render immediately after a remount and the loader is called only once. The error-path test also checks that reopening uses the recovered component.
+
+The cleanup pass removed repeated mock setup. The full verify command passed again with `VITEST_MAX_WORKERS=2`. Only the notation boundary, its test, and this handoff changed in this round.
+
+```text
+> tsc --noEmit
+> eslint .
+✖ 2 problems (0 errors, 2 warnings)
+> vite build
+✓ built in 1.58s
+> vitest run
+ Test Files  12 passed (12)
+      Tests  192 passed (192)
+```
+
 ## Decisions and limits
 
 - Retry remounts only the notation loader. The app no longer calls `location.reload()` or writes a retry flag to browser history.
