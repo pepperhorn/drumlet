@@ -18,7 +18,7 @@ Implement plan **Task 8** exactly as written on main: `src/player/DrumletPlayer.
 - Notes collected from reviews (all apply to you):
   - Pass `currentGlobalStep = -1` to NotationView / EndlessGrid when stopped (t6 review).
   - Notation must stay a lazy chunk: import it only via `loadNotation` / `NotationBoundary`; `chrome="none"` and grid display must never fetch it (Global Constraints).
-  - `assetBaseUrl` → `setKitBaseUrl(\`${assetBaseUrl}/kits/\`)`; default kit base stays as on main until t9 sets the jsDelivr default.
+  - `assetBaseUrl` → `setKitBaseUrl(`${assetBaseUrl}/kits/`)`; default kit base stays as on main until t9 sets the jsDelivr default.
   - Don't import anything that touches `window`/`document`/`localStorage`/`AudioContext` at module load (SSR-safe; resolve the groove in an effect).
 - Visuals: reuse the app's hardware materials (`.hw-btn`, `.hw-btn-accent`, Knob, pads) and DESIGN.md; root `<div className="drumlet-player …" data-theme=…>`. Global player constraints (no viewport units, no `position: fixed`, no viewport media queries in player code) apply to everything you write; `Cell`'s `md:`/`lg:` breakpoints are a known t9 issue — leave Cell alone.
 
