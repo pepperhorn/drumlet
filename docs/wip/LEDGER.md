@@ -11,7 +11,7 @@ Next ID: 0006
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0005 | [quick] Notation Retry without page reload | changes-requested | child 0005-impl-r2 | codex/gpt-6.2-sol | orch/0005-notation-retry-in-place | https://github.com/pepperhorn/drumlet/pull/35 | /home/shaun/.t3/worktrees/drumlet/t3-6bb80683-a6b24001507b175a | — | — | — | docs/handoffs/2026-11-27-0005-notation-retry-in-place--lead-to-codex.md | 2026-11-27 |
+| 0005 | [quick] Notation Retry without page reload | in-review | review 0005-review-r2 | codex/gpt-6.2-sol | orch/0005-notation-retry-in-place | https://github.com/pepperhorn/drumlet/pull/35 | /home/shaun/.t3/worktrees/drumlet/t3-6bb80683-a6b24001507b175a | — | — | — | docs/handoffs/2026-11-27-0005-notation-retry-in-place--lead-to-codex.md | 2026-11-27 |
 | 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t6-review-r1 (t6 #36) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/36 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
@@ -54,6 +54,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0005 fix r2 pushed @ 3fda96a (single module-level lazy loader; 192 tests); review r2 claudeAgent claude-opus-5-5
 2026-11-27 0005 review r1 (opus) approved @ 2f066fe with a minor regression (engine-phase flash on reopen); lead sent fix r2 before merge
 2026-11-27 0001 t6 PR #36 head 29fd580 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-69c401c9-856a968687d76c84; 190 tests; p95 0.3–0.4 ms, max 16.5/9.7 ms); review r1 claudeAgent claude-opus-5-5
 2026-11-27 0005 dispatched→in-review — PR #35 head 2f066fe (191 tests); review r1 claudeAgent claude-opus-5-5
