@@ -1,44 +1,36 @@
 # Handoff 0004 — Auto-follow ignores vertical wheel (Codex → lead)
 
-- **Date** 2026-11-27
-- **Type** Return
-- **Ledger** 0004 · **Spec and plan** None (quick)
-- **Dispatch** [Lead-to-Codex handoff](2026-11-27-0004-autofollow-vertical-wheel--lead-to-codex.md)
-- **Branch** `orch/0004-autofollow-vertical-wheel`
-- **Worktree** `/home/shaun/.t3/worktrees/drumlet/t3-678e31e8-3545aa54bf523224`
-- **Base** `6a6cac0` · **Implementation** `6198ae4`
-- **Status** Blocked. Branch is local. No draft PR opened.
+- Date: 2026-11-27
+- Type: Return
+- Ledger: 0004 · Spec and plan: none (quick)
+- Dispatch: [Lead-to-Codex handoff](2026-11-27-0004-autofollow-vertical-wheel--lead-to-codex.md)
+- Branch: `orch/0004-autofollow-vertical-wheel`
+- Worktree: `/home/shaun/.t3/worktrees/drumlet/t3-678e31e8-3545aa54bf523224`
+- Base: `b5a04bb`
+- Outcome: Ready for review
 
 ## Goal and scope
 
-Keep auto-follow active while a vertical wheel scrolls past the embedded player. Pause on horizontal-dominant input or Shift plus nonzero vertical input. Only `src/components/useAutoFollow.ts` and `src/components/useAutoFollow.test.ts` are owned. Arrow-key focus, pointer, and scroll handling are unchanged.
+Scrolling the host page vertically over Drumlet no longer pauses auto-follow. The wheel handler pauses when `|deltaX| > |deltaY|` or when Shift is held and `deltaY` is nonzero. Arrow-key focus, pointer, and scroll handling are unchanged.
 
-## Acceptance and verification
+Changed `useAutoFollow.ts`, its unit tests, and the wheel fixtures in `EndlessGrid.test.tsx`. The old integration fixture sent no deltas. It now sends horizontal-dominant input and still checks pause and resume. The new vertical-only case checks that the next playhead step advances the scroll offset from 95 to 135.
 
-- [x] Vertical input leaves auto-follow active, and the next playhead update still scrolls the strip.
-- [x] Horizontal-dominant input and Shift plus vertical input pause following.
-- [ ] Existing tests still pass. The hook's 9 tests pass, but an integration fixture needs an out-of-scope edit.
+## Verification
 
 ```bash
 npm ci && npm run typecheck && npm run lint && npm run build && npm test
-npm test -- src/components/useAutoFollow.test.ts
 ```
 
-Install, typecheck, lint, and build passed. Lint emitted two warnings in `AuthModal.tsx`. The full test suite reported:
+Install, typecheck, lint, and build passed. Lint reported two existing warnings in `AuthModal.tsx`.
 
 ```text
-FAIL  src/components/EndlessGrid.test.tsx > EndlessGrid > keeps the moving playhead in view until manual input, then follows again after a playhead tap
-AssertionError: expected 135 to be 95
-Test Files  1 failed | 6 passed (7)
-     Tests  1 failed | 155 passed (156)
+✖ 2 problems (0 errors, 2 warnings)
+Test Files  7 passed (7)
+     Tests  157 passed (157)
 ```
 
-The new tests reproduced four failures against the old handler. All nine hook tests passed with the fix. The full-suite failure is at [the assertion in EndlessGrid.test.tsx](../../src/components/EndlessGrid.test.tsx#L98). Its fixture calls `fireEvent.wheel(scrollEl)` with both deltas defaulting to zero. The playhead now keeps following that no-motion event, so the offset advances from 95 to 135.
+`orch-deslop` removed the resolved blocker from this handoff and found no code cleanup needed. Full verification passed again.
 
-## Open question
+## Open questions
 
-May the implementer update [the wheel fixture](../../src/components/EndlessGrid.test.tsx#L95) to `fireEvent.wheel(scrollEl, { deltaX: 20 })`? This keeps the test's original manual-scroll intent and leaves its assertions intact. After that, rerun verification, run `orch-deslop`, rerun verification, then push and open the draft PR.
-
-## Known gotchas
-
-GBrain [default:projects/drumlet] documents the protected-main PR workflow. The dispatch handoff supplies the current verify command, including Vitest.
+None. GBrain [default:projects/drumlet] records the protected-main PR workflow. Use the dispatch handoff for the current verify command.
