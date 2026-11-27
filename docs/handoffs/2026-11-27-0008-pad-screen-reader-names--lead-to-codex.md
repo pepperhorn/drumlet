@@ -11,12 +11,12 @@
 Step pads (`src/components/Cell.tsx`) announce only their velocity letter ("H") or nothing. Give every pad an accessible name with track, step and state, e.g. "Kick, bar 2 beat 3, step 11, hard" / "… empty", and expose on/off via `aria-pressed`. Split cells and sub-steps get names too ("… sub-step 2 of 3"). Both the paged grid (TrackRow) and the endless grid (EndlessGrid) pass what Cell needs. Keep memoisation intact (EndlessGrid's one-commit-per-step budget from #32 must hold — pass stable primitives, not new objects).
 
 ## Files you own
-`src/components/Cell.tsx`, `src/components/TrackRow.tsx`, `src/components/EndlessGrid.tsx` (props to Cell only), their tests (`*.test.tsx` next to them; create `Cell.test.tsx`).
+`src/components/Cell.tsx`, `src/components/TrackRow.tsx`, `src/components/EndlessGrid.tsx` (props to Cell only), their tests (`*.test.tsx` next to them; create `Cell.test.tsx`), and `src/components/Grid.tsx` — **one prop only** (pass the musical beat size to TrackRow), added by lead after implementer question.
 
 Parallel work right now: 0001-t7 owns `src/App.tsx`, `src/components/PageTabs.tsx`, `src/components/Transport.tsx`; 0001-t8 owns `src/player/**`; the other two quick items own the files listed in their handoffs. Touch nothing else — note it in your return handoff instead.
 
 ## Acceptance criteria
-- [ ] Tests assert names for empty, soft/medium/hard (per velMode), split and sub-step pads, in both grids.
+- [ ] Tests assert names for empty, soft/medium/hard (per velMode) and split-master pads in both grids; sub-step buttons are tested where they already render (paged grid expanded split) — no new endless interaction needed.
 - [ ] EndlessGrid still renders 1 commit per playhead step (existing test still passes; re-measure the 8×8 fixture and report the worst step time).
 - [ ] Contextual class names first on any new element (CLAUDE.md); no behaviour change outside the goal.
 
