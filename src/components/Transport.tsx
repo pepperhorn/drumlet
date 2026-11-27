@@ -345,7 +345,7 @@ function Transport({
         <div className="transport-time-sig flex flex-col items-center gap-1">
           <span className="transport-time-sig-label legend leading-none">Time</span>
           <select
-            className="transport-time-sig-select hw-well h-10 lg:h-12 px-2 rounded-lg text-xs lg:text-sm font-mono font-semibold text-text cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky"
+            className="transport-time-sig-select hw-well h-10 lg:h-12 px-2 rounded-lg text-xs lg:text-sm font-mono font-semibold text-text cursor-pointer"
             value={`${beatsPerBar}/${TIME_SIGNATURES.find(ts => ts.num === beatsPerBar && ts.noteValue === noteValue)?.denom ?? 4}`}
             onChange={(e) => {
               const ts = TIME_SIGNATURES.find((t) => t.label === e.target.value);

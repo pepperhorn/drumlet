@@ -236,7 +236,7 @@ function PageTabs({
               value={jumpValue}
               onChange={(e) => setJumpValue(e.target.value)}
               placeholder="#"
-              className="page-jump-input hw-well w-12 h-7 px-1.5 rounded-lg text-xs text-text outline-none focus-visible:ring-2 focus-visible:ring-sky/60 text-center font-mono"
+              className="page-jump-input hw-well w-12 h-7 px-1.5 rounded-lg text-xs text-text text-center font-mono"
               aria-label={`Jump to page (1–${pages.length})`}
               title={`Jump to page (1–${pages.length})`}
             />

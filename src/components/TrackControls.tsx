@@ -113,7 +113,7 @@ function TrackControls({
 
         <div className="track-msvl hidden lg:flex items-center gap-1">
           <button
-            className={`track-mute-btn hw-btn relative font-legend font-semibold uppercase tracking-[0.12em] w-6 h-6 rounded text-[10px] cursor-pointer shrink-0 flex items-center justify-center
+            className={`track-mute-btn hw-btn relative font-legend font-semibold uppercase tracking-[0.12em] w-6 h-6 rounded text-xs cursor-pointer shrink-0 flex items-center justify-center
               ${track.mute ? 'text-stop' : 'text-muted hover:text-text'}`}
             onClick={() => onChangeProp(trackIndex, 'mute', !track.mute)}
             title="Mute"
@@ -128,7 +128,7 @@ function TrackControls({
           </button>
 
           <button
-            className={`track-solo-btn hw-btn relative font-legend font-semibold uppercase tracking-[0.12em] w-6 h-6 rounded text-[10px] cursor-pointer shrink-0 flex items-center justify-center
+            className={`track-solo-btn hw-btn relative font-legend font-semibold uppercase tracking-[0.12em] w-6 h-6 rounded text-xs cursor-pointer shrink-0 flex items-center justify-center
               ${track.solo ? 'text-amber' : 'text-muted hover:text-text'}`}
             onClick={() => onChangeProp(trackIndex, 'solo', !track.solo)}
             title="Solo"

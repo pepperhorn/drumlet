@@ -8,6 +8,12 @@
 --------------------------------------------------------------------------- */
 
 :root {
+  /* how much white a derived (custom-theme) surface is lifted by */
+  --mat-lift: 60%;
+
+  /* selection / expanded-split marker on step pads */
+  --pad-select: #8B5CF6;
+
   /* the room behind the instrument */
   --room-bg: radial-gradient(ellipse at 50% 0%, #F7F5EE 0%, #EEECE4 55%, #E4E1D7 100%);
 
@@ -56,7 +62,9 @@
   --pad-bloom-strength: 45%;
 }
 
-:root[data-theme="dark"] {
+:root[data-theme="dark"],
+:root[data-theme-mode="dark"] {
+  --mat-lift: 10%;
   --room-bg: radial-gradient(ellipse at 50% 0%, #2A3345 0%, #1A2030 55%, #10131B 100%);
 
   --face-bg:
@@ -100,12 +108,26 @@
   --pad-bloom-strength: 70%;
 }
 
-/* ---- room + faceplate ---------------------------------------------------- */
-
-body {
-  background: var(--room-bg);
-  background-attachment: fixed;
+/* Custom (registered) themes: applyTheme sets data-theme-custom and
+   data-theme-mode. Mode picks the light/dark shadow set above; these rules
+   derive the surfaces from the colours the theme registered. */
+:root[data-theme-custom] {
+  --room-bg: var(--color-bg);
+  --face-bg: linear-gradient(180deg, color-mix(in srgb, white var(--mat-lift), var(--color-card)) 0%, var(--color-card) 100%);
+  --face-border: var(--color-border);
+  --well-bg: color-mix(in srgb, black 10%, var(--color-card));
+  --well-border: color-mix(in srgb, black 25%, var(--color-border));
+  --btn-bg: linear-gradient(180deg, color-mix(in srgb, white var(--mat-lift), var(--color-card-elevated)) 0%, var(--color-card-elevated) 100%);
+  --btn-border: var(--color-border);
+  --knob-bg: radial-gradient(circle at 50% 30%, color-mix(in srgb, white var(--mat-lift), var(--color-card-elevated)) 0%, var(--color-card-elevated) 100%);
+  --knob-skirt-bg: radial-gradient(circle at 50% 28%, var(--color-card-elevated) 0%, color-mix(in srgb, black 35%, var(--color-card)) 100%);
+  --knob-pointer: var(--color-text);
+  --pad-off-solid: var(--color-cell);
+  --pad-off-bg: linear-gradient(180deg, color-mix(in srgb, white 35%, var(--color-cell)) 0%, var(--color-cell) 100%);
+  --pad-off-hover: var(--color-cell-hover);
 }
+
+/* ---- room + faceplate ---------------------------------------------------- */
 
 .transport-bar,
 .sequencer-grid,
@@ -147,9 +169,15 @@ body {
   transform: translateY(1px);
   box-shadow: var(--btn-shadow-active);
 }
-.hw-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--btn-shadow), 0 0 0 2px var(--color-accent);
+
+/* Keyboard focus is an outline, so it never fights the surface, pressed or
+   selection box-shadows. */
+.hw-btn:focus-visible,
+.hw-well:focus-visible,
+.knob-body:focus-visible,
+.pad:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 /* Tiny in-button LED. Light it with .hw-led-on + `color` (uses currentColor). */
@@ -170,10 +198,8 @@ body {
 
 /* ---- knobs (see components/Knob.tsx) ------------------------------------- */
 
-.knob-body:focus-visible {
-  outline: none;
+.knob-body {
   border-radius: 9999px;
-  box-shadow: 0 0 0 2px var(--color-accent);
 }
 .knob-label {
   font-family: var(--font-mono);
@@ -270,6 +296,20 @@ body {
     0 0 0 2px color-mix(in srgb, white 50%, var(--pad-color));
 }
 
+/* Copy/cut target and expanded split master. Drawn as an outline so it
+   survives the playhead and lit box-shadows. */
+.pad.cell-active {
+  outline: 2px solid color-mix(in srgb, var(--pad-select) 80%, transparent);
+  outline-offset: 1px;
+}
+.pad.step-cell-split-master {
+  outline: 1.5px solid color-mix(in srgb, var(--pad-select) 55%, transparent);
+  outline-offset: 1px;
+}
+.pad:focus-visible.cell-active {
+  outline-color: var(--color-accent);
+}
+
 /* Pad legend — velocity glyph sits like a printed mark under the silicone. */
 .pad .step-cell-label {
   color: #fff;
@@ -286,11 +326,14 @@ body {
 /* Small screened label (knob names, button text, section titles). */
 .legend {
   font-family: var(--font-legend);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--color-muted);
+}
+.track-mobile-volume-label {
+  font-size: 14px;
 }
 .legend-strong {
   font-family: var(--font-legend);

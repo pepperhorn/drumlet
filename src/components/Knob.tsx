@@ -136,6 +136,9 @@ export function Knob({
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
       if (disabled) return;
+      if (['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft', 'Home', 'End'].includes(e.key)) {
+        e.stopPropagation();
+      }
       if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
         e.preventDefault();
         commit(safeValue + step);

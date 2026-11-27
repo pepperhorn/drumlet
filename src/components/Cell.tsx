@@ -80,7 +80,7 @@ function Cell({
         <button
           className={`step-cell step-cell-split relative w-[var(--cell-w,2.25rem)] h-[var(--cell-w,2.25rem)] md:w-10 md:h-10 lg:w-11 lg:h-11 pad pad-off cursor-pointer
             flex items-stretch gap-px overflow-hidden select-none
-            ${isActive ? 'cell-active ring-2 ring-violet/60' : ''}
+            ${isActive ? 'cell-active' : ''}
             ${isPlayhead ? 'playhead-active' : ''}
           `}
           onClick={() => { onClick?.(); onExpandToggle?.(); }}
@@ -112,7 +112,6 @@ function Cell({
         <button
           className={`step-cell step-cell-split-master relative w-[var(--cell-w,2.25rem)] h-[var(--cell-w,2.25rem)] md:w-10 md:h-10 lg:w-11 lg:h-11 pad pad-off cursor-pointer
             flex items-stretch gap-px overflow-hidden select-none
-            ring-1 ring-violet/40
             ${isPlayhead ? 'playhead-active' : ''}
           `}
           onClick={onExpandToggle}
@@ -166,7 +165,7 @@ function Cell({
       className={`step-cell pad relative w-[var(--cell-w,2.25rem)] h-[var(--cell-w,2.25rem)] md:w-10 md:h-10 lg:w-11 lg:h-11 cursor-pointer
         flex items-center justify-center text-sm md:text-xs lg:text-sm font-mono font-semibold select-none overflow-hidden
         ${velocity === 0 ? 'pad-off' : 'pad-on'}
-        ${isActive ? 'cell-active ring-2 ring-violet/60' : ''}
+        ${isActive ? 'cell-active' : ''}
         ${isPlayhead ? 'playhead-active' : ''}
         ${isBeatStart ? 'ml-1 md:ml-1.5' : 'ml-0.5'}
       `}
