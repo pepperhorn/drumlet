@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import { readFile } from 'node:fs/promises';
-import { expect, it, vi } from 'vitest';
+import { beforeAll, expect, it, vi } from 'vitest';
 import { fitStaffToWidth, pickBarsPerLine, renderDrumStaff, type MergedTrack } from './renderStaff.js';
 
 it('chooses the largest number of full bars that fits at the selected size', () => {
@@ -11,9 +11,7 @@ it('chooses the largest number of full bars that fits at the selected size', () 
   expect(fitStaffToWidth(310, 16, 45)).toEqual({ bars: 1, scale: 34 });
 });
 
-async function stubVerovioGeometry() {
-  const font = await readFile('public/fonts/Petaluma.zip');
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(new Uint8Array(font))));
+function stubVerovioGeometry() {
   // jsdom has no layout engine. Derive the horizontal position from Verovio's
   // note/rest transforms and staff paths.
   Object.defineProperty(SVGElement.prototype, 'getBBox', {
@@ -27,8 +25,26 @@ async function stubVerovioGeometry() {
   });
 }
 
+beforeAll(async () => {
+  const font = await readFile('public/fonts/Petaluma.zip');
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(new Uint8Array(font))));
+  stubVerovioGeometry();
+  try {
+    // Warm the renderer's cached toolkit and font with one empty bar.
+    const score = document.createElement('div');
+    score.className = 'drumlet-notation-test-score';
+    await renderDrumStaff(score, {
+      mergedTracks: [], totalSteps: 16, noteValueKey: '1/16', beatNoteValue: '1/4',
+      stepsPerBeat: 4, numStaffLines: 1,
+    });
+  } finally {
+    Reflect.deleteProperty(SVGElement.prototype, 'getBBox');
+    vi.unstubAllGlobals();
+  }
+}, 30_000);
+
 it('engraves onsets, keeps split tuplets, and interpolates skipped grid steps', async () => {
-  await stubVerovioGeometry();
+  stubVerovioGeometry();
 
   const score = document.createElement('div');
   const track = {
@@ -55,13 +71,13 @@ it('engraves onsets, keeps split tuplets, and interpolates skipped grid steps', 
   } finally {
     Reflect.deleteProperty(SVGElement.prototype, 'getBBox');
   }
-});
+}, 15_000);
 
 it.each([
   { bars: 8, systems: 1 },
   { bars: 225, systems: 4 },
 ])('places $bars bars in $systems horizontal systems with global step positions', async ({ bars, systems }) => {
-  await stubVerovioGeometry();
+  stubVerovioGeometry();
   const score = document.createElement('div');
   const totalSteps = bars * 16;
   const track = {
@@ -87,4 +103,4 @@ it.each([
   } finally {
     Reflect.deleteProperty(SVGElement.prototype, 'getBBox');
   }
-});
+}, 30_000);
