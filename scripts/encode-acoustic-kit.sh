@@ -24,21 +24,21 @@ done
 
 for voice in "${voices[@]}"; do
   stem="acoustic-$voice"
-  channels=1
+  audio_args=(-ac 1 -ar 44100)
   bitrate=64k
-  filters=()
+  filter=''
   case "$voice" in
-    Crash)    filters=(-af 'atrim=duration=5,afade=t=out:st=4.6:d=0.4') ;;
-    Ride)     filters=(-af 'atrim=duration=4.5,afade=t=out:st=4.1:d=0.4') ;;
-    RideBell) filters=(-af 'atrim=duration=3.5,afade=t=out:st=3.1:d=0.4') ;;
-    HHOpen)   filters=(-af 'atrim=duration=2.5,afade=t=out:st=2.1:d=0.4') ;;
+    Crash)    filter='atrim=duration=5,afade=t=out:st=4.6:d=0.4' ;;
+    Ride)     filter='atrim=duration=4.5,afade=t=out:st=4.1:d=0.4' ;;
+    RideBell) filter='atrim=duration=3.5,afade=t=out:st=3.1:d=0.4' ;;
+    HHOpen)   filter='atrim=duration=2.5,afade=t=out:st=2.1:d=0.4' ;;
   esac
-  if (( ${#filters[@]} )); then
-    channels=2
+  if [[ -n "$filter" ]]; then
+    audio_args=(-af "$filter" -ac 2 -ar 44100)
     bitrate=96k
   fi
 
   ffmpeg -nostdin -hide_banner -loglevel error -y -i "$src_dir/$stem.ogg" \
-    "${filters[@]}" -ac "$channels" -ar 44100 -c:a libvorbis -q:a 3 -fflags +bitexact "$out_dir/$stem.ogg" \
-    "${filters[@]}" -ac "$channels" -ar 44100 -c:a aac -b:a "$bitrate" "$out_dir/$stem.m4a"
+    "${audio_args[@]}" -c:a libvorbis -q:a 3 -fflags +bitexact "$out_dir/$stem.ogg" \
+    "${audio_args[@]}" -c:a aac -b:a "$bitrate" "$out_dir/$stem.m4a"
 done
