@@ -32,5 +32,7 @@ npm ci && npm run typecheck && npm run lint && npm run build && npm test
 
 I’ll share one initialized Verovio toolkit across the staff-rendering tests, give the slow case a local timeout, and keep every assertion intact. I’ll run the full verification command and ten consecutive four-worker Vitest runs. No open questions.
 
+Amended scope acknowledged at `7e2626c`. I’ll set the default test timeout to 15 seconds and make the Retry assertion wait for React to commit the resolved view. I’ll leave `EndlessGrid.test.tsx` untouched.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
