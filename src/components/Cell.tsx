@@ -107,7 +107,8 @@ function Cell({
             onRightClick?.();
           }}
           aria-label={splitName}
-          aria-pressed={activeSubSteps > 0}
+          aria-expanded={onExpandToggle ? false : undefined}
+          aria-pressed={onExpandToggle ? undefined : activeSubSteps > 0}
           title={`Split ${splitData.length} — click to edit`}
         >
           {splitData.map((subVel, i) => {
@@ -136,7 +137,7 @@ function Cell({
           `}
           onClick={onExpandToggle}
           aria-label={splitName}
-          aria-pressed={activeSubSteps > 0}
+          aria-expanded={true}
           title="Click to collapse"
         >
           {splitData.map((subVel, i) => {

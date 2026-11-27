@@ -1371,6 +1371,7 @@ function Drumlet() {
         <div className={`grid-wrap ${playMode ? 'pb-28' : ''}`}>
           <Grid
             tracks={currentPage.tracks}
+            pageIndex={state.currentPageIndex}
             currentStep={pagedGridStep}
             stepsPerPage={state.stepsPerPage}
             noteValue={state.noteValue}

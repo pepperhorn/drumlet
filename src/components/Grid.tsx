@@ -70,6 +70,7 @@ interface EditingHeading {
 
 interface GridProps {
   tracks: Track[];
+  pageIndex: number;
   currentStep: number;
   stepsPerPage: number;
   noteValue: NoteValueKey;
@@ -104,6 +105,7 @@ interface GridProps {
 
 function Grid({
   tracks,
+  pageIndex,
   currentStep,
   stepsPerPage,
   noteValue,
@@ -572,6 +574,7 @@ function Grid({
                   stepsPerBeat={stepsPerBeat}
                   musicalStepsPerBeat={realStepsPerBeat}
                   stepsPerBar={stepsPerBar}
+                  barOffset={pageIndex * totalBars}
                   expanded={expandedTracks.has(ti)}
                   onToggleExpand={() => toggleTrackExpand(ti)}
                   colWidth={colWidth}
