@@ -142,7 +142,7 @@ function PageTabs({
       {onToggleNotation && (
         <>
           <button
-            className={`notation-toggle-btn hw-btn h-10 w-10 md:w-auto md:h-8 md:px-2.5 rounded-xl md:rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shrink-0 text-xs lg:text-sm font-semibold
+            className={`notation-toggle-btn hw-btn h-10 w-10 md:w-auto md:h-8 md:px-2.5 rounded-xl md:rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shrink-0 text-sm md:text-xs lg:text-sm font-semibold
               ${notationView ? 'text-text' : 'text-muted hover:text-text'}`}
             aria-pressed={notationView}
             onClick={onToggleNotation}
@@ -165,7 +165,7 @@ function PageTabs({
                 
               </span>
             )}
-            <span className="notation-toggle-label font-legend font-semibold uppercase tracking-[0.12em] hidden md:inline whitespace-nowrap text-[11px]">
+            <span className="notation-toggle-label font-legend font-semibold uppercase tracking-[0.12em] hidden md:inline whitespace-nowrap text-xs">
               {notationView ? 'Grid Editor' : 'Notation View'}
             </span>
           </button>
@@ -254,7 +254,7 @@ function PageTabs({
           {pages.map((page, i) => (
             <button
               key={page.id}
-              className={`page-tab hw-btn font-legend font-semibold uppercase tracking-[0.12em] h-10 md:h-auto px-3 md:py-1 rounded-xl md:rounded-lg whitespace-nowrap text-xs lg:text-sm cursor-pointer
+              className={`page-tab hw-btn font-legend font-semibold uppercase tracking-[0.12em] h-10 md:h-auto px-3 md:py-1 rounded-xl md:rounded-lg whitespace-nowrap text-sm cursor-pointer
                 ${i === currentPageIndex ? 'hw-btn-accent' : 'text-muted hover:text-text'}`}
               style={{ '--hw-accent': 'var(--color-sky)' } as CSSProperties}
               aria-pressed={i === currentPageIndex}
@@ -402,7 +402,7 @@ function PageTabs({
       </button>
 
       <button
-        className="clear-page-btn hw-btn font-legend font-semibold uppercase tracking-[0.12em] text-[11px] text-muted shrink-0 h-10 md:h-auto px-3 md:py-1 rounded-xl md:rounded-lg hover:text-stop cursor-pointer"
+        className="clear-page-btn hw-btn font-legend font-semibold uppercase tracking-[0.12em] text-sm md:text-xs text-muted shrink-0 h-10 md:h-auto px-3 md:py-1 rounded-xl md:rounded-lg hover:text-stop cursor-pointer"
         onClick={onClearPage}
         title="Clear all steps on this page"
       >

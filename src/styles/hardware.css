@@ -203,7 +203,7 @@
 }
 .knob-label {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -296,18 +296,22 @@
     0 0 0 2px color-mix(in srgb, white 50%, var(--pad-color));
 }
 
-/* Copy/cut target and expanded split master. Drawn as an outline so it
-   survives the playhead and lit box-shadows. */
-.pad.cell-active {
-  outline: 2px solid color-mix(in srgb, var(--pad-select) 80%, transparent);
-  outline-offset: 1px;
+/* Copy/cut target and expanded split master. Persistent markers are an inset
+   ring on ::after, so they survive the lit/playhead box-shadows and leave the
+   outer outline free for keyboard focus (see .pad:focus-visible). */
+.pad.cell-active::after,
+.pad.step-cell-split-master::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
 }
-.pad.step-cell-split-master {
-  outline: 1.5px solid color-mix(in srgb, var(--pad-select) 55%, transparent);
-  outline-offset: 1px;
+.pad.cell-active::after {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pad-select) 80%, transparent);
 }
-.pad:focus-visible.cell-active {
-  outline-color: var(--color-accent);
+.pad.step-cell-split-master::after {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--pad-select) 55%, transparent);
 }
 
 /* Pad legend — velocity glyph sits like a printed mark under the silicone. */
@@ -334,6 +338,11 @@
 }
 .track-mobile-volume-label {
   font-size: 14px;
+}
+@media (max-width: 767px) {
+  .knob-label {
+    font-size: 14px;
+  }
 }
 .legend-strong {
   font-family: var(--font-legend);

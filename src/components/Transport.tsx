@@ -333,7 +333,7 @@ function Transport({
       </div>
 
       <button
-        className="transport-tap-btn hw-btn font-legend font-semibold uppercase tracking-[0.12em] text-[11px] text-muted px-3 h-8 rounded-lg hover:text-text cursor-pointer"
+        className="transport-tap-btn hw-btn font-legend font-semibold uppercase tracking-[0.12em] text-sm md:text-xs lg:text-sm text-muted px-3 h-8 rounded-lg hover:text-text cursor-pointer"
         onClick={handleTap}
       >
         TAP
@@ -405,7 +405,7 @@ function Transport({
             {(['8th', '16th'] as const).map((t) => (
               <button
                 key={t}
-                className={`swing-target-btn hw-btn flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] lg:text-[10px] font-mono font-semibold cursor-pointer leading-tight
+                className={`swing-target-btn hw-btn flex items-center gap-1 px-1.5 py-0.5 rounded text-sm md:text-xs font-mono font-semibold cursor-pointer leading-tight
                   ${swingTarget === t ? 'text-amber' : 'text-muted hover:text-text'}`}
                 onClick={() => onSetSwingTarget(t)}
                 title={t === '8th' ? 'Swing 8th notes and below' : 'Swing 16th notes and below only'}
