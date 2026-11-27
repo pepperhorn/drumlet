@@ -133,7 +133,7 @@ Merge order = task order.
 - `export type PlayMode = 'page' | 'groove';`
 - `export function advancePosition(pos: { page: number; step: number }, s: { pages: number; stepsPerPage: number; mode: PlayMode; chain: boolean; loop: boolean }): { page: number; step: number } | null` — `null` means "stop" (groove mode, `loop=false`, past last step). Page mode keeps today's behaviour (wrap the page; `chain` advances pages).
 - `toGlobalStep(page, step, stepsPerPage): number`, `fromGlobalStep(g, stepsPerPage): {page, step}`.
-- `SequencerState` gains `playMode: PlayMode` (default `'page'`) and `loopGroove: boolean` (default `true`); reducer actions `SET_PLAY_MODE`, `SET_LOOP_GROOVE`.
+- `SequencerState` gains optional `playMode?: PlayMode` and `loopGroove?: boolean` (initial state `'page'` / `true`; always read as `state.playMode ?? 'page'`, `state.loopGroove ?? true` — amended 2026-11-27 so other construction sites needn't change); reducer actions `SET_PLAY_MODE`, `SET_LOOP_GROOVE`.
 - `TransportApi` gains `currentGlobalStep: number`, `currentPlayPage: number`, `seek(globalStep: number): void`, and an `onEnded?` option (`useTransport(stateRef, engine, { onEnded })`).
 
 - [ ] **Step 1: Failing tests** (`playPosition.test.ts`): groove mode 3 pages × 16 → `{0,15}`→`{1,0}`, `{2,15}`+loop→`{0,0}`, `{2,15}`+!loop→`null`; page mode `{1,15}` chain=false → `{1,0}`, chain=true → `{2,0}`; `toGlobalStep(2,3,16)===35`, `fromGlobalStep(35,16)` → `{page:2,step:3}`.
