@@ -5,19 +5,20 @@
 > Waiting on: `child <taskId>` · `review <taskId>` · `ci` · `human: <why>` · `lead: <next action>`. Set it on every status change. A row needs the lead when it starts with `lead`, or when it's empty and Status is dispatched, in-review, changes-requested, ready, or merged. The lead's Stop hook won't let the lead end its turn while any row needs it.
 > Type: normal items have a spec and plan. Quick items have the title prefix `[quick]` (no spec or plan, a short handoff). PRs adopted by `orch-sweep` have the prefix `[pr]`.
 
-Next ID: 0005
+Next ID: 0006
 
 ## Active
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0003 | Mobile notation: load feedback, fit to width, onset durations, toggle icon | ready | human: approve merge of #33 (>50 code lines, serve.json caching) | codex/gpt-6.2-sol | orch/0003-mobile-notation | https://github.com/pepperhorn/drumlet/pull/33 | /home/shaun/.t3/worktrees/drumlet/t3-9b456f9f-7f5e8ba5d057ee97 | — | docs/specs/0003-mobile-notation.md | docs/plans/0003-mobile-notation.md | docs/handoffs/2026-11-27-0003-mobile-notation--lead-to-codex.md | 2026-11-27 |
-| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | review 0003-review-r1 (t6 starts after 0003 merges — same files) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0005 | [quick] Notation Retry without page reload | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0005-notation-retry-in-place | — | — | — | — | — | docs/handoffs/2026-11-27-0005-notation-retry-in-place--lead-to-codex.md | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | lead: delegate t6 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0003 | Mobile notation: load feedback, fit to width, onset durations, toggle icon | https://github.com/pepperhorn/drumlet/pull/33 | 2026-11-27 (e480679) | 1 review round (opus; 98 grooves × 1,536 renders); owner OK |
 | 0004 | [quick] Auto-follow: ignore vertical wheel | https://github.com/pepperhorn/drumlet/pull/34 | 2026-11-27 (7f31818) | 1 review round (opus); owner OK |
 | 0001-t5 | Endless grid + auto-follow | https://github.com/pepperhorn/drumlet/pull/32 | 2026-11-27 (6a6cac0) | 2 review rounds (opus); worst 1.2 ms/step on 1024 pads |
 | 0001-t3 | Groove input resolver | https://github.com/pepperhorn/drumlet/pull/31 | 2026-11-27 (21803c6) | 1 review round (opus); nits → S9 |
@@ -43,14 +44,15 @@ Next ID: 0005
 | S9 | improvement | resolveGroove: accept `&s=` later in the hash (app does), clearer error for sync stock lookup before catalog load, report catalog fetch failure as a load error not `invalid` | PR #31 review r1 nits; src/player/resolveGroove.ts | S | fewer confusing player errors | 0001-t3 review r1 | new |
 | S10 | improvement | useAutoFollow: pause only on horizontal wheel, not vertical — scrolling the page past an embedded player currently stops it following | PR #32 review r2; src/components/useAutoFollow.ts wheel handler | S | embedded player keeps following while the host page scrolls | 0001-t5 review r2 | accepted → 0004 |
 | S11 | improvement | Step pads need screen-reader names (track, step, velocity) — read as the velocity letter or nothing today (paged grid too) | PR #32 review r2; src/components/Cell.tsx | S | accessibility | 0001-t5 review r2 | new |
-| S12 | improvement | Notation "Still loading" Retry reloads the whole page — on slow phones it throws away the half-done 2.3 MB download and the undo history; retry the import in place instead | PR #33 review r1 | S | better slow-connection UX | 0003 review r1 | new |
-| S13 | improvement | loadNotation caches a failed import, so a failed background prefetch sends the first tap straight to the error card | PR #33 review r1 | S | resilience | 0003 review r1 | new |
+| S12 | improvement | Notation "Still loading" Retry reloads the whole page — on slow phones it throws away the half-done 2.3 MB download and the undo history; retry the import in place instead | PR #33 review r1 | S | better slow-connection UX | 0003 review r1 | accepted → 0005 |
+| S13 | improvement | loadNotation caches a failed import, so a failed background prefetch sends the first tap straight to the error card | PR #33 review r1 | S | resilience | 0003 review r1 | accepted → 0005 |
 | S14 | improvement | 2/2 with 16th steps: 5- or 7-sixteenth gaps become note + 16th rest (spec-allowed; no stock groove hits it) | PR #33 review r1; src/notation/beatToEvents.ts | S | notation correctness for user patterns | 0003 review r1 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0003 merged (#33, e480679; owner OK; main verify ✓ 188 tests). 0001-t6 + quick 0005 (S12+S13) handoffs written for parallel dispatch (disjoint files)
 2026-11-27 0004 merged (#34, 7f31818; owner OK; main verify ✓ 157 tests). Owner: auto-merge line count excludes docs/** (AGENTS.md addendum). 0003 review r1 (opus) approved @ 2ed0f53 — merge needs owner OK
 2026-11-27 0004 dispatched→in-review — PR #34 head 83688eb (157 tests); review r1 claudeAgent claude-opus-5-5
 2026-11-27 0003 dispatched→in-review — PR #33 head 2ed0f53 (168 tests); review r1 claudeAgent claude-opus-5-5
