@@ -11,13 +11,14 @@ Next ID: 0010
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0009 | [quick] Pad-name follow-ups: global bar numbers, aria-expanded | ready | human: approve merge of #42 (63 code lines) | codex/gpt-6.2-sol | orch/0009-pad-names-followups | https://github.com/pepperhorn/drumlet/pull/42 | /home/shaun/.t3/worktrees/drumlet/t3-083effbc-0beddf959bc87846 | — | — | — | docs/handoffs/2026-11-28-0009-pad-names-followups--lead-to-codex.md | 2026-11-28 |
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t8b-review-r1 (t8b #43) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/43 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | lead: delegate t9 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0001-t8b | One shared AudioContext per page | https://github.com/pepperhorn/drumlet/pull/43 | 2026-11-28 (6408ec8) | 1 review round (opus); owner OK |
+| 0009 | [quick] Pad-name follow-ups | https://github.com/pepperhorn/drumlet/pull/42 | 2026-11-28 (fed6ddd) | 1 review round (opus); owner OK |
 | 0001-t8 | DrumletPlayer component | https://github.com/pepperhorn/drumlet/pull/38 | 2026-11-28 (3af5989) | 2 review rounds (opus); owner OK |
 | 0001-t7 | App Paged / Endless toggle | https://github.com/pepperhorn/drumlet/pull/37 | 2026-11-28 (e65dc20) | 2 review rounds (opus); owner OK |
 | 0008 | [quick] Screen-reader names for step pads | https://github.com/pepperhorn/drumlet/pull/40 | 2026-11-28 (2153eed) | 1 review round (opus); owner OK |
@@ -64,11 +65,13 @@ Next ID: 0010
 | S22 | efficiency | Move spoken velocity names next to the on-screen labels in velocityConfig.ts | PR #40 review r1; src/components/Cell.tsx | S | one source of truth | 0008 review r1 | new |
 | S23 | improvement | When Steps changes (e.g. 32), stock page-tab names ("Bar 2") no longer match the bars they hold — derive tab labels from bar range or rename on step change | PR #42 review r1 | S | tabs and pad names agree | 0009 review r1 | new |
 | S24 | efficiency | Share the "first bar of page" formula between Grid and EndlessGrid in one helper | PR #42 review r1 | S | no drift | 0009 review r1 | new |
+| S25 | risk | useAudioEngine: a call after release silently re-acquires the shared context and never releases it — guard or throw after dispose (all callers guarded today) | PR #43 review r1 | S | hardening | 0001-t8b review r1 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0009 merged (#42, fed6ddd) + 0001-t8b merged (#43, 6408ec8); owner OK; main verify ✓ 250 tests. t9 handoff written (t8b nit folded in)
 2026-11-28 0009 review r1 (opus) approved @ 045257e; 63 code lines → owner OK needed; S23 S24 added
 2026-11-28 0001 t8b PR #43 head a823c32 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-923c1466-b5e9140f861de063; 249 tests; 8 players → 1 context in Chromium); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0009 dispatched→in-review — PR #42 head 045257e (244 tests); review r1 claudeAgent claude-opus-5-5
