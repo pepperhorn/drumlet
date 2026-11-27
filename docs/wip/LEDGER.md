@@ -5,19 +5,21 @@
 > Waiting on: `child <taskId>` · `review <taskId>` · `ci` · `human: <why>` · `lead: <next action>`. Set it on every status change. A row needs the lead when it starts with `lead`, or when it's empty and Status is dispatched, in-review, changes-requested, ready, or merged. The lead's Stop hook won't let the lead end its turn while any row needs it.
 > Type: normal items have a spec and plan. Quick items have the title prefix `[quick]` (no spec or plan, a short handoff). PRs adopted by `orch-sweep` have the prefix `[pr]`.
 
-Next ID: 0004
+Next ID: 0005
 
 ## Active
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0004 | [quick] Auto-follow: ignore vertical wheel | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0004-autofollow-vertical-wheel | — | — | — | — | — | docs/handoffs/2026-11-27-0004-autofollow-vertical-wheel--lead-to-codex.md | 2026-11-27 |
 | 0003 | Mobile notation: load feedback, fit to width, upright rests, toggle icon | dispatched | child 0003-impl-r1 | codex/gpt-6.2-sol | orch/0003-mobile-notation | — | — | — | docs/specs/0003-mobile-notation.md | docs/plans/0003-mobile-notation.md | docs/handoffs/2026-11-27-0003-mobile-notation--lead-to-codex.md | 2026-11-27 |
-| 0001 | Drumlet Player (embeddable component) + endless view | ready | human: approve merge of #32 (t5, >50 lines) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/32 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | in-review | lead: dispatch t6 after 0003 merges (same files) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0001-t5 | Endless grid + auto-follow | https://github.com/pepperhorn/drumlet/pull/32 | 2026-11-27 (6a6cac0) | 2 review rounds (opus); worst 1.2 ms/step on 1024 pads |
 | 0001-t3 | Groove input resolver | https://github.com/pepperhorn/drumlet/pull/31 | 2026-11-27 (21803c6) | 1 review round (opus); nits → S9 |
 | 0001-t4 | Transport play-through, loop, seek, global step | https://github.com/pepperhorn/drumlet/pull/30 | 2026-11-27 (aa29ff2) | 2 review rounds (opus); playhead now audio-clock timed |
 | 0001-t2 | Share codec v4 — all pages | https://github.com/pepperhorn/drumlet/pull/29 | 2026-11-27 (b45025e) | 2 review rounds (opus); format decided by lead (shared track table) |
@@ -39,13 +41,14 @@ Next ID: 0004
 | S7 | improvement | Carry per-track colour in share codes (lost today, pre-existing) | PR #29 review r2; shareCodec decode assigns palette colours by index | S | shared grooves keep their look | 0001-t2 review r2 | new |
 | S8 | improvement | Groove mode, loop off: deleting the last page during its final step plays one extra bar before stopping | PR #30 review r2 (non-blocking) | S | correct stop | 0001-t4 review r2 | new |
 | S9 | improvement | resolveGroove: accept `&s=` later in the hash (app does), clearer error for sync stock lookup before catalog load, report catalog fetch failure as a load error not `invalid` | PR #31 review r1 nits; src/player/resolveGroove.ts | S | fewer confusing player errors | 0001-t3 review r1 | new |
-| S10 | improvement | useAutoFollow: pause only on horizontal wheel, not vertical — scrolling the page past an embedded player currently stops it following | PR #32 review r2; src/components/useAutoFollow.ts wheel handler | S | embedded player keeps following while the host page scrolls | 0001-t5 review r2 | new — do before 0001-t8 |
+| S10 | improvement | useAutoFollow: pause only on horizontal wheel, not vertical — scrolling the page past an embedded player currently stops it following | PR #32 review r2; src/components/useAutoFollow.ts wheel handler | S | embedded player keeps following while the host page scrolls | 0001-t5 review r2 | accepted → 0004 |
 | S11 | improvement | Step pads need screen-reader names (track, step, velocity) — read as the velocity letter or nothing today (paged grid too) | PR #32 review r2; src/components/Cell.tsx | S | accessibility | 0001-t5 review r2 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0001 t5 merged (#32, 6a6cac0; owner OK; main verify ✓ 151 tests). Owner: arrow keys keep pausing auto-follow. 0004 quick (S10 vertical wheel) dispatched
 2026-11-27 0001 t5 review r2 (opus) approved @ 1234f91 (re-measured 1 commit/step, worst 1.2 ms); merge needs owner OK
 2026-11-27 0001 t5 fix r2 pushed @ 1234f91 (1 commit/step, worst 6.4 ms on 1024 cells; taps keep follow; roving tabindex; 141 tests); review r2 claudeAgent claude-opus-5-5
 2026-11-27 0003 scope change (owner): onset-based note durations replace upright-rest fix; spec/plan/handoff amended d077bf2; steered running implementer
