@@ -46,6 +46,7 @@ Keys `0001-t1`…`0001-t12`, branches `orch/0001-tN-<slug>`. **Verify** for ever
 | t6 | endless-notation | `src/components/NotationView.tsx`, `src/notation/**` | t5 (`useAutoFollow`) |
 | t7 | app-view-toggle | `src/App.tsx`, `src/components/PageTabs.tsx`, `src/components/Transport.tsx` | t5, t6 |
 | t8 | player-component | `src/player/**` (except resolveGroove) | t3, t5, t6 |
+| t8b | shared-audio-context | `src/audio/useAudioEngine.ts`, `src/audio/sharedAudioContext*`, `src/player/**` (context call sites only) | t8 |
 | t9 | package-build | `packages/drumlet-player/**`, `src/player/styles/**`, root `package.json` scripts, `LICENSE`, SPDX headers in bundled `src/**` files | t8 |
 | t10 | embed-checks | `player-demo.html`, `src/player/demo.tsx`, `scripts/player-embed.check.mjs`, `scripts/pack-smoke.mjs`, `vite.config.js` | t9 |
 | t11 | iframe-replace | `src/main.tsx`, `src/player/EmbedPage.tsx`, `src/components/ShareModal.tsx`, `buildEmbedSnippet` in `src/state/shareCodec.ts` | t9, t2 |
@@ -193,6 +194,20 @@ Merge order = task order.
 
 - [ ] **Step 1: Failing tests:** `resolveChrome` table; `claimPlayback` A then B → A's stop called once; render `<DrumletPlayer groove="<stock id>" chrome="minimal"/>` → exactly one `.drumlet-player-play-btn`, no `.transport-bar`; `chrome="none"` → `useAudioEngine` never invoked (mock module); invalid groove → `onError` called with `GrooveError`, `.drumlet-player-empty` rendered, no throw; `theme="dark"` → root has `data-theme="dark"`.
 - [ ] **Step 2:** Run → FAIL. Implement. → PASS. Commit `feat(player): DrumletPlayer component`.
+
+### Task 8b: One shared AudioContext per page (added 2026-11-27 from t8 review)
+
+**Why:** spec + project stack require a single shared AudioContext. t8 ships one context per player (created on first Play, closed on unmount, suspended on stop). Browsers cap live contexts (Chrome ~6/page, iOS stricter); a lesson page with 8 grooves must not hit that.
+
+**Owns:** `src/audio/useAudioEngine.ts`, new `src/audio/sharedAudioContext.ts` (+ test), `src/player/**` (only the call sites that suspend/resume/close the context). **Depends on:** t8 merged. **Gates:** t10's embed check asserts ≤ 1 AudioContext with 8 players; t12 publish.
+
+**Interfaces:**
+- `acquireAudioContext(): AudioContext` — lazily creates the page's one context (SSR-safe: only called on first Play); ref-counts holders.
+- `releaseAudioContext(): void` — decrements; closes the context only when the count reaches 0.
+- `setAudioActive(id: string, active: boolean): void` — resumes the context when any holder is active; suspends it only when none are.
+- `useAudioEngine()` uses `acquireAudioContext()` and gives each engine its own master `GainNode` (and reverb send) into `ctx.destination`, so per-player volume/teardown stays isolated. The app keeps working unchanged.
+
+**Tests:** 8 engines → 1 context; releasing all closes it; one active holder keeps it running while others stop; unmounting one player doesn't silence another; app engine and a player engine coexist.
 
 ### Task 9: Package build — `packages/drumlet-player`
 
