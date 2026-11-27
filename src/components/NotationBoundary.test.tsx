@@ -67,6 +67,8 @@ it('loads notation after an import failure without losing edits, the selected pa
   expect(screen.getByText('Page 2, first step 0')).toBeTruthy();
 
   unmount();
+  // Reopening tests the cached notation view, independent of sequencer autosave.
+  localStorage.clear();
   render(notation);
   expect(screen.queryByText('Loading notation engine…')).toBeNull();
   expect(screen.getByText('Page 1, first step 0')).toBeTruthy();
@@ -87,8 +89,10 @@ it('restarts the engine deadline when Retry is clicked after 15 seconds', async 
     expect(load).toHaveBeenCalledTimes(1);
     act(() => vi.advanceTimersByTime(14999));
     expect(screen.getByText('Loading notation engine…')).toBeTruthy();
+    // React can commit Suspense retries after act returns. Wait on the DOM with real timers.
+    vi.useRealTimers();
     await act(async () => resolve(notationModule));
-    expect(screen.getByText('Page 1, first step 0')).toBeTruthy();
+    expect(await screen.findByText('Page 1, first step 0')).toBeTruthy();
   } finally {
     vi.useRealTimers();
   }
