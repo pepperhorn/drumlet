@@ -6,7 +6,10 @@ function importNotation() {
 }
 
 export function loadNotation() {
-  return notationModule ??= importNotation();
+  return notationModule ??= importNotation().catch((error) => {
+    notationModule = undefined;
+    throw error;
+  });
 }
 
 export function loadPetaluma() {
