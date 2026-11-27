@@ -50,5 +50,9 @@ None.
 ---
 ## Receiver ack
 
+- Codex, 2026-11-27. I will build and test the read-only player, its three chrome presets, and playback ownership in the owned player files. Task 7's app files and Task 9's packaging stay untouched.
+- I will use the existing lazy notation loader per the dispatch. It wraps the dynamic import and preserves the shared retry path.
+- GBrain: `projects/drumlet` confirms the repository and PR workflow. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
