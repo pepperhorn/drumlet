@@ -47,5 +47,7 @@ None.
 ---
 ## Receiver ack
 
+I will share one lazily acquired context across app and player engines, keep their gain and teardown independent, and preserve gesture-time resume. I will change only the assigned audio files, player context call sites and tests, and these handoffs. I will verify eight real Chromium players and the unchanged app playback, preview, and sample upload paths. No open scope questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
