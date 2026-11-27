@@ -11,8 +11,8 @@ Next ID: 0003
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0002 | [pr] Hardware look + glowing silicone step pads | in-review | review pr27-review-r3 | claudeAgent/claude-sonnet-5-5 (fix r1) | feat/hardware-pads (local feat/hardware-pads-r1) | https://github.com/pepperhorn/drumlet/pull/27 | /home/shaun/.t3/worktrees/drumlet/t3-71b68fc0-ad07b5ab60a0ee36 | impl r1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0002-impl-r1 | — | — | docs/handoffs/2026-11-27-0002-review-fixes--claude-to-lead.md @ 0080528 | 2026-11-27 |
-| 0001 | Drumlet Player (embeddable component) + endless view | planned | review pr27-review-r3 (prereq #27 must merge before t1) | — | — | — | — | — | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | — | 2026-11-27 |
+| 0002 | [pr] Hardware look + glowing silicone step pads | changes-requested | child 0002-impl-r2 | claudeAgent/claude-sonnet-5-5 (fix r1) | feat/hardware-pads (local feat/hardware-pads-r1) | https://github.com/pepperhorn/drumlet/pull/27 | /home/shaun/.t3/worktrees/drumlet/t3-71b68fc0-ad07b5ab60a0ee36 | impl r1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0002-impl-r1 | — | — | docs/handoffs/2026-11-27-0002-review-fixes--claude-to-lead.md @ 0080528 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | planned | child 0002-impl-r2 (prereq #27 must merge before t1) | — | — | — | — | — | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | — | 2026-11-27 |
 
 ## Done / closed
 
@@ -30,6 +30,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0002 in-review→changes-requested — codex r3 @ 0080528: r2 findings verified fixed; new 1×P2 (split-master focus hidden by marker outline) + 1×P3 (Notation/TAP/CLEAR/Page tab sizes); fix r2 sent to same implementer thread
 2026-11-27 0002 changes-requested→in-review — fix r1 pushed at 00805286 (all 5 findings + body rule); review r3 codex gpt-6.2-sol
 2026-11-27 0002 fix r1 dispatched → claudeAgent claude-sonnet-5-5 (effort high)
 2026-11-27 0002 in-review→changes-requested — codex r2: 4×P2 (knob→BPM shortcut leak, hidden selection/split rings, hidden focus rings, theme-extension contract) + 1×P3 (label sizes); fix handoff docs/handoffs/2026-11-27-0002-review-fixes--lead-to-claude.md
