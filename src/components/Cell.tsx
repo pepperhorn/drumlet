@@ -8,6 +8,15 @@ const BAR_LINE_STYLE: CSSProperties = {
   borderLeftColor: 'color-mix(in srgb, var(--color-sky) 30%, transparent)',
 };
 
+/** Inline vars that drive the `.pad-on` LED lighting (see styles/hardware.css). */
+function padVars(color: string, level: number): CSSProperties {
+  return {
+    '--pad-color': color,
+    '--pad-mix': `${Math.round(level * 100)}%`,
+    '--pad-glow': level.toFixed(2),
+  } as CSSProperties;
+}
+
 interface CellProps {
   velocity: number;
   velMode: VelMode;
@@ -69,11 +78,10 @@ function Cell({
     return (
       <div className={`step-cell-split-wrap ${isBeatStart ? 'ml-1 md:ml-1.5' : 'ml-0.5'}`} style={isBarStart ? BAR_LINE_STYLE : undefined}>
         <button
-          className={`step-cell step-cell-split relative w-[var(--cell-w,2.25rem)] h-[var(--cell-w,2.25rem)] md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
-            flex items-stretch overflow-hidden select-none
-            border-violet/40
+          className={`step-cell step-cell-split relative w-[var(--cell-w,2.25rem)] h-[var(--cell-w,2.25rem)] md:w-10 md:h-10 lg:w-11 lg:h-11 pad pad-off cursor-pointer
+            flex items-stretch gap-px overflow-hidden select-none
             ${isActive ? 'cell-active ring-2 ring-violet/60' : ''}
-            ${isPlayhead ? 'playhead-active ring-2 ring-sky' : ''}
+            ${isPlayhead ? 'playhead-active' : ''}
           `}
           onClick={() => { onClick?.(); onExpandToggle?.(); }}
           onContextMenu={(e) => {
@@ -87,13 +95,8 @@ function Cell({
             return (
               <div
                 key={i}
-                className="split-segment flex-1"
-                style={subVel > 0 ? {
-                  backgroundColor: color,
-                  opacity: subOpacity,
-                } : {
-                  backgroundColor: '#f9fafb',
-                }}
+                className={`split-segment flex-1 ${subVel > 0 ? 'split-segment-on' : 'split-segment-off'}`}
+                style={subVel > 0 ? padVars(color, subOpacity) : undefined}
               />
             );
           })}
@@ -107,10 +110,10 @@ function Cell({
     return (
       <div className={`step-cell-expanded-wrap ${isBeatStart ? 'ml-1 md:ml-1.5' : 'ml-0.5'}`} style={isBarStart ? BAR_LINE_STYLE : undefined}>
         <button
-          className={`step-cell step-cell-split-master relative w-[var(--cell-w,2.25rem)] h-[var(--cell-w,2.25rem)] md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
-            flex items-stretch overflow-hidden select-none
-            border-violet ring-1 ring-violet/30
-            ${isPlayhead ? 'playhead-active ring-2 ring-sky' : ''}
+          className={`step-cell step-cell-split-master relative w-[var(--cell-w,2.25rem)] h-[var(--cell-w,2.25rem)] md:w-10 md:h-10 lg:w-11 lg:h-11 pad pad-off cursor-pointer
+            flex items-stretch gap-px overflow-hidden select-none
+            ring-1 ring-violet/40
+            ${isPlayhead ? 'playhead-active' : ''}
           `}
           onClick={onExpandToggle}
           title="Click to collapse"
@@ -120,13 +123,8 @@ function Cell({
             return (
               <div
                 key={i}
-                className="split-segment flex-1"
-                style={subVel > 0 ? {
-                  backgroundColor: color,
-                  opacity: subOpacity,
-                } : {
-                  backgroundColor: '#f9fafb',
-                }}
+                className={`split-segment flex-1 ${subVel > 0 ? 'split-segment-on' : 'split-segment-off'}`}
+                style={subVel > 0 ? padVars(color, subOpacity) : undefined}
               />
             );
           })}
@@ -138,13 +136,10 @@ function Cell({
             return (
               <button
                 key={i}
-                className={`step-subcell w-[var(--cell-w,2.25rem)] h-7 md:w-10 md:h-8 lg:w-11 lg:h-9 rounded-sm border cursor-pointer
+                className={`step-subcell w-[var(--cell-w,2.25rem)] h-7 md:w-10 md:h-8 lg:w-11 lg:h-9 pad cursor-pointer
                   flex items-center justify-center text-xs md:text-[10px] lg:text-xs font-mono font-semibold select-none
-                  ${subVel === 0 ? 'bg-cell border-border hover:bg-cell-hover' : 'border-transparent'}`}
-                style={subVel > 0 ? {
-                  backgroundColor: color,
-                  opacity: subOpacity,
-                } : undefined}
+                  ${subVel === 0 ? 'pad-off' : 'pad-on'}`}
+                style={subVel > 0 ? padVars(color, subOpacity) : undefined}
                 onClick={() => onToggleSubStep?.(i)}
                 onContextMenu={(e) => {
                   e.preventDefault();
@@ -153,7 +148,7 @@ function Cell({
                 title={`Sub-step ${i + 1}`}
               >
                 {subVel > 0 && (
-                  <span className="text-white drop-shadow-sm" style={{ opacity: Math.max(0.7, subOpacity) }}>
+                  <span className="step-subcell-label step-cell-label">
                     {subLabel}
                   </span>
                 )}
@@ -168,18 +163,15 @@ function Cell({
   // Normal cell (non-split)
   return (
     <button
-      className={`step-cell cell-hit relative w-[var(--cell-w,2.25rem)] h-[var(--cell-w,2.25rem)] md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-md border cursor-pointer
+      className={`step-cell pad relative w-[var(--cell-w,2.25rem)] h-[var(--cell-w,2.25rem)] md:w-10 md:h-10 lg:w-11 lg:h-11 cursor-pointer
         flex items-center justify-center text-sm md:text-xs lg:text-sm font-mono font-semibold select-none overflow-hidden
-        ${velocity === 0
-          ? 'bg-cell border-border hover:bg-cell-hover'
-          : 'border-transparent'
-        }
+        ${velocity === 0 ? 'pad-off' : 'pad-on'}
         ${isActive ? 'cell-active ring-2 ring-violet/60' : ''}
-        ${isPlayhead ? 'playhead-active ring-2 ring-sky' : ''}
+        ${isPlayhead ? 'playhead-active' : ''}
         ${isBeatStart ? 'ml-1 md:ml-1.5' : 'ml-0.5'}
       `}
       style={{
-        ...(velocity > 0 ? { backgroundColor: color, opacity } : {}),
+        ...(velocity > 0 ? padVars(color, opacity) : {}),
         ...(isBarStart ? BAR_LINE_STYLE : {}),
       }}
       onClick={onClick}
@@ -191,15 +183,14 @@ function Cell({
       {spin ? (
         <span className="step-cell-spin absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span
-            className="step-cell-label text-white drop-shadow-sm absolute cell-spin-out"
+            className="step-cell-label absolute cell-spin-out"
             style={{ animationDirection: spin.direction === 'up' ? 'normal' : 'reverse' }}
           >
             {spin.from || '\u00A0'}
           </span>
           <span
-            className="step-cell-label text-white drop-shadow-sm absolute cell-spin-in"
+            className="step-cell-label absolute cell-spin-in"
             style={{
-              opacity: Math.max(0.7, opacity),
               animationDirection: spin.direction === 'up' ? 'normal' : 'reverse',
             }}
           >
@@ -207,7 +198,7 @@ function Cell({
           </span>
         </span>
       ) : velocity > 0 ? (
-        <span className="step-cell-label text-white drop-shadow-sm" style={{ opacity: Math.max(0.7, opacity) }}>
+        <span className="step-cell-label">
           {label}
         </span>
       ) : null}

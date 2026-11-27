@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
 import SectionHeadingEditor from './SectionHeadingEditor.js';
 import type { Page, SectionHeading, SplitCount } from '../state/sequencerReducer.js';
 
@@ -142,11 +142,9 @@ function PageTabs({
       {onToggleNotation && (
         <>
           <button
-            className={`notation-toggle-btn h-10 w-10 md:w-auto md:h-8 md:px-2.5 rounded-xl md:rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all shrink-0 text-xs lg:text-sm font-semibold
-              ${notationView
-                ? 'bg-text text-white'
-                : 'bg-gray-50 text-muted hover:bg-gray-100 hover:text-text'
-              }`}
+            className={`notation-toggle-btn hw-btn h-10 w-10 md:w-auto md:h-8 md:px-2.5 rounded-xl md:rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shrink-0 text-xs lg:text-sm font-semibold
+              ${notationView ? 'text-text' : 'text-muted hover:text-text'}`}
+            aria-pressed={notationView}
             onClick={onToggleNotation}
             title={notationView ? 'Switch to Grid Editor' : 'Switch to Notation View'}
             aria-label={notationView ? 'Switch to Grid Editor' : 'Switch to Notation View'}
@@ -167,7 +165,7 @@ function PageTabs({
                 
               </span>
             )}
-            <span className="notation-toggle-label hidden md:inline whitespace-nowrap">
+            <span className="notation-toggle-label font-legend font-semibold uppercase tracking-[0.12em] hidden md:inline whitespace-nowrap text-[11px]">
               {notationView ? 'Grid Editor' : 'Notation View'}
             </span>
           </button>
@@ -178,7 +176,7 @@ function PageTabs({
       {usePagination ? (
         <div className="page-pager flex items-center gap-1 shrink-0">
           <button
-            className="page-prev-btn w-7 h-7 rounded-lg bg-gray-50 text-muted hover:bg-gray-100 hover:text-text text-sm cursor-pointer transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+            className="page-prev-btn hw-btn w-7 h-7 rounded-lg text-muted hover:text-text text-sm cursor-pointer flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
             onClick={() => onSetPage(Math.max(0, currentPageIndex - 1))}
             disabled={currentPageIndex === 0}
             title="Previous page"
@@ -203,11 +201,10 @@ function PageTabs({
             return (
               <button
                 key={page.id}
-                className={`page-tab min-w-7 h-7 px-2 rounded-lg text-xs lg:text-sm font-medium cursor-pointer transition-all
-                  ${entry === currentPageIndex
-                    ? 'bg-sky text-white shadow-sm'
-                    : 'bg-gray-50 text-muted hover:bg-gray-100 hover:text-text'
-                  }`}
+                className={`page-tab hw-btn min-w-7 h-7 px-2 rounded-lg text-xs lg:text-sm font-mono font-semibold cursor-pointer
+                  ${entry === currentPageIndex ? 'hw-btn-accent' : 'text-muted hover:text-text'}`}
+                style={{ '--hw-accent': 'var(--color-sky)' } as CSSProperties}
+                aria-pressed={entry === currentPageIndex}
                 onClick={() => onSetPage(entry)}
                 onContextMenu={(e) => {
                   e.preventDefault();
@@ -220,7 +217,7 @@ function PageTabs({
             );
           })}
           <button
-            className="page-next-btn w-7 h-7 rounded-lg bg-gray-50 text-muted hover:bg-gray-100 hover:text-text text-sm cursor-pointer transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+            className="page-next-btn hw-btn w-7 h-7 rounded-lg text-muted hover:text-text text-sm cursor-pointer flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
             onClick={() => onSetPage(Math.min(pages.length - 1, currentPageIndex + 1))}
             disabled={currentPageIndex === pages.length - 1}
             title="Next page"
@@ -239,13 +236,13 @@ function PageTabs({
               value={jumpValue}
               onChange={(e) => setJumpValue(e.target.value)}
               placeholder="#"
-              className="page-jump-input w-12 h-7 px-1.5 rounded-lg bg-gray-50 border border-transparent focus:border-sky/40 text-xs text-text outline-none text-center font-mono"
+              className="page-jump-input hw-well w-12 h-7 px-1.5 rounded-lg text-xs text-text outline-none focus-visible:ring-2 focus-visible:ring-sky/60 text-center font-mono"
               aria-label={`Jump to page (1–${pages.length})`}
               title={`Jump to page (1–${pages.length})`}
             />
           </form>
           <button
-            className="page-add-btn w-7 h-7 rounded-lg bg-gray-50 text-muted hover:bg-gray-100 hover:text-text text-sm cursor-pointer transition-colors flex items-center justify-center"
+            className="page-add-btn hw-btn w-7 h-7 rounded-lg text-muted hover:text-text text-sm cursor-pointer flex items-center justify-center"
             onClick={onAddPage}
             title="Add page"
           >
@@ -257,11 +254,10 @@ function PageTabs({
           {pages.map((page, i) => (
             <button
               key={page.id}
-              className={`page-tab h-10 md:h-auto px-3 md:py-1 rounded-xl md:rounded-lg whitespace-nowrap text-sm lg:text-base font-medium cursor-pointer transition-all
-                ${i === currentPageIndex
-                  ? 'bg-sky text-white shadow-sm'
-                  : 'bg-gray-50 text-muted hover:bg-gray-100 hover:text-text'
-                }`}
+              className={`page-tab hw-btn font-legend font-semibold uppercase tracking-[0.12em] h-10 md:h-auto px-3 md:py-1 rounded-xl md:rounded-lg whitespace-nowrap text-xs lg:text-sm cursor-pointer
+                ${i === currentPageIndex ? 'hw-btn-accent' : 'text-muted hover:text-text'}`}
+              style={{ '--hw-accent': 'var(--color-sky)' } as CSSProperties}
+              aria-pressed={i === currentPageIndex}
               onClick={() => onSetPage(i)}
               onContextMenu={(e) => {
                 e.preventDefault();
@@ -273,7 +269,7 @@ function PageTabs({
             </button>
           ))}
           <button
-            className="page-add-btn w-10 h-10 md:w-7 md:h-7 rounded-xl md:rounded-lg bg-gray-50 text-muted hover:bg-gray-100 hover:text-text text-lg md:text-sm cursor-pointer transition-colors flex items-center justify-center"
+            className="page-add-btn hw-btn w-10 h-10 md:w-7 md:h-7 rounded-xl md:rounded-lg text-muted hover:text-text text-lg md:text-sm cursor-pointer flex items-center justify-center"
             onClick={onAddPage}
             title="Add page"
             aria-label="Add page"
@@ -355,10 +351,10 @@ function PageTabs({
       {(onUndo || onRedo) && (
         <div className="history-controls flex items-center gap-0.5 shrink-0">
           <button
-            className={`undo-btn w-10 h-10 md:w-8 md:h-7 rounded-xl md:rounded-lg flex items-center justify-center transition-all
+            className={`undo-btn hw-btn w-10 h-10 md:w-8 md:h-7 rounded-xl md:rounded-lg flex items-center justify-center
               ${canUndo
-                ? 'bg-gray-50 text-muted hover:bg-sky/15 hover:text-sky cursor-pointer'
-                : 'bg-gray-50 text-muted/40 cursor-not-allowed'}`}
+                ? 'text-muted hover:text-sky cursor-pointer'
+                : 'text-muted/40 opacity-60 cursor-not-allowed'}`}
             onClick={canUndo ? onUndo : undefined}
             disabled={!canUndo}
             title="Undo (⌘Z)"
@@ -370,10 +366,10 @@ function PageTabs({
             </svg>
           </button>
           <button
-            className={`redo-btn w-10 h-10 md:w-8 md:h-7 rounded-xl md:rounded-lg flex items-center justify-center transition-all
+            className={`redo-btn hw-btn w-10 h-10 md:w-8 md:h-7 rounded-xl md:rounded-lg flex items-center justify-center
               ${canRedo
-                ? 'bg-gray-50 text-muted hover:bg-sky/15 hover:text-sky cursor-pointer'
-                : 'bg-gray-50 text-muted/40 cursor-not-allowed'}`}
+                ? 'text-muted hover:text-sky cursor-pointer'
+                : 'text-muted/40 opacity-60 cursor-not-allowed'}`}
             onClick={canRedo ? onRedo : undefined}
             disabled={!canRedo}
             title="Redo (⌘⇧Z / ⌘Y)"
@@ -406,7 +402,7 @@ function PageTabs({
       </button>
 
       <button
-        className="clear-page-btn shrink-0 h-10 md:h-auto px-3 md:py-1 rounded-xl md:rounded-lg text-sm md:text-xs text-muted bg-gray-50 hover:bg-red-50 hover:text-stop cursor-pointer transition-colors"
+        className="clear-page-btn hw-btn font-legend font-semibold uppercase tracking-[0.12em] text-[11px] text-muted shrink-0 h-10 md:h-auto px-3 md:py-1 rounded-xl md:rounded-lg hover:text-stop cursor-pointer"
         onClick={onClearPage}
         title="Clear all steps on this page"
       >

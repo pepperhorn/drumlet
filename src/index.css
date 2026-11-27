@@ -1,9 +1,11 @@
 @import "tailwindcss";
+@import "./styles/hardware.css";
 
 @theme {
   --font-display: "Fredoka", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+  --font-legend: "Chakra Petch", "Inter", sans-serif;
 
   /* Defaults are the light theme. Runtime overrides via :root[data-theme]
      below + inline-style writes from src/themes/applyTheme.ts. */
@@ -88,7 +90,8 @@
 
 body {
   margin: 0;
-  background: var(--color-bg);
+  background: var(--room-bg, var(--color-bg));
+  background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;

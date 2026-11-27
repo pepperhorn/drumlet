@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, type CSSProperties } from 'react';
 import TrackIcon from './TrackIcon.js';
 import type { Track } from '../state/sequencerReducer.js';
 
@@ -39,14 +39,13 @@ interface MpcPadProps {
 function MpcPad({ track, onTrigger, keyHint, active }: MpcPadProps) {
   return (
     <button
-      className="mpc-pad relative rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer select-none
-        active:scale-95 transition-transform touch-manipulation"
+      className={`mpc-pad pad ${active ? 'pad-on' : 'pad-on mpc-pad-idle'} relative rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer select-none touch-manipulation`}
       style={{
-        backgroundColor: track.color,
-        opacity: track.mute ? 0.3 : active ? 1 : 0.85,
+        '--pad-color': track.color,
+        '--pad-mix': track.mute ? '30%' : active ? '100%' : '72%',
+        '--pad-glow': active ? '1.4' : '0.5',
         minHeight: '64px',
-        boxShadow: active ? '0 0 0 2px rgba(255,255,255,0.75) inset, 0 8px 18px rgba(26,26,46,0.18)' : undefined,
-      }}
+      } as CSSProperties}
       onPointerDown={() => onTrigger(track)}
     >
       {keyHint && (

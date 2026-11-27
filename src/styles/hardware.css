@@ -1,0 +1,311 @@
+/* ---------------------------------------------------------------------------
+   Hardware materials — ported from the Module (JV/Polysix-style) instrument.
+   Faceplate texture, recessed wells, moulded keycap buttons, domed knobs and
+   Launchpad / MPK-style silicone step pads. Every material is a CSS variable
+   so light (warm cream faceplate) and dark (brushed navy aluminium) share the
+   same component rules. Track accent colours are untouched — the pads only
+   change HOW a colour is lit, never WHICH colour.
+--------------------------------------------------------------------------- */
+
+:root {
+  /* the room behind the instrument */
+  --room-bg: radial-gradient(ellipse at 50% 0%, #F7F5EE 0%, #EEECE4 55%, #E4E1D7 100%);
+
+  /* faceplate — cream with a faint vertical brush grain */
+  --face-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 40%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.35) 0px, rgba(255, 255, 255, 0.35) 1px, rgba(60, 50, 30, 0.018) 1px, rgba(60, 50, 30, 0.018) 2px),
+    linear-gradient(180deg, #F6F4EC 0%, #ECE9DF 100%);
+  --face-border: #D6D2C5;
+  --face-shadow: 0 10px 28px rgba(50, 45, 35, 0.10), 0 1px 2px rgba(50, 45, 35, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(50, 45, 35, 0.06);
+
+  /* recessed wells (pad bed, inputs) */
+  --well-bg: linear-gradient(180deg, #E4E1D6 0%, #ECE9E0 100%);
+  --well-border: rgba(40, 36, 28, 0.12);
+  --well-shadow: inset 0 1px 3px rgba(50, 45, 35, 0.16), 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  /* keycap buttons */
+  --btn-bg: linear-gradient(180deg, #FFFFFF 0%, #EFEDE4 100%);
+  --btn-border: #D0CCBF;
+  --btn-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 1px rgba(50, 45, 35, 0.08),
+    0 1px 2px rgba(50, 45, 35, 0.16), 0 2px 0 #D9D5C9;
+  --btn-shadow-active: inset 0 2px 3px rgba(50, 45, 35, 0.2), 0 0 0 transparent;
+  --btn-led-off-bg: rgba(40, 36, 28, 0.15);
+  --btn-led-off-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2);
+
+  /* knobs */
+  --knob-bg: radial-gradient(circle at 50% 30%, #FFFFFF 0%, #F1EFE7 55%, #E1DED3 100%);
+  --knob-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 -2px 4px rgba(50, 45, 35, 0.12);
+  --knob-track: rgba(40, 36, 28, 0.10);
+  --knob-skirt-bg: radial-gradient(circle at 50% 28%, #FFFFFF 0%, #D0CDC2 55%, #B4B1A4 100%);
+  --knob-skirt-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 0 -1px 2px rgba(50, 45, 35, 0.22),
+    0 3px 7px rgba(50, 45, 35, 0.2);
+  --knob-pointer: #3B3A36;
+
+  /* silicone step pads — unlit: frosted milky rubber */
+  --pad-off-solid: #F3F1EA;
+  --pad-off-bg:
+    radial-gradient(ellipse at 50% 35%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 70%),
+    linear-gradient(180deg, #FBFAF6 0%, #E9E6DC 100%);
+  --pad-off-border: rgba(40, 36, 28, 0.14);
+  --pad-off-shadow: inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -2px 3px rgba(50, 45, 35, 0.10),
+    0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 3px rgba(50, 45, 35, 0.14);
+  --pad-off-hover: color-mix(in srgb, var(--color-accent) 10%, #FBFAF6);
+  /* how hard a lit pad blooms onto the faceplate */
+  --pad-bloom-strength: 45%;
+}
+
+:root[data-theme="dark"] {
+  --room-bg: radial-gradient(ellipse at 50% 0%, #2A3345 0%, #1A2030 55%, #10131B 100%);
+
+  --face-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0) 40%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.022) 0px, rgba(255, 255, 255, 0.022) 1px, rgba(0, 0, 0, 0.018) 1px, rgba(0, 0, 0, 0.018) 2px),
+    linear-gradient(180deg, #2A3141 0%, #232A3A 46%, #1B2130 100%);
+  --face-border: #0B0E15;
+  --face-shadow: 0 18px 44px rgba(0, 0, 0, 0.5), 0 2px 0 rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10), inset 0 -2px 6px rgba(0, 0, 0, 0.4);
+
+  --well-bg: linear-gradient(180deg, #151B26 0%, #1A2130 100%);
+  --well-border: rgba(0, 0, 0, 0.55);
+  --well-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 0 rgba(255, 255, 255, 0.05);
+
+  --btn-bg: linear-gradient(180deg, #414B62 0%, #2E3648 100%);
+  --btn-border: #0D1119;
+  --btn-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 1px rgba(0, 0, 0, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+  --btn-shadow-active: inset 0 2px 4px rgba(0, 0, 0, 0.55);
+  --btn-led-off-bg: rgba(0, 0, 0, 0.45);
+  --btn-led-off-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
+
+  --knob-bg: radial-gradient(circle at 50% 30%, #454F66 0%, #2A3140 48%, #141922 100%);
+  --knob-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.16), inset 0 -3px 5px rgba(0, 0, 0, 0.5);
+  --knob-track: rgba(255, 255, 255, 0.07);
+  --knob-skirt-bg: radial-gradient(circle at 50% 28%, #2E3648 0%, #10141D 100%);
+  --knob-skirt-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08), inset 0 -1px 2px rgba(0, 0, 0, 0.6),
+    0 3px 7px rgba(0, 0, 0, 0.55);
+  --knob-pointer: #EAECF2;
+
+  /* unlit: smoky translucent rubber, like a Launchpad with the LEDs off */
+  --pad-off-solid: #2A3142;
+  --pad-off-bg:
+    radial-gradient(ellipse at 50% 35%, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 70%),
+    linear-gradient(180deg, #343C50 0%, #252C3B 100%);
+  --pad-off-border: rgba(0, 0, 0, 0.6);
+  --pad-off-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), inset 0 -2px 3px rgba(0, 0, 0, 0.35),
+    0 2px 3px rgba(0, 0, 0, 0.5);
+  --pad-off-hover: color-mix(in srgb, var(--color-accent) 14%, #2E3547);
+  --pad-bloom-strength: 70%;
+}
+
+/* ---- room + faceplate ---------------------------------------------------- */
+
+body {
+  background: var(--room-bg);
+  background-attachment: fixed;
+}
+
+.transport-bar,
+.sequencer-grid,
+.page-tabs,
+.notation-view,
+.preset-body,
+.mobile-transport,
+.mobile-expanded-controls {
+  background: var(--face-bg);
+  border-color: var(--face-border);
+  box-shadow: var(--face-shadow);
+}
+
+.mpc-pads {
+  background: var(--face-bg);
+  border-color: var(--face-border);
+}
+
+/* Recessed well — a control group sunk into the faceplate. */
+.hw-well {
+  background: var(--well-bg);
+  border: 1px solid var(--well-border);
+  box-shadow: var(--well-shadow);
+}
+
+/* ---- keycap buttons ------------------------------------------------------ */
+
+.hw-btn {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  box-shadow: var(--btn-shadow);
+  transition: transform 80ms ease-out, box-shadow 80ms ease-out, color 120ms ease;
+}
+.hw-btn:hover {
+  filter: brightness(1.03);
+}
+.hw-btn:active,
+.hw-btn[aria-pressed="true"] {
+  transform: translateY(1px);
+  box-shadow: var(--btn-shadow-active);
+}
+.hw-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--btn-shadow), 0 0 0 2px var(--color-accent);
+}
+
+/* Tiny in-button LED. Light it with .hw-led-on + `color` (uses currentColor). */
+.hw-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--btn-led-off-bg);
+  box-shadow: var(--btn-led-off-shadow);
+  flex-shrink: 0;
+  pointer-events: none;
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+.hw-led.hw-led-on {
+  background: currentColor;
+  box-shadow: 0 0 6px 1px currentColor, inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* ---- knobs (see components/Knob.tsx) ------------------------------------- */
+
+.knob-body:focus-visible {
+  outline: none;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+.knob-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* ---- silicone step pads -------------------------------------------------- */
+
+/* Base pad geometry + spring press. Set on every step cell. */
+.pad {
+  border-radius: 7px;
+  transition:
+    transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.14s ease,
+    background 0.14s ease,
+    filter 0.14s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.pad:active {
+  transform: translateY(1px) scale(0.92);
+}
+
+/* Unlit: frosted rubber. */
+.pad-off {
+  background: var(--pad-off-bg);
+  border: 1px solid var(--pad-off-border);
+  box-shadow: var(--pad-off-shadow);
+}
+.pad-off:hover {
+  background: var(--pad-off-hover);
+}
+.pad-off:active {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* Lit: LED glowing up through the silicone. Driven by inline vars:
+     --pad-color  track hex
+     --pad-mix    velocity as a % (how much colour vs unlit rubber)
+     --pad-glow   velocity 0–1 (bloom size)                                  */
+.pad-on {
+  --pad-lit: color-mix(in srgb, var(--pad-color) var(--pad-mix, 100%), var(--pad-off-solid));
+  background:
+    radial-gradient(circle at 50% 42%,
+      color-mix(in srgb, white 55%, var(--pad-lit)) 0%,
+      var(--pad-lit) 48%,
+      color-mix(in srgb, black 14%, var(--pad-lit)) 100%);
+  border: 1px solid color-mix(in srgb, black 18%, var(--pad-lit));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 6px color-mix(in srgb, white 35%, var(--pad-lit)),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.18),
+    0 0 calc(4px + var(--pad-glow, 1) * 12px) calc(var(--pad-glow, 1) * 1px)
+      color-mix(in srgb, var(--pad-color) var(--pad-bloom-strength), transparent);
+}
+.pad-on:active {
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.28),
+    0 0 calc(2px + var(--pad-glow, 1) * 6px) 0
+      color-mix(in srgb, var(--pad-color) var(--pad-bloom-strength), transparent);
+}
+
+/* Split-cell segments inherit the pad lighting at segment scale. */
+.split-segment-on {
+  background: radial-gradient(circle at 50% 42%,
+    color-mix(in srgb, white 45%, var(--pad-lit)) 0%, var(--pad-lit) 60%);
+  --pad-lit: color-mix(in srgb, var(--pad-color) var(--pad-mix, 100%), var(--pad-off-solid));
+}
+.split-segment-off {
+  background: var(--pad-off-solid);
+}
+
+/* Playhead column — the sweep bar on a Launchpad. Unlit pads get a soft
+   accent wash; lit pads flare brighter with a bigger bloom. */
+.pad.playhead-active {
+  z-index: 2;
+}
+.pad-off.playhead-active {
+  background:
+    radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--color-accent) 45%, transparent) 0%, transparent 75%),
+    var(--pad-off-bg);
+  border-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
+  box-shadow: var(--pad-off-shadow), 0 0 10px 1px color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+.pad-on.playhead-active {
+  filter: brightness(1.18) saturate(1.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 0 8px rgba(255, 255, 255, 0.6),
+    0 0 18px 3px color-mix(in srgb, var(--pad-color) 80%, transparent),
+    0 0 0 2px color-mix(in srgb, white 50%, var(--pad-color));
+}
+
+/* Pad legend — velocity glyph sits like a printed mark under the silicone. */
+.pad .step-cell-label {
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.35), 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+
+/* MPC finger pads (mobile challenge mode) share the silicone lighting. */
+.mpc-pad.pad-on {
+  border-radius: 12px;
+}
+
+/* ---- silkscreen legends -------------------------------------------------- */
+
+/* Small screened label (knob names, button text, section titles). */
+.legend {
+  font-family: var(--font-legend);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-muted);
+}
+.legend-strong {
+  font-family: var(--font-legend);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--color-text);
+}
+
+/* Keyline accent button — PANIC / KEYS style. Hue via --hw-accent. */
+.hw-btn-accent {
+  color: var(--hw-accent, var(--color-accent));
+  box-shadow: inset 0 0 0 1.5px var(--hw-accent, var(--color-accent)), var(--btn-shadow);
+}
+.hw-btn-accent:active,
+.hw-btn-accent[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1.5px var(--hw-accent, var(--color-accent)), var(--btn-shadow-active);
+}
