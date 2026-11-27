@@ -6,6 +6,7 @@ import { downloadSVG, downloadPNG } from '../notation/notationExport.js';
 import { effectiveStep } from '../util/stepHelpers.js';
 import { v4 as uuid } from 'uuid';
 import { NotationLoading, NotationPending } from './NotationLoading.js';
+import { beatCountLabels } from './notationCounts.js';
 import { restartPendingPetaluma } from './notationPrefetch.js';
 import { useMeasuredAutoFollow } from './useAutoFollow.js';
 
@@ -31,14 +32,6 @@ const SUBDIVISIONS: SubdivisionDef[] = [
   { key: '1/16', label: '1/16', perBeat: 4 },
   { key: '1/16T', label: '1/16T', perBeat: 6 },
 ];
-
-const BEAT_LABELS: Record<string, (b: number) => string[]> = {
-  '1/4':  (b) => [`${b}`],
-  '1/8':  (b) => [`${b}`, '&'],
-  '1/8T': (b) => [`${b}`, '&', 'a'],
-  '1/16': (b) => [`${b}`, 'e', '&', 'a'],
-  '1/16T': (b) => [`${b}`, 'ta', 'ta', '&', 'ta', 'ta'],
-};
 
 function interpolateX(positions: StepPosition[], stepFloat: number): number {
   if (positions.length === 0) return 0;
@@ -120,22 +113,22 @@ interface CountLabel {
 }
 
 const NotationCounts = memo(function NotationCounts({
-  layout, subdivision, totalBeats, stepsPerBeat, fontSize,
+  layout, subdivision, totalBeats, beatsPerBar, stepsPerBeat, fontSize,
 }: {
   layout: RenderDrumStaffResult;
   subdivision: string;
   totalBeats: number;
+  beatsPerBar: number;
   stepsPerBeat: number;
   fontSize: number;
 }) {
   const lineHeight = layout.lineHeight;
   const { stepPositions } = layout;
-  const labelFn = BEAT_LABELS[subdivision];
-  if (!labelFn || stepPositions.length === 0) return null;
+  if (stepPositions.length === 0) return null;
 
   const countLabels: CountLabel[] = [];
   for (let beat = 0; beat < totalBeats; beat++) {
-    const labels = labelFn(beat + 1);
+    const labels = beatCountLabels(subdivision, beat, beatsPerBar);
     const beatStartStep = beat * stepsPerBeat;
     for (let j = 0; j < labels.length; j++) {
       const stepFloat = beatStartStep + (j / labels.length) * stepsPerBeat;
@@ -410,7 +403,7 @@ function NotationView({
         <div className="notation-playhead" style={{ ...playheadStyle, pointerEvents: 'none' }} />
       ))}
 
-      {layout && <NotationCounts layout={layout} subdivision={subdiv.key} totalBeats={totalBeats} stepsPerBeat={stepsPerBeat} fontSize={SIZE_FONT[countSize]} />}
+      {layout && <NotationCounts layout={layout} subdivision={subdiv.key} totalBeats={totalBeats} beatsPerBar={beatsPerBar} stepsPerBeat={stepsPerBeat} fontSize={SIZE_FONT[countSize]} />}
     </div>
   );
 

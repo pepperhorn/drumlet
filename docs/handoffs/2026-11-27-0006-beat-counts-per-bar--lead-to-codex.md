@@ -28,5 +28,7 @@ npm ci && npm run typecheck && npm run lint && npm run build && npm test
 ---
 ## Receiver ack
 
+Codex will restart the displayed count at 1 in each measure, using the existing meter and subdivision. Both notation layouts will share a pure count helper. I will cover two bars of 4/4, 3/4, and 6/8 in the owned test file and leave the staff renderer untouched. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
