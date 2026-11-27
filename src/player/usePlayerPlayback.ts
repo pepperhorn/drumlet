@@ -25,10 +25,13 @@ function prepareInstruments(audio: AudioEngineApi, state: SequencerState, assetB
     }
   }
 
-  const kitTracks = [...tracks.values()].filter(track => track.sourceType === 'kit');
-  const otherTracks = [...tracks.values()].filter(track => track.sourceType !== 'kit');
+  const kitTracks: Track[] = [];
+  const jobs: Promise<unknown>[] = [];
   const load = (track: Track) => audio.loadTrackInstrument(track);
-  const jobs: Promise<unknown>[] = otherTracks.map(load);
+  for (const track of tracks.values()) {
+    if (track.sourceType === 'kit') kitTracks.push(track);
+    else jobs.push(load(track));
+  }
   if (kitTracks.length > 0) {
     // The shared loader reads its module-wide base in both the manifest and sample calls.
     const kits = kitQueue.then(async () => {

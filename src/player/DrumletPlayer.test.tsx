@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createRef } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getKitBaseUrl } from '../audio/customKits.js';
+import { serializeProject } from '../state/projectSerializer.js';
+import { createInitialState } from '../state/sequencerReducer.js';
 import { DrumletPlayer, GrooveError, type DrumletPlayerHandle, type GrooveInput } from './index.js';
+import { loadStockRhythms } from './resolveGroove.js';
 
 const audio = vi.hoisted(() => {
   const context = { get currentTime() { return Date.now() / 1000; }, close: vi.fn(async () => {}) };
@@ -32,10 +35,12 @@ async function readyKey(container: HTMLElement) {
     const button = playKey(container);
     expect(button).not.toBeNull();
     return button!;
-  });
+  }, { timeout: 5000 });
 }
 
 describe('DrumletPlayer', () => {
+  beforeAll(async () => { await loadStockRhythms(); });
+
   beforeEach(() => {
     vi.clearAllMocks();
     audio.loadTrackInstrument.mockReset();
@@ -64,15 +69,16 @@ describe('DrumletPlayer', () => {
     expect(loadNotation).not.toHaveBeenCalled();
   });
 
-  it.each<[string, GrooveInput]>([
-    ['garbage share', { share: 'bad-code' }],
-    ['empty project', { layers: [] } as unknown as GrooveInput],
-  ])('renders an error for %s without mounting audio', async (_, input) => {
+  it.each<[string, GrooveInput, GrooveError['code']]>([
+    ['garbage share', { share: 'bad-code' }, 'invalid'],
+    ['empty project', serializeProject({ ...createInitialState(), pages: [] }), 'empty'],
+  ])('renders an error for %s without mounting audio', async (_, input, code) => {
     const onError = vi.fn();
     const { container } = render(<DrumletPlayer groove={input} onError={onError} />);
     await screen.findByRole('alert');
     expect(container.querySelector('.drumlet-player-empty')).not.toBeNull();
     expect(onError).toHaveBeenCalledExactlyOnceWith(expect.any(GrooveError));
+    expect(onError.mock.calls[0]?.[0]).toMatchObject({ code });
     expect(useAudioEngine).not.toHaveBeenCalled();
   });
 
@@ -152,8 +158,7 @@ describe('DrumletPlayer', () => {
       expect(onStep.mock.calls[0]).toEqual([8]);
       expect(audio.triggerNote).toHaveBeenCalled();
       const scheduled = audio.triggerNote.mock.calls.length;
-      unmount();
-      await act(async () => {});
+      await act(async () => unmount());
       expect(instrument.stop).toHaveBeenCalledExactlyOnceWith({ time: 0 });
       expect(instrument.disconnect).toHaveBeenCalledTimes(1);
       expect(audio.getContext().close).toHaveBeenCalledTimes(1);

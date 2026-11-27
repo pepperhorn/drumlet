@@ -40,12 +40,12 @@ type Playback = ReturnType<typeof usePlayerPlayback>;
 type ResolvedGroove = { state: SequencerState } | { error: Error };
 
 export const DrumletPlayer = forwardRef<DrumletPlayerHandle, DrumletPlayerProps>(function DrumletPlayer(
-  { groove, chrome = 'full', theme = 'light', className, ...options }, ref,
+  { groove, chrome = 'full', theme = 'light', className, onReady, onError, ...options }, ref,
 ) {
   const [resolution, setResolution] = useState<{ input: GrooveInput; result?: ResolvedGroove }>({ input: groove });
   const playbackRef = useRef<DrumletPlayerHandle>(null);
-  const reportError = useEffectEvent((error: Error) => options.onError?.(error));
-  const reportReady = useEffectEvent(() => options.onReady?.());
+  const reportError = useEffectEvent((error: Error) => onError?.(error));
+  const reportReady = useEffectEvent(() => onReady?.());
   if (resolution.input !== groove) setResolution({ input: groove });
 
   useImperativeHandle(ref, () => ({
@@ -76,7 +76,7 @@ export const DrumletPlayer = forwardRef<DrumletPlayerHandle, DrumletPlayerProps>
   return (
     <div className={`drumlet-player grid min-w-0 gap-2 text-text${className ? ` ${className}` : ''}`} data-theme={theme}>
       {current && 'state' in current ? (
-        <ResolvedPlayer {...options} chrome={chrome} initialState={current.state} playbackRef={playbackRef} />
+        <ResolvedPlayer {...options} chrome={chrome} initialState={current.state} playbackRef={playbackRef} onError={onError} />
       ) : current ? (
         <p className="drumlet-player-empty rounded-2xl border border-border bg-card p-4 text-sm" role="alert">
           {current.error.message}
