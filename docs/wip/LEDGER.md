@@ -11,7 +11,7 @@ Next ID: 0010
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0009 | [quick] Pad-name follow-ups: global bar numbers, aria-expanded | in-review | review 0009-review-r1 | codex/gpt-6.2-sol | orch/0009-pad-names-followups | https://github.com/pepperhorn/drumlet/pull/42 | /home/shaun/.t3/worktrees/drumlet/t3-083effbc-0beddf959bc87846 | — | — | — | docs/handoffs/2026-11-28-0009-pad-names-followups--lead-to-codex.md | 2026-11-28 |
+| 0009 | [quick] Pad-name follow-ups: global bar numbers, aria-expanded | ready | human: approve merge of #42 (63 code lines) | codex/gpt-6.2-sol | orch/0009-pad-names-followups | https://github.com/pepperhorn/drumlet/pull/42 | /home/shaun/.t3/worktrees/drumlet/t3-083effbc-0beddf959bc87846 | — | — | — | docs/handoffs/2026-11-28-0009-pad-names-followups--lead-to-codex.md | 2026-11-28 |
 | 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t8b-review-r1 (t8b #43) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/43 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
@@ -62,11 +62,14 @@ Next ID: 0010
 | S20 | improvement | Paged grid pad names count bars within the page (page 3 says "bar 1") — pass the page offset from App.tsx; after 0001-t7 merges | PR #40 review r1 | S | correct screen-reader bar numbers | 0008 review r1 | accepted → 0009 |
 | S21 | improvement | Split-pad master toggles open/closed → `aria-expanded` instead of `aria-pressed` | PR #40 review r1 | S | accurate a11y semantics | 0008 review r1 | accepted → 0009 |
 | S22 | efficiency | Move spoken velocity names next to the on-screen labels in velocityConfig.ts | PR #40 review r1; src/components/Cell.tsx | S | one source of truth | 0008 review r1 | new |
+| S23 | improvement | When Steps changes (e.g. 32), stock page-tab names ("Bar 2") no longer match the bars they hold — derive tab labels from bar range or rename on step change | PR #42 review r1 | S | tabs and pad names agree | 0009 review r1 | new |
+| S24 | efficiency | Share the "first bar of page" formula between Grid and EndlessGrid in one helper | PR #42 review r1 | S | no drift | 0009 review r1 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0009 review r1 (opus) approved @ 045257e; 63 code lines → owner OK needed; S23 S24 added
 2026-11-28 0001 t8b PR #43 head a823c32 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-923c1466-b5e9140f861de063; 249 tests; 8 players → 1 context in Chromium); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0009 dispatched→in-review — PR #42 head 045257e (244 tests); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0001-t8b + 0009 delegated in parallel → codex gpt-6.2-sol (high), base d9f23f2; threads thread:delegated-task:command%3Amcp%3A5f979163-48e8-4f4f-bdcf-db9a107dc8df%3Adelegate-task%3A0001-t8b-impl-r1 / …%3A0009-impl-r1
