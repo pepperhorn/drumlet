@@ -28,5 +28,7 @@ npm ci && npm run typecheck && npm run lint && npm run build && npm test
 ---
 ## Receiver ack
 
+I’ll share one initialized Verovio toolkit across the staff-rendering tests, give the slow case a local timeout, and keep every assertion intact. I’ll run the full verification command and ten consecutive four-worker Vitest runs. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
