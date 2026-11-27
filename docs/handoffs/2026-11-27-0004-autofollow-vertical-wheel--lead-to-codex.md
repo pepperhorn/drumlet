@@ -26,5 +26,7 @@ npm ci && npm run typecheck && npm run lint && npm run build && npm test
 ---
 ## Receiver ack
 
+I’ll update the wheel handler and its tests so vertical page scrolling leaves auto-follow active. Horizontal-dominant wheel input and Shift plus vertical wheel input will still pause following. Arrow-key focus behavior stays as it is. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
