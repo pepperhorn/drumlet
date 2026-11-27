@@ -47,5 +47,7 @@ None.
 ---
 ## Receiver ack
 
+I’ll resolve stock IDs, .dottl projects, and share codes or URLs into complete sequencer state. The synchronous resolver will use an already-loaded stock catalog. The asynchronous resolver will load it on demand, and both will reject invalid or empty grooves with typed errors. I’ll change only the resolver, its tests, and the stock loader helper. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
