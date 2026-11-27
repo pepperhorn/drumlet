@@ -5,9 +5,9 @@
 - Ledger: 0001
 - Branch: `orch/0001-t4-play-through`
 - Worktree: `/home/shaun/.t3/worktrees/drumlet/t3-eeb54834-d9f137a9d21066a6`
-- PR: [draft PR for this branch](https://github.com/pepperhorn/drumlet/pulls?q=is%3Apr+head%3Aorch%2F0001-t4-play-through)
+- PR: [#30](https://github.com/pepperhorn/drumlet/pull/30)
 - Base: `f8c05d6` plus dispatch docs at `a947869`
-- Status: ready for review
+- Status: ready for round 2 review
 
 ## Goal and context
 
@@ -21,8 +21,8 @@ Add whole-groove playback, looping or natural stop, and global-step seeking and 
 ## Acceptance and verification
 
 - Six position tests cover page boundaries, chain off/on, groove repeat/end, and global-step conversion.
-- Eight hook and reducer tests cover playback modes, seeking, natural end, state defaults, and cleanup. One test unmounts during playback and asserts that both timers clear and no more notes are submitted. A second unmounts while the context is still resuming.
-- In the app at port 5214, loaded the four-bar Basic 8th-Note Rock groove in paged mode. In chain mode the selected bar went 1 → 2 → 3 → 4 → 1. With chain off, Bar 2 stayed selected through two bar lengths while the playhead moved. Stop cleared the playhead. This checks browser behavior, not listening quality.
+- Seventeen hook and reducer tests cover both mode switches, page removal and empty state, both playheads, seeking, natural end, state defaults, and cleanup. They cover unmount during playback and while the audio context is still resuming.
+- Round 1 browser smoke at port 5214 used the four-bar Basic 8th-Note Rock groove. Chain advanced through the four bars and wrapped. With chain off, Bar 2 stayed selected across two bar lengths. Stop cleared the playhead. Round 2 verified the new behavior with the fake audio clock.
 
 ```bash
 npm ci && npm run typecheck && npm run lint && npm run build && npm test
@@ -32,23 +32,26 @@ npm run dev -- --host 0.0.0.0 --port 5214 --strictPort
 Post-cleanup verification exited 0. Lint reported two existing hook warnings in `AuthModal.tsx`. Vite built with chunk-size and Verovio compatibility warnings.
 
 ```text
-added 271 packages, and audited 272 packages in 21s
+added 271 packages, and audited 272 packages in 14s
 ✖ 2 problems (0 errors, 2 warnings)
-✓ built in 3.32s
+✓ built in 2.03s
  Test Files  3 passed (3)
-      Tests  106 passed (106)
+      Tests  115 passed (115)
 ```
 
 ## Decisions made
 
 - The lead approved optional `playMode?: PlayMode` and `loopGroove?: boolean` so existing state constructors and saved states need no changes. The reducer factories set `'page'` and `true`, and the transport applies those same defaults when either field is absent. Task 4 does not depend on Task 2.
-- Groove playback starts on page zero unless a seek has set a start position. It uses the audio clock for the playhead and calls `onEnded` at the end of the last step, not when the scheduler first submits that step. In paged mode the app still follows the page-advance callback.
+- Groove playback starts on page zero unless a seek has set a start position. Both playheads use the audio clock. The scheduler still calls the page-advance callback when chaining. A natural end calls `onEnded` after the last step plays out.
+- Switching from groove to page mode keeps the cursor and selects its page once. Switching from page to groove mode keeps the step and uses the selected page. A cursor beyond the new page count is clamped to the last remaining page. If no pages remain, the transport clears both timers and calls `onEnded` once.
+- Seeking in paged mode switches the visible page through the page-advance callback.
 - Seek changes the next scheduled position. Stop and unmount prevent further submissions. The engine does not expose handles for retracting notes already submitted in the lookahead window.
-- GBrain: unavailable (MCP transport closed). This return note holds the decision for the lead.
+- GBrain: `projects/drumlet` confirms the protected-main PR workflow. The Task 4 plan and the [round 1 review](https://github.com/pepperhorn/drumlet/pull/30#pullrequestreview-6083000293) are the sources for this round.
 
 ## Return
 
 - Outcome: implementation complete.
 - Receiver acknowledgment: `387341f`.
 - Implementation: `0bcc158`.
+- Round 2 fix: `d9ef5ac`.
 - Open questions: none. Tasks 7 and 8 own the app/player wiring. Groove playback callers need instruments loaded for all playable pages.
