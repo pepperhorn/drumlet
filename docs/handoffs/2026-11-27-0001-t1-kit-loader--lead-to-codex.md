@@ -50,5 +50,7 @@ None.
 ---
 ## Receiver ack
 
+I’ll add the Vitest harness, regenerate the 14 acoustic1 voices in both approved formats, and update the loader and its engine call site to select a playable format and resolve missing voices. I’ll stay within the owned files and run the prescribed checks before opening the draft PR. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
