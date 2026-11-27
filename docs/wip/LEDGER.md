@@ -11,9 +11,9 @@ Next ID: 0005
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0004 | [quick] Auto-follow: ignore vertical wheel | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0004-autofollow-vertical-wheel | — | — | — | — | — | docs/handoffs/2026-11-27-0004-autofollow-vertical-wheel--lead-to-codex.md | 2026-11-27 |
+| 0004 | [quick] Auto-follow: ignore vertical wheel | dispatched | child 0004-impl-r1 | codex/gpt-6.2-sol | orch/0004-autofollow-vertical-wheel | — | — | — | — | — | docs/handoffs/2026-11-27-0004-autofollow-vertical-wheel--lead-to-codex.md | 2026-11-27 |
 | 0003 | Mobile notation: load feedback, fit to width, upright rests, toggle icon | dispatched | child 0003-impl-r1 | codex/gpt-6.2-sol | orch/0003-mobile-notation | — | — | — | docs/specs/0003-mobile-notation.md | docs/plans/0003-mobile-notation.md | docs/handoffs/2026-11-27-0003-mobile-notation--lead-to-codex.md | 2026-11-27 |
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | lead: dispatch t6 after 0003 merges (same files) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | child 0003-impl-r1 (t6 starts after 0003 merges — same files) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -48,6 +48,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0004 delegated → codex gpt-6.2-sol (high), base 4e16d74; thread thread:delegated-task:command%3Amcp%3Abfd96476-0150-4947-8267-ccd972872757%3Adelegate-task%3A0004-impl-r1
 2026-11-27 0001 t5 merged (#32, 6a6cac0; owner OK; main verify ✓ 151 tests). Owner: arrow keys keep pausing auto-follow. 0004 quick (S10 vertical wheel) dispatched
 2026-11-27 0001 t5 review r2 (opus) approved @ 1234f91 (re-measured 1 commit/step, worst 1.2 ms); merge needs owner OK
 2026-11-27 0001 t5 fix r2 pushed @ 1234f91 (1 commit/step, worst 6.4 ms on 1024 cells; taps keep follow; roving tabindex; 141 tests); review r2 claudeAgent claude-opus-5-5
