@@ -29,12 +29,6 @@ export async function loadStockRhythms(): Promise<StockRhythms> {
   }
 }
 
-function requireTracks(pages: SequencerState['pages'] | undefined): void {
-  if (!pages?.length || pages.every((page) => page.tracks.length === 0)) {
-    throw new GrooveError('empty', 'The groove has no pages or tracks.');
-  }
-}
-
 function fromShare(input: string): SequencerState {
   const code = /#s=([^&]*)/.exec(input)?.[1] ?? input;
   const payload = code ? decodePayload(code) : null;
@@ -42,18 +36,12 @@ function fromShare(input: string): SequencerState {
   return payload.state;
 }
 
-function fromProject(project: DottlProject): SequencerState {
+function fromProject(project: DottlProject): Partial<SequencerState> {
+  if (!Array.isArray(project.layers)) throw new GrooveError('invalid', 'Invalid .dottl groove.');
   try {
-    if (!Array.isArray(project.layers)) {
-      throw new GrooveError('invalid', 'Invalid .dottl groove.');
-    }
     const state = deserializeProject(project);
-    requireTracks(state.pages);
-    const normalized = normalizeSequencerState(state);
-    if (!normalized) throw new GrooveError('invalid', 'Invalid .dottl groove.');
-    return normalized;
+    return normalizeSequencerState(state) ?? state;
   } catch (cause) {
-    if (cause instanceof GrooveError) throw cause;
     throw new GrooveError('invalid', 'Invalid .dottl groove.', { cause });
   }
 }
@@ -94,14 +82,16 @@ export function resolveGroove(input: GrooveInput): SequencerState {
     throw new GrooveError('invalid', 'Expected a groove input.');
   }
 
-  requireTracks(state.pages);
+  if (!state.pages?.length || state.pages.every((page) => page.tracks.length === 0)) {
+    throw new GrooveError('empty', 'The groove has no pages or tracks.');
+  }
   return { ...createInitialState(), ...state };
 }
 
 export async function resolveGrooveAsync(input: GrooveInput): Promise<SequencerState> {
   // The stock catalog generator restricts IDs to this grammar.
-  const stockId = isStockInput(input) ? input.stock : input;
-  if (typeof stockId === 'string' && /^[a-z0-9-]+$/.test(stockId)) {
+  const bareStockId = typeof input === 'string' && /^[a-z0-9-]+$/.test(input);
+  if (bareStockId || (isStockInput(input) && typeof input.stock === 'string' && input.stock)) {
     await loadStockRhythms();
   }
   return resolveGroove(input);

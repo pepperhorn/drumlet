@@ -85,8 +85,11 @@ describe('resolveGroove', () => {
   });
 
   it('distinguishes an unknown explicit stock ID from an invalid untagged string', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     await expect(resolveGrooveAsync({ stock: 'missing-groove' }))
       .rejects.toMatchObject({ name: 'GrooveError', code: 'not-found' });
+    await expect(resolveGrooveAsync('missing-groove'))
+      .rejects.toMatchObject({ name: 'GrooveError', code: 'invalid' });
   });
 
   it('wraps a deserializer failure as an invalid groove', () => {
