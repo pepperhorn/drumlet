@@ -83,7 +83,7 @@ describe('EndlessGrid', () => {
     expect(active[1]!.querySelectorAll('.split-segment')).toHaveLength(3);
   });
 
-  it('keeps the moving playhead in view until manual input, then follows again after a playhead tap', () => {
+  it('pauses following on a horizontal wheel and resumes after a playhead tap', () => {
     mockGridLayout();
 
     const props = fixture();
@@ -92,7 +92,7 @@ describe('EndlessGrid', () => {
     );
     const scrollEl = container.querySelector('.endless-grid')!;
     expect(scrollEl.scrollLeft).toBe(95);
-    fireEvent.wheel(scrollEl);
+    fireEvent.wheel(scrollEl, { deltaX: 20, deltaY: 5 });
 
     rerender(<EndlessGrid {...props} currentGlobalStep={6} isPlaying editable={false} />);
     expect(scrollEl.scrollLeft).toBe(95);
@@ -100,6 +100,21 @@ describe('EndlessGrid', () => {
     fireEvent.pointerDown(playhead);
     fireEvent.pointerUp(playhead);
     fireEvent.click(playhead, { detail: 1 });
+    expect(scrollEl.scrollLeft).toBe(135);
+  });
+
+  it('keeps following the playhead after a vertical wheel', () => {
+    mockGridLayout();
+
+    const props = fixture();
+    const { container, rerender } = render(
+      <EndlessGrid {...props} currentGlobalStep={5} isPlaying editable={false} />,
+    );
+    const scrollEl = container.querySelector('.endless-grid')!;
+    expect(scrollEl.scrollLeft).toBe(95);
+    fireEvent.wheel(scrollEl, { deltaY: 20 });
+
+    rerender(<EndlessGrid {...props} currentGlobalStep={6} isPlaying editable={false} />);
     expect(scrollEl.scrollLeft).toBe(135);
   });
 
