@@ -11,7 +11,7 @@ Next ID: 0004
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0003 | Mobile notation: load feedback, fit to width, toggle icon | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0003-mobile-notation | — | — | — | docs/specs/0003-mobile-notation.md | docs/plans/0003-mobile-notation.md | docs/handoffs/2026-11-27-0003-mobile-notation--lead-to-codex.md | 2026-11-27 |
+| 0003 | Mobile notation: load feedback, fit to width, upright rests, toggle icon | dispatched | child 0003-impl-r1 | codex/gpt-6.2-sol | orch/0003-mobile-notation | — | — | — | docs/specs/0003-mobile-notation.md | docs/plans/0003-mobile-notation.md | docs/handoffs/2026-11-27-0003-mobile-notation--lead-to-codex.md | 2026-11-27 |
 | 0001 | Drumlet Player (embeddable component) + endless view | changes-requested | child 0001-t5-impl-r2 (t5 #32) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/32 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
@@ -44,6 +44,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0003 delegated → codex gpt-6.2-sol (high), base 3b1e73c (added upright rests from owner screenshot); thread thread:delegated-task:command%3Amcp%3A787164b5-6ca8-42b7-a411-c88e199bf534%3Adelegate-task%3A0003-impl-r1
 2026-11-27 0003 →dispatched — owner bug report (phone): notation "freeze" = 7.9 MB chunk (2.26 MB compressed) with no feedback; score overflows phone; toggle icon glyph from unloaded font. Must merge before 0001-t6 (same files)
 2026-11-27 0001 t3 merged (#31, 21803c6; owner OK; main verify ✓ 137 tests). t5 in-review→changes-requested — opus r1 @ 13fb3f3: 68–189 ms render per playhead step on 8×8 (memo defeated, 3 commits/step); tap pauses auto-follow against spec. Fix r2 sent (target ≤1 commit, ≤10 ms/step). Plan notes added to Task 6 (reuse pattern) and Task 9 (Cell viewport breakpoints)
 2026-11-27 0001 t3 review r1 (opus) approved @ 5a77841; merge needs owner OK
