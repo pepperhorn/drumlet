@@ -5,7 +5,7 @@
 - Ledger: 0001 · [Spec](../specs/0001-drumlet-player.md#component-api) · [Task 3 plan](../plans/0001-drumlet-player.md#task-3-groove-input-resolver)
 - Branch: `orch/0001-t3-groove-resolver`
 - Worktree: `/home/shaun/.t3/worktrees/drumlet/t3-530fb0b0-98c68d0755ed593d`
-- PR: draft to be opened after push
+- PR: [#31](https://github.com/pepperhorn/drumlet/pull/31) (draft)
 - Base: `aa29ff2` (Task 4 merge) and `95c8916` (dispatch)
 - Status: ready for review
 
