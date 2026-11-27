@@ -1,6 +1,7 @@
 import { memo, useState, useRef, type DragEvent, type HTMLAttributes } from 'react';
 import type { Track, VelMode } from '../state/sequencerReducer.js';
 import { shortTrackLabel } from '../util/trackLabel.js';
+import Knob from './Knob.js';
 
 interface TrackControlsProps {
   track: Track;
@@ -112,26 +113,38 @@ function TrackControls({
 
         <div className="track-msvl hidden lg:flex items-center gap-1">
           <button
-            className={`track-mute-btn w-6 h-6 rounded text-xs font-bold cursor-pointer transition-colors shrink-0
-              ${track.mute ? 'bg-red-100 text-stop' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
+            className={`track-mute-btn hw-btn relative font-legend font-semibold uppercase tracking-[0.12em] w-6 h-6 rounded text-xs cursor-pointer shrink-0 flex items-center justify-center
+              ${track.mute ? 'text-stop' : 'text-muted hover:text-text'}`}
             onClick={() => onChangeProp(trackIndex, 'mute', !track.mute)}
             title="Mute"
+            aria-pressed={track.mute}
           >
-            M
+            <span
+              className={`track-mute-led hw-led absolute top-0.5 right-0.5 ${track.mute ? 'hw-led-on' : ''}`}
+              style={{ color: 'var(--color-stop)', width: 4, height: 4 }}
+              aria-hidden="true"
+            />
+            <span className="track-mute-text">M</span>
           </button>
 
           <button
-            className={`track-solo-btn w-6 h-6 rounded text-xs font-bold cursor-pointer transition-colors shrink-0
-              ${track.solo ? 'bg-amber/20 text-amber' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
+            className={`track-solo-btn hw-btn relative font-legend font-semibold uppercase tracking-[0.12em] w-6 h-6 rounded text-xs cursor-pointer shrink-0 flex items-center justify-center
+              ${track.solo ? 'text-amber' : 'text-muted hover:text-text'}`}
             onClick={() => onChangeProp(trackIndex, 'solo', !track.solo)}
             title="Solo"
+            aria-pressed={track.solo}
           >
-            S
+            <span
+              className={`track-solo-led hw-led absolute top-0.5 right-0.5 ${track.solo ? 'hw-led-on' : ''}`}
+              style={{ color: 'var(--color-amber)', width: 4, height: 4 }}
+              aria-hidden="true"
+            />
+            <span className="track-solo-text">S</span>
           </button>
 
           <button
-            className={`track-vel-btn w-6 h-6 rounded text-xs font-mono font-bold cursor-pointer transition-colors shrink-0
-              ${(track.velMode || 3) > 1 ? 'bg-lavender/20 text-lavender' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
+            className={`track-vel-btn hw-btn relative w-6 h-6 rounded text-xs font-mono font-bold cursor-pointer shrink-0 flex items-center justify-center
+              ${(track.velMode || 3) > 1 ? 'text-lavender' : 'text-muted hover:text-text'}`}
             onClick={() => {
               const cur = track.velMode || 3;
               const next: VelMode = cur === 1 ? 3 : cur === 3 ? 7 : 1;
@@ -139,23 +152,33 @@ function TrackControls({
             }}
             title={`Velocity: ${track.velMode || 3} levels (click to cycle)`}
           >
-            {track.velMode || 3}
+            <span
+              className={`track-vel-led hw-led absolute top-0.5 right-0.5 ${(track.velMode || 3) > 1 ? 'hw-led-on' : ''}`}
+              style={{ color: 'var(--color-lavender)', width: 4, height: 4 }}
+              aria-hidden="true"
+            />
+            <span className="track-vel-text">{track.velMode || 3}</span>
           </button>
         </div>
       </div>
 
       <div className="track-controls-row2 hidden lg:flex items-center gap-1.5 pl-1.5">
-        <span className="track-volume-label text-xs text-muted font-semibold uppercase w-5 shrink-0">Vol</span>
-        <input
-          type="range"
-          className="track-volume-slider w-16 h-1 accent-sky cursor-pointer"
+        <span className="track-volume-label legend w-6 shrink-0">Vol</span>
+        <Knob
+          className="track-volume-slider track-volume-knob"
+          label="Volume"
+          hideLabel
+          value={track.volume}
           min={0}
           max={100}
-          value={track.volume}
-          onChange={(e) => onChangeProp(trackIndex, 'volume', Number(e.target.value))}
+          step={1}
+          defaultValue={80}
+          size={30}
+          color={track.color}
           title={`Volume: ${track.volume}`}
+          onChange={(v) => onChangeProp(trackIndex, 'volume', v)}
         />
-        <span className="track-volume-value text-xs font-mono text-muted w-5 text-right shrink-0">{track.volume}</span>
+        <span className="track-volume-value text-xs font-mono text-muted w-6 text-right shrink-0">{track.volume}</span>
       </div>
     </div>
   );
@@ -182,11 +205,11 @@ export const TrackMobilePanel = memo(function TrackMobilePanel({
   dragHandleProps,
 }: TrackMobilePanelProps) {
   return (
-    <div className="track-mobile-panel lg:hidden w-full flex items-center gap-1.5 mt-1 px-1.5 py-1.5 rounded-lg bg-gray-50 border border-border/60">
+    <div className="track-mobile-panel hw-well lg:hidden w-full flex items-center gap-1.5 mt-1 px-1.5 py-1.5 rounded-lg">
       {dragHandleProps && (
         <button
           type="button"
-          className="track-mobile-drag-handle w-9 h-9 rounded-lg bg-gray-100 text-muted flex items-center justify-center cursor-grab active:cursor-grabbing shrink-0 touch-none"
+          className="track-mobile-drag-handle hw-btn w-9 h-9 rounded-lg text-muted flex items-center justify-center cursor-grab active:cursor-grabbing shrink-0 touch-none"
           title="Drag to reorder track"
           aria-label="Drag to reorder track"
           {...dragHandleProps}
@@ -199,26 +222,36 @@ export const TrackMobilePanel = memo(function TrackMobilePanel({
         </button>
       )}
       <button
-        className={`track-mute-btn w-9 h-9 rounded-lg text-sm font-bold cursor-pointer transition-colors shrink-0
-          ${track.mute ? 'bg-red-100 text-stop' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
+        className={`track-mute-btn hw-btn relative font-legend font-semibold uppercase tracking-[0.12em] w-9 h-9 rounded-lg text-sm cursor-pointer shrink-0 flex items-center justify-center
+          ${track.mute ? 'text-stop' : 'text-muted'}`}
         onClick={() => onChangeProp(trackIndex, 'mute', !track.mute)}
         title="Mute"
         aria-pressed={track.mute}
       >
-        M
+        <span
+          className={`track-mute-led hw-led absolute top-1 right-1 ${track.mute ? 'hw-led-on' : ''}`}
+          style={{ color: 'var(--color-stop)' }}
+          aria-hidden="true"
+        />
+        <span className="track-mute-text">M</span>
       </button>
       <button
-        className={`track-solo-btn w-9 h-9 rounded-lg text-sm font-bold cursor-pointer transition-colors shrink-0
-          ${track.solo ? 'bg-amber/20 text-amber' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
+        className={`track-solo-btn hw-btn relative font-legend font-semibold uppercase tracking-[0.12em] w-9 h-9 rounded-lg text-sm cursor-pointer shrink-0 flex items-center justify-center
+          ${track.solo ? 'text-amber' : 'text-muted'}`}
         onClick={() => onChangeProp(trackIndex, 'solo', !track.solo)}
         title="Solo"
         aria-pressed={track.solo}
       >
-        S
+        <span
+          className={`track-solo-led hw-led absolute top-1 right-1 ${track.solo ? 'hw-led-on' : ''}`}
+          style={{ color: 'var(--color-amber)' }}
+          aria-hidden="true"
+        />
+        <span className="track-solo-text">S</span>
       </button>
       <button
-        className={`track-vel-btn w-9 h-9 rounded-lg text-sm font-mono font-bold cursor-pointer transition-colors shrink-0
-          ${(track.velMode || 3) > 1 ? 'bg-lavender/20 text-lavender' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}
+        className={`track-vel-btn hw-btn relative w-9 h-9 rounded-lg text-sm font-mono font-bold cursor-pointer shrink-0 flex items-center justify-center
+          ${(track.velMode || 3) > 1 ? 'text-lavender' : 'text-muted'}`}
         onClick={() => {
           const cur = track.velMode || 3;
           const next: VelMode = cur === 1 ? 3 : cur === 3 ? 7 : 1;
@@ -226,12 +259,18 @@ export const TrackMobilePanel = memo(function TrackMobilePanel({
         }}
         title={`Velocity: ${track.velMode || 3} levels`}
       >
-        {track.velMode || 3}
+        <span
+          className={`track-vel-led hw-led absolute top-1 right-1 ${(track.velMode || 3) > 1 ? 'hw-led-on' : ''}`}
+          style={{ color: 'var(--color-lavender)' }}
+          aria-hidden="true"
+        />
+        <span className="track-vel-text">{track.velMode || 3}</span>
       </button>
-      <span className="track-mobile-volume-label text-sm text-muted font-semibold shrink-0 ml-1">Vol</span>
+      <span className="track-mobile-volume-label legend shrink-0 ml-1">Vol</span>
       <input
         type="range"
-        className="track-volume-slider flex-1 w-0 min-w-0 h-1 accent-sky cursor-pointer"
+        className="track-volume-slider flex-1 w-0 min-w-0 h-1 cursor-pointer"
+        style={{ accentColor: track.color }}
         min={0}
         max={100}
         value={track.volume}

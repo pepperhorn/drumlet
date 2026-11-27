@@ -1,8 +1,9 @@
-import { memo, useRef, useCallback, useState, useEffect, type KeyboardEvent } from 'react';
+import { memo, useRef, useCallback, useState, useEffect, type CSSProperties, type KeyboardEvent } from 'react';
 import { TIME_SIGNATURES } from '../state/sequencerReducer.js';
 import type { NoteValueKey } from '../state/sequencerReducer.js';
 
 import VexFlow from 'vexflow';
+import Knob from './Knob.js';
 VexFlow.setFonts('Petaluma', 'Petaluma Script');
 
 interface BpmInputProps {
@@ -133,57 +134,35 @@ interface DialProps {
   label: string;
   value?: number;
   onChange: (value: number) => void;
+  /** CSS colour for the value arc, e.g. `var(--color-amber)`. */
   color?: string;
+  className?: string;
 }
 
-function Dial({ label, value = 0, onChange, color = 'sky' }: DialProps) {
+/** 0–100 transport knob (Swing / Human). Double-click resets to 0. */
+function Dial({ label, value = 0, onChange, color = 'var(--color-sky)', className = '' }: DialProps) {
   const safeValue = Number(value) || 0;
   return (
-    <div className="transport-dial flex flex-col items-center gap-1">
-      <span className="dial-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide">{label}</span>
-      <div className="dial-ring relative w-10 h-10 lg:w-12 lg:h-12">
-        <svg viewBox="0 0 40 40" className="dial-ring-svg w-full h-full">
-          <circle
-            cx="20" cy="20" r="16"
-            fill="none"
-            stroke="var(--color-border)"
-            strokeWidth="3"
-            strokeDasharray="75.4"
-            strokeDashoffset="0"
-            strokeLinecap="round"
-            transform="rotate(135 20 20)"
-          />
-          <circle
-            cx="20" cy="20" r="16"
-            fill="none"
-            stroke="currentColor"
-            className={`text-${color}`}
-            strokeWidth="3"
-            strokeDasharray="75.4"
-            strokeDashoffset={75.4 - (safeValue / 100) * 75.4}
-            strokeLinecap="round"
-            transform="rotate(135 20 20)"
-          />
-        </svg>
-        <span className="dial-value absolute inset-0 flex items-center justify-center text-[10px] lg:text-xs font-mono font-semibold text-text">
-          {safeValue}
-        </span>
-        <input
-          type="range"
-          className="dial-input absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          min={0}
-          max={100}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-        />
-      </div>
-    </div>
+    <Knob
+      className={`transport-dial ${className}`}
+      label={label}
+      value={safeValue}
+      min={0}
+      max={100}
+      step={1}
+      defaultValue={0}
+      color={color}
+      size={44}
+      labelPosition="top"
+      title={`${label}: ${safeValue}`}
+      onChange={onChange}
+    />
   );
 }
 
 function SaveIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="save-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 2.5h8l2.5 2.5v8A1.5 1.5 0 0 1 12 14.5H4A1.5 1.5 0 0 1 2.5 13V4A1.5 1.5 0 0 1 4 2.5z" />
       <path d="M5 2.5v4h5v-4" />
       <path d="M5 11h6" />
@@ -274,45 +253,56 @@ function Transport({
   return (
     <div className="transport-bar flex items-center gap-4 bg-card rounded-2xl shadow-sm border border-border px-5 py-3 flex-wrap">
       <button
-        className={`transport-save-btn relative w-11 h-11 rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 border
-          ${isDirty
-            ? 'bg-sky/10 text-sky border-sky/30 hover:bg-sky/15'
-            : 'bg-gray-50 text-muted border-border hover:bg-gray-100 hover:text-text'}`}
+        className={`transport-save-btn hw-btn relative w-11 h-11 rounded-xl flex items-center justify-center cursor-pointer
+          ${isDirty ? 'text-sky' : 'text-muted hover:text-text'}`}
         onClick={onSave}
         title={hasSaveId ? (isDirty ? 'Save changes' : 'Saved') : 'Save to your library'}
       >
         <SaveIcon />
-        {isDirty && <span className="transport-save-dot absolute top-2 right-2 w-2 h-2 rounded-full bg-coral" />}
+        <span
+          className={`transport-save-dot hw-led absolute top-1.5 right-1.5 ${isDirty ? 'hw-led-on' : ''}`}
+          style={{ color: 'var(--color-coral)' }}
+          aria-hidden="true"
+        />
       </button>
 
       <button
-        className={`transport-play-btn w-11 h-11 rounded-xl flex items-center justify-center text-white text-lg cursor-pointer transition-all active:scale-95
-          ${isPlaying ? 'bg-stop hover:bg-red-500' : 'bg-play hover:bg-green-600'}`}
+        className="transport-play-btn hw-btn hw-btn-accent relative w-11 h-11 rounded-xl flex items-center justify-center text-lg cursor-pointer"
+        style={{ '--hw-accent': isPlaying ? 'var(--color-stop)' : 'var(--color-play)' } as CSSProperties}
         onClick={onTogglePlay}
         title={isPlaying ? 'Stop' : 'Play'}
+        aria-label={isPlaying ? 'Stop' : 'Play'}
       >
+        <span
+          className={`transport-play-led hw-led absolute top-1.5 right-1.5 ${isPlaying ? 'hw-led-on' : ''}`}
+          style={{ color: 'var(--color-play)' }}
+          aria-hidden="true"
+        />
         {isPlaying ? (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <svg className="transport-stop-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <rect x="2" y="2" width="12" height="12" rx="1" />
           </svg>
         ) : (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <svg className="transport-play-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M4 2 L14 8 L4 14 Z" />
           </svg>
         )}
       </button>
 
       <button
-        className={`transport-chain-btn w-11 h-11 rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 border
-          ${chainMode
-            ? 'bg-amber/15 text-amber border-amber/30 hover:bg-amber/25'
-            : 'bg-gray-50 text-muted border-border hover:bg-gray-100 hover:text-text'}`}
+        className={`transport-chain-btn hw-btn relative w-11 h-11 rounded-xl flex items-center justify-center cursor-pointer
+          ${chainMode ? 'text-amber' : 'text-muted hover:text-text'}`}
         onClick={onToggleChainMode}
         title={chainMode
           ? 'Chain mode: advance through pages on each loop (click to switch to Loop)'
           : 'Loop mode: repeat the current page (click to switch to Chain)'}
         aria-label={chainMode ? 'Chain mode' : 'Loop mode'}
       >
+        <span
+          className={`transport-chain-led hw-led absolute top-1.5 right-1.5 ${chainMode ? 'hw-led-on' : ''}`}
+          style={{ color: 'var(--color-amber)' }}
+          aria-hidden="true"
+        />
         {chainMode ? (
           <svg className="transport-chain-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
             <path d="M2.5 8h8" />
@@ -329,11 +319,12 @@ function Transport({
       </button>
 
       <div className="transport-bpm flex items-center gap-2">
-        <span className="transport-bpm-label text-xs lg:text-sm text-muted font-semibold uppercase tracking-wide">BPM</span>
+        <span className="transport-bpm-label legend">BPM</span>
         <BpmInput bpm={bpm} onSetBpm={onSetBpm} />
         <input
           type="range"
-          className="transport-bpm-slider w-28 h-1 accent-sky cursor-pointer"
+          className="transport-bpm-slider w-28 h-1 cursor-pointer"
+          style={{ accentColor: 'var(--color-sky)' }}
           min={20}
           max={300}
           value={bpm}
@@ -342,7 +333,7 @@ function Transport({
       </div>
 
       <button
-        className="transport-tap-btn px-3 py-1.5 rounded-lg bg-gray-100 text-xs lg:text-sm font-semibold text-muted hover:bg-gray-200 hover:text-text transition-colors cursor-pointer active:scale-95"
+        className="transport-tap-btn hw-btn font-legend font-semibold uppercase tracking-[0.12em] text-sm md:text-xs lg:text-sm text-muted px-3 h-8 rounded-lg hover:text-text cursor-pointer"
         onClick={handleTap}
       >
         TAP
@@ -352,9 +343,9 @@ function Transport({
 
       <div className="transport-controls flex items-start gap-4">
         <div className="transport-time-sig flex flex-col items-center gap-1">
-          <span className="transport-time-sig-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide">Time</span>
+          <span className="transport-time-sig-label legend leading-none">Time</span>
           <select
-            className="transport-time-sig-select h-10 lg:h-12 px-2 rounded-lg bg-gray-100 text-xs lg:text-sm font-mono font-semibold text-muted hover:bg-gray-200 hover:text-text transition-colors cursor-pointer border-none outline-none"
+            className="transport-time-sig-select hw-well h-10 lg:h-12 px-2 rounded-lg text-xs lg:text-sm font-mono font-semibold text-text cursor-pointer"
             value={`${beatsPerBar}/${TIME_SIGNATURES.find(ts => ts.num === beatsPerBar && ts.noteValue === noteValue)?.denom ?? 4}`}
             onChange={(e) => {
               const ts = TIME_SIGNATURES.find((t) => t.label === e.target.value);
@@ -368,15 +359,16 @@ function Transport({
         </div>
 
         <div className="transport-step-div flex flex-col items-center gap-1">
-          <span className="transport-step-div-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide">Step Div</span>
-          <div className="transport-step-btns flex items-center h-10 lg:h-12 rounded-lg bg-gray-100 px-0.5">
+          <span className="transport-step-div-label legend leading-none">Step Div</span>
+          <div className="transport-step-btns hw-well flex items-center gap-0.5 h-10 lg:h-12 rounded-lg p-1">
             {STEP_OPTIONS.map((opt) => (
               <button
                 key={opt.key}
-                className={`step-option-btn w-7 lg:w-8 h-full flex items-center justify-center cursor-pointer rounded transition-colors
-                  ${stepValue === opt.key ? 'bg-sky/15 text-sky' : 'text-muted hover:text-text'}`}
+                className={`step-option-btn w-7 lg:w-8 h-full flex items-center justify-center cursor-pointer rounded-md transition-colors
+                  ${stepValue === opt.key ? 'hw-btn text-sky' : 'border border-transparent text-muted hover:text-text'}`}
                 onClick={() => onSetStepValue(opt.key)}
                 title={opt.label}
+                aria-pressed={stepValue === opt.key}
               >
                 <span className="step-option-glyph block" style={{ fontFamily: 'Petaluma', fontSize: '22px', lineHeight: 0 }}>{opt.glyph}</span>
               </button>
@@ -385,17 +377,20 @@ function Transport({
         </div>
 
         <div className="transport-preview flex flex-col items-center gap-1">
-          <span className="transport-preview-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide">Preview</span>
+          <span className="transport-preview-label legend leading-none">Preview</span>
           <button
-            className={`transport-preview-btn w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95
-              ${previewMode
-                ? 'bg-sky/15 text-sky border border-sky/30'
-                : 'bg-gray-100 text-muted hover:bg-gray-200 hover:text-text border border-transparent'
-              }`}
+            className={`transport-preview-btn hw-btn relative w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center cursor-pointer
+              ${previewMode ? 'text-sky' : 'text-muted hover:text-text'}`}
             onClick={onTogglePreview}
             title={previewMode ? 'Preview on: hear sounds when clicking cells' : 'Preview off'}
+            aria-pressed={previewMode}
           >
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <span
+              className={`transport-preview-led hw-led absolute top-1 right-1 ${previewMode ? 'hw-led-on' : ''}`}
+              style={{ color: 'var(--color-sky)' }}
+              aria-hidden="true"
+            />
+            <svg className="transport-preview-icon" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 8 A6 6 0 0 1 16 8" />
               <rect x="3" y="8" width="3.5" height="5.5" rx="1" />
               <rect x="13.5" y="8" width="3.5" height="5.5" rx="1" />
@@ -405,32 +400,35 @@ function Transport({
         </div>
 
         <div className="transport-swing flex items-end gap-1.5">
-          <Dial label="Swing" value={swing} onChange={onSetSwing} color="amber" />
+          <Dial label="Swing" value={swing} onChange={onSetSwing} color="var(--color-amber)" className="transport-swing-knob" />
           <div className="swing-target-toggle flex flex-col items-center gap-0.5 pb-0.5">
             {(['8th', '16th'] as const).map((t) => (
               <button
                 key={t}
-                className={`swing-target-btn px-1.5 py-0.5 rounded text-[9px] lg:text-[10px] font-mono font-semibold cursor-pointer transition-colors leading-tight
-                  ${swingTarget === t
-                    ? 'bg-amber/15 text-amber'
-                    : 'text-muted/50 hover:text-muted'
-                  }`}
+                className={`swing-target-btn hw-btn flex items-center gap-1 px-1.5 py-0.5 rounded text-sm md:text-xs font-mono font-semibold cursor-pointer leading-tight
+                  ${swingTarget === t ? 'text-amber' : 'text-muted hover:text-text'}`}
                 onClick={() => onSetSwingTarget(t)}
                 title={t === '8th' ? 'Swing 8th notes and below' : 'Swing 16th notes and below only'}
+                aria-pressed={swingTarget === t}
               >
-                {t}
+                <span
+                  className={`swing-target-led hw-led ${swingTarget === t ? 'hw-led-on' : ''}`}
+                  style={{ color: 'var(--color-amber)', width: 4, height: 4 }}
+                  aria-hidden="true"
+                />
+                <span className="swing-target-text">{t}</span>
               </button>
             ))}
           </div>
         </div>
 
-        <Dial label="Human" value={humanize} onChange={onSetHumanize} color="lavender" />
+        <Dial label="Human" value={humanize} onChange={onSetHumanize} color="var(--color-lavender)" className="transport-human-knob" />
       </div>
 
       {isPlaying && (
         <div className="transport-indicator flex items-center gap-1.5 ml-auto">
           <div className="transport-indicator-dot w-2 h-2 rounded-full bg-play pulse-play" />
-          <span className="transport-indicator-label text-xs text-play font-medium">Playing</span>
+          <span className="transport-indicator-label legend" style={{ color: 'var(--color-play)' }}>Playing</span>
         </div>
       )}
     </div>

@@ -55,6 +55,9 @@ function writeVars(theme: DrumletTheme): void {
   const root = document.documentElement;
   const c = theme.colors;
   root.dataset.theme = theme.id;
+  root.dataset.themeMode = theme.mode;
+  if (BUILTIN_THEMES.some((b) => b.id === theme.id)) delete root.dataset.themeCustom;
+  else root.dataset.themeCustom = '';
   root.style.colorScheme = theme.mode;
   root.style.setProperty('--color-bg', c.bg);
   root.style.setProperty('--color-card', c.card);

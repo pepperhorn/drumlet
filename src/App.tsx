@@ -572,6 +572,7 @@ function Drumlet() {
     const handleKey = (e: KeyboardEvent) => {
       const tagName = (e.target as HTMLElement | null)?.tagName;
       if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') return;
+      if ((e.target as HTMLElement | null)?.closest?.('[role="slider"]')) return;
 
       const mappedTrackId = reversePadKeyMap[e.key.toLowerCase()];
       if ((playMode || (pluginStatus === 'running' && pluginInputMode === 'pads')) && mappedTrackId && !e.repeat) {
