@@ -11,7 +11,7 @@ Next ID: 0003
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t3-review-r1 (t3 #31), review 0001-t5-review-r1 (t5 #32) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/31, https://github.com/pepperhorn/drumlet/pull/32 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | in-review | human: approve merge of #31 (t3, >50 lines); review 0001-t5-review-r1 (t5 #32) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/31, https://github.com/pepperhorn/drumlet/pull/32 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -36,11 +36,13 @@ Next ID: 0003
 | S6 | efficiency | Add Page reuses existing track ids so the v4 encoder can drop position+metadata matching | PR #29 review r2 suggestion; src/state/sequencerReducer.ts ADD_PAGE | S | simpler codec, fewer edge cases | 0001-t2 review r2 | new |
 | S7 | improvement | Carry per-track colour in share codes (lost today, pre-existing) | PR #29 review r2; shareCodec decode assigns palette colours by index | S | shared grooves keep their look | 0001-t2 review r2 | new |
 | S8 | improvement | Groove mode, loop off: deleting the last page during its final step plays one extra bar before stopping | PR #30 review r2 (non-blocking) | S | correct stop | 0001-t4 review r2 | new |
+| S9 | improvement | resolveGroove: accept `&s=` later in the hash (app does), clearer error for sync stock lookup before catalog load, report catalog fetch failure as a load error not `invalid` | PR #31 review r1 nits; src/player/resolveGroove.ts | S | fewer confusing player errors | 0001-t3 review r1 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0001 t3 review r1 (opus) approved @ 5a77841; merge needs owner OK
 2026-11-27 0001 t5 PR #32 head 13fb3f3 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-39830e8f-8bfb427f8dedb40a); review r1 claudeAgent claude-opus-5-5
 2026-11-27 0001 t3 PR #31 head 5a77841 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-530fb0b0-98c68d0755ed593d); review r1 claudeAgent claude-opus-5-5
 2026-11-27 0001 t3 + t5 delegated in parallel → codex gpt-6.2-sol (high), base 95c8916; threads thread:delegated-task:command%3Amcp%3A3b15e043-5d66-4160-ba33-951ceee08f1a%3Adelegate-task%3A0001-t3-impl-r1 / …%3A0001-t5-impl-r1
