@@ -11,15 +11,15 @@ Next ID: 0009
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0006 | [quick] Notation beat counts restart each bar | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0006-beat-counts-per-bar | — | — | — | — | — | docs/handoffs/2026-11-27-0006-beat-counts-per-bar--lead-to-codex.md | 2026-11-27 |
-| 0007 | [quick] Stop renderStaff test timing out | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0007-flaky-renderstaff-test | — | — | — | — | — | docs/handoffs/2026-11-27-0007-flaky-renderstaff-test--lead-to-codex.md | 2026-11-27 |
-| 0008 | [quick] Screen-reader names for step pads | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0008-pad-screen-reader-names | — | — | — | — | — | docs/handoffs/2026-11-27-0008-pad-screen-reader-names--lead-to-codex.md | 2026-11-27 |
-| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | child 0001-t7-impl-r1, child 0001-t8-impl-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0007 | [quick] Stop renderStaff test timing out | dispatched | child 0007-impl-r2 | codex/gpt-6.2-sol | orch/0007-flaky-renderstaff-test | — | /home/shaun/.t3/worktrees/drumlet/t3-42a01f58-9c0aacdc8552f57c | — | — | — | docs/handoffs/2026-11-27-0007-flaky-renderstaff-test--lead-to-codex.md | 2026-11-27 |
+| 0008 | [quick] Screen-reader names for step pads | in-review | review 0008-review-r1 | codex/gpt-6.2-sol | orch/0008-pad-screen-reader-names | https://github.com/pepperhorn/drumlet/pull/40 | /home/shaun/.t3/worktrees/drumlet/t3-3a765015-e6e6ca0b90898655 | — | — | — | docs/handoffs/2026-11-27-0008-pad-screen-reader-names--lead-to-codex.md | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | in-review | child 0001-t7-impl-r2 (t7 #37), review 0001-t8-review-r2 (t8 #38) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/37, https://github.com/pepperhorn/drumlet/pull/38 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0006 | [quick] Notation beat counts restart each bar | https://github.com/pepperhorn/drumlet/pull/39 | 2026-11-27 (1fd5e11) | auto-merged (48 code lines, approve, no checks); main verify ✓ 197 tests |
 | 0005 | [quick] Notation Retry without page reload | https://github.com/pepperhorn/drumlet/pull/35 | 2026-11-27 (d9291cc) | 2 review rounds (opus); owner OK |
 | 0001-t6 | Endless notation | https://github.com/pepperhorn/drumlet/pull/36 | 2026-11-27 (23c53b9) | 1 review round (opus); owner OK |
 | 0003 | Mobile notation: load feedback, fit to width, onset durations, toggle icon | https://github.com/pepperhorn/drumlet/pull/33 | 2026-11-27 (e480679) | 1 review round (opus; 98 grooves × 1,536 renders); owner OK |
@@ -55,11 +55,21 @@ Next ID: 0009
 | S16 | improvement | Add a `vite:preloadError` listener that reloads only when a deploy has removed a lazy chunk (old tabs after a release) | PR #35 review r1 | S | no dead tabs after deploys | 0005 review r1 | new |
 | S17 | improvement | Endless notation >~222 bars: 64-bar chunks show a ~70 px staff break and repeat clef/time sig/bar no. at each join; clip later chunks' opening margin so barlines meet | PR #36 review r1 | S | seamless very long scores (rare) | 0001-t6 review r1 | new |
 | S18 | improvement | Notation beat counts never restart per bar (bar 2 counts from "5"; long strips reach 3-digit counts) | PR #36 review r1 (pre-existing on main) | S | readable counts | 0001-t6 review r1 | accepted → 0006 |
+| S19 | next step | Shared AudioContext per page → plan Task 8b (after t8; gates t10/t12) | PR #38 review r1: 8 players left 8 running contexts | M | avoids browser context caps on lesson pages | 0001-t8 review r1 | accepted → 0001-t8b |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0006 merged (#39, 1fd5e11; auto-merge ≤50 code lines). 0007 blocked: other suites (NotationBoundary, EndlessGrid) time out under host load ~55/12 CPUs; lead widened Owns to vitest.config.ts (global testTimeout 15000) + NotationBoundary.test.tsx, resumed. 0001-t8 fix r2 pushed @ dc7ba43 (220 tests); review r2 claudeAgent claude-opus-5-5
+2026-11-27 0008 dispatched→in-review — PR #40 head de77cdd (209 tests w/ longer timeout; EndlessGrid 64/64 single commits); review r1 claudeAgent claude-opus-5-5
+2026-11-27 0001 t7 in-review→changes-requested — opus r1 @ 79cd9c0: desktop page-tabs bar wraps to 2 rows (+42 px). Lead: keep one row at md+ as on main, wrap only below md; take "bar tab scrolls endless strip" suggestion. Fix r2 sent
+2026-11-27 0001 t8 in-review→changes-requested — opus r1 @ d0388ed: inline groove object resets player on host re-render (blocking). Fix r2 sent: value-keyed groove, suspend context on finish, lead decision chrome="none"+display="notation" shows static notation. Plan Task 8b added (shared AudioContext; after t8, gates t10/t12)
+2026-11-27 0006 dispatched→in-review — PR #39 head b806e77 (197 tests, with 30 s CLI timeout due to known flake S15/0007); review r1 claudeAgent claude-opus-5-5
+2026-11-27 0001 t8 PR #38 head d0388ed (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-420cbbfc-51ed2bd0b49a27aa; 213 tests; one AudioContext per player instance — reviewer asked to judge vs spec "single shared AudioContext"); review r1 claudeAgent claude-opus-5-5
+2026-11-27 0001 t7 PR #37 head 79cd9c0 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-4cbaa03a-006b175ef1b3a193; 198 tests); review r1 claudeAgent claude-opus-5-5
+2026-11-27 0008 implementer blocked on scope: lead approved one-prop Grid.tsx change (beat size → TrackRow) and limiting sub-step tests to the paged grid
+2026-11-27 0006/0007/0008 delegated in parallel → codex gpt-6.2-sol (high), base 3939539; threads thread:delegated-task:command%3Amcp%3Ab2ebda65-81ee-4554-a7a1-2b8cd4f6186d%3Adelegate-task%3A000{6,7,8}-impl-r1
 2026-11-27 owner accepted S18, S15, S11 → quick items 0006, 0007, 0008 (disjoint Owns with each other and with t7/t8)
 2026-11-27 0001 t7 + t8 delegated in parallel → codex gpt-6.2-sol (high), base 9024a38; threads thread:delegated-task:command%3Amcp%3Afbebc0a5-420a-44e6-ae7f-c62cd135f281%3Adelegate-task%3A0001-t7-impl-r1 / …%3A0001-t8-impl-r1
 2026-11-27 0001 t6 merged (#36, 23c53b9) + 0005 merged (#35, d9291cc); owner OK; main verify ✓ 194 tests. t7 + t8 handoffs written for parallel dispatch (disjoint Owns)
