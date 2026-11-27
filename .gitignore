@@ -25,7 +25,10 @@ dist-ssr
 .gstack/
 
 #temp plans folder
-plans
+/plans
 
 # internal architecture doc — not for the public repo
 ARCHITECTURE.mdScreenshot 2026-04-28 *.png
+
+# agent worktrees
+.worktrees/
