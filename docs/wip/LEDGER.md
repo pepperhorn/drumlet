@@ -48,6 +48,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0004 implementer asked to update EndlessGrid.test.tsx wheel fixture (zero-delta wheel expected to pause); lead granted, Owns extended
 2026-11-27 0004 delegated → codex gpt-6.2-sol (high), base 4e16d74; thread thread:delegated-task:command%3Amcp%3Abfd96476-0150-4947-8267-ccd972872757%3Adelegate-task%3A0004-impl-r1
 2026-11-27 0001 t5 merged (#32, 6a6cac0; owner OK; main verify ✓ 151 tests). Owner: arrow keys keep pausing auto-follow. 0004 quick (S10 vertical wheel) dispatched
 2026-11-27 0001 t5 review r2 (opus) approved @ 1234f91 (re-measured 1 commit/step, worst 1.2 ms); merge needs owner OK
