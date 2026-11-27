@@ -63,6 +63,39 @@ describe('EndlessGrid', () => {
     expect(props.onSeek).not.toHaveBeenCalled();
   });
 
+  it('names later-page pads using groove-wide steps and musical bars', () => {
+    const props = fixture();
+    const ride = createNewPatternState().pages[0]!.tracks[2]!;
+    const pages = props.pages.slice(0, 2).map<Page>(page => ({
+      ...page,
+      tracks: [
+        { ...page.tracks[0]!, name: 'Kick', velMode: 3 },
+        { ...page.tracks[1]!, name: 'Snare', velMode: 1 },
+        { ...ride, name: 'Ride', velMode: 7, steps: [...ride.steps] },
+      ],
+    }));
+    pages[1]!.tracks[0]!.steps.splice(4, 6, 0, 1, 2, 3, [1, 0, 3], [0, 0]);
+    pages[0]!.tracks[1]!.steps[0] = 1;
+    pages[1]!.tracks[2]!.steps[0] = 6;
+    const { container } = render(<EndlessGrid {...props} pages={pages} />);
+    const rows = container.querySelectorAll('.endless-track-row');
+    const padAt = (row: number, step: number) => {
+      const pad = rows[row]!.querySelector(`[data-global-step="${step - 1}"] button.step-cell`)!;
+      return [pad.getAttribute('aria-label'), pad.getAttribute('aria-pressed')];
+    };
+
+    expect([21, 22, 23, 24, 25, 26].map(step => padAt(0, step))).toEqual([
+      ['Kick, bar 2 beat 2, step 21, empty', 'false'],
+      ['Kick, bar 2 beat 2, step 22, soft', 'true'],
+      ['Kick, bar 2 beat 2, step 23, medium', 'true'],
+      ['Kick, bar 2 beat 2, step 24, hard', 'true'],
+      ['Kick, bar 2 beat 3, step 25, split into 3, 2 active', 'true'],
+      ['Kick, bar 2 beat 3, step 26, split into 2, empty', 'false'],
+    ]);
+    expect(padAt(1, 1)).toEqual(['Snare, bar 1 beat 1, step 1, on', 'true']);
+    expect(padAt(2, 17)).toEqual(['Ride, bar 2 beat 1, step 17, very loud', 'true']);
+  });
+
   it('seeks to global step 20 from the same cell when read-only', () => {
     const props = fixture();
     const { container } = render(<EndlessGrid {...props} editable={false} />);

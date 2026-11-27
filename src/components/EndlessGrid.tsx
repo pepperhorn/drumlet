@@ -23,10 +23,12 @@ interface EndlessGridProps {
 }
 
 const EndlessStep = memo(function EndlessStep({
-  data, color, velMode, globalStep, isPlayhead, isBeatStart, isBarStart,
-}: Pick<Track, 'color' | 'velMode'> & {
+  data, name, color, velMode, globalStep, bar, beat, isPlayhead, isBeatStart, isBarStart,
+}: Pick<Track, 'name' | 'color' | 'velMode'> & {
   data: Step | undefined;
   globalStep: number;
+  bar: number;
+  beat: number;
   isPlayhead: boolean;
   isBeatStart: boolean;
   isBarStart: boolean;
@@ -35,6 +37,10 @@ const EndlessStep = memo(function EndlessStep({
   return (
     <div className="endless-step shrink-0" data-global-step={globalStep}>
       <Cell
+        trackName={name}
+        bar={bar}
+        beat={beat}
+        stepNumber={globalStep + 1}
         velocity={masterVelocity(effective)}
         velMode={velMode || 3}
         color={color}
@@ -57,15 +63,19 @@ const EndlessTrackPage = memo(function EndlessTrackPage({
   stepsPerBar: number;
   playheadStep: number;
 }) {
+  const firstBar = pageIndex * Math.ceil(stepsPerPage / stepsPerBar) + 1;
   return (
     <div className={`endless-track-page flex px-2 py-1 ${pageIndex > 0 ? 'endless-track-page-join' : ''}`}>
       {track && Array.from({ length: stepsPerPage }, (_, step) => (
         <EndlessStep
           key={step}
           data={track.steps[step]}
+          name={track.name}
           color={track.color}
           velMode={track.velMode}
           globalStep={toGlobalStep(pageIndex, step, stepsPerPage)}
+          bar={firstBar + Math.floor(step / stepsPerBar)}
+          beat={Math.floor((step % stepsPerBar) / stepsPerBeat) + 1}
           isPlayhead={step === playheadStep}
           isBeatStart={step > 0 && step % stepsPerBeat === 0}
           isBarStart={step > 0 && step % stepsPerBar === 0}

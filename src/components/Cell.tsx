@@ -8,6 +8,11 @@ const BAR_LINE_STYLE: CSSProperties = {
   borderLeftColor: 'color-mix(in srgb, var(--color-sky) 30%, transparent)',
 };
 
+const VELOCITY_NAMES: Record<string, string> = {
+  '': 'empty', '●': 'on', S: 'soft', M: 'medium', H: 'hard',
+  pp: 'very soft', p: 'soft', mp: 'moderately soft', mf: 'moderately loud', f: 'loud', ff: 'very loud',
+};
+
 /** Inline vars that drive the `.pad-on` LED lighting (see styles/hardware.css). */
 function padVars(color: string, level: number): CSSProperties {
   return {
@@ -18,6 +23,10 @@ function padVars(color: string, level: number): CSSProperties {
 }
 
 interface CellProps {
+  trackName: string;
+  bar: number;
+  beat: number;
+  stepNumber: number;
   velocity: number;
   velMode: VelMode;
   color: string;
@@ -41,6 +50,10 @@ interface SpinState {
 }
 
 function Cell({
+  trackName,
+  bar,
+  beat,
+  stepNumber,
   velocity,
   velMode,
   color,
@@ -56,6 +69,11 @@ function Cell({
   onToggleSubStep,
   onClearSubStep,
 }: CellProps) {
+  const position = `${trackName}, bar ${bar} beat ${beat}, step ${stepNumber}`;
+  const activeSubSteps = splitData?.reduce((count, subVel) => count + (subVel > 0 ? 1 : 0), 0) ?? 0;
+  const splitName = splitData
+    ? `${position}, split into ${splitData.length}, ${activeSubSteps ? `${activeSubSteps} active` : 'empty'}`
+    : undefined;
   const label = getVelocityLabel(velocity, velMode);
   const opacity = getVelocityOpacity(velocity, velMode);
   const prevVelRef = useRef(velocity);
@@ -88,6 +106,8 @@ function Cell({
             e.preventDefault();
             onRightClick?.();
           }}
+          aria-label={splitName}
+          aria-pressed={activeSubSteps > 0}
           title={`Split ${splitData.length} — click to edit`}
         >
           {splitData.map((subVel, i) => {
@@ -115,6 +135,8 @@ function Cell({
             ${isPlayhead ? 'playhead-active' : ''}
           `}
           onClick={onExpandToggle}
+          aria-label={splitName}
+          aria-pressed={activeSubSteps > 0}
           title="Click to collapse"
         >
           {splitData.map((subVel, i) => {
@@ -144,6 +166,8 @@ function Cell({
                   e.preventDefault();
                   onClearSubStep?.(i);
                 }}
+                aria-label={`${position}, sub-step ${i + 1} of ${splitData.length}, ${VELOCITY_NAMES[subLabel]}`}
+                aria-pressed={subVel > 0}
                 title={`Sub-step ${i + 1}`}
               >
                 {subVel > 0 && (
@@ -174,6 +198,8 @@ function Cell({
         ...(isBarStart ? BAR_LINE_STYLE : {}),
       }}
       onClick={onClick}
+      aria-label={`${position}, ${VELOCITY_NAMES[label]}`}
+      aria-pressed={velocity > 0}
       onContextMenu={(e) => {
         e.preventDefault();
         onRightClick?.();
