@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
-import type { Page, Track, NoteValueKey, SectionHeading } from '../state/sequencerReducer.js';
+import type { Page, NoteValueKey, SectionHeading } from '../state/sequencerReducer.js';
 import { fitStaffToWidth, renderDrumStaff, type RenderDrumStaffOptions, type RenderDrumStaffResult, type StepPosition, type MergedTrack } from '../notation/renderStaff.js';
 import { downloadSVG, downloadPNG } from '../notation/notationExport.js';
 import { effectiveStep } from '../util/stepHelpers.js';
@@ -16,7 +16,6 @@ const SIZE_LABELS: Record<SizeKey, string> = { sm: 'S', md: 'M', lg: 'L', xl: 'X
 const SIZE_FONT: Record<SizeKey, number> = { sm: 9, md: 11, lg: 14, xl: 18, '2xl': 24 };
 const SCORE_SCALE: Record<SizeKey, number> = { sm: 36, md: 41, lg: 45, xl: 52, '2xl': 62 };
 
-const NO_TRACKS: Track[] = [];
 const BARS_PER_LINE_OPTIONS = [null, 2, 3, 4, 0]; // null = Auto, 0 = single scrolling line.
 
 interface SubdivisionDef {
@@ -379,7 +378,7 @@ function NotationView({
   const playheadWidth = layout?.stepWidth ?? 28;
   const lineHeight = layout?.lineHeight ?? 100;
 
-  const allTracks = pages[0]?.tracks ?? NO_TRACKS;
+  const allTracks = pages[0]?.tracks;
   const playheadStyle = playhead ? {
     position: 'absolute' as const,
     left: endless ? 0 : playhead.x - playheadWidth / 2,
@@ -445,7 +444,7 @@ function NotationView({
         </button>
 
         <div className="notation-part-tracks flex flex-wrap min-w-0 items-center gap-2 ml-3 pl-3 border-l border-border">
-          {allTracks.map((track) => (
+          {allTracks?.map((track) => (
             <label
               key={track.id}
               className="notation-track-check flex items-center gap-1 cursor-pointer select-none"

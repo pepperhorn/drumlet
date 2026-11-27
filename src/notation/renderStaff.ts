@@ -21,6 +21,7 @@ const PAGE_MARGIN_WIDTH = FIRST_SYSTEM_LEFT_MARGIN + 130;
 const MIN_PAGE_WIDTH = 900;
 const MAX_PAGE_WIDTH = 100000; // Verovio's pageWidth option limit.
 const MAX_ENDLESS_CHUNK_BARS = 64;
+const HEADING_BAND_HEIGHT = 23;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const DRUM_KEY_STAVE_GAP = 20; // Verovio units; about 2 rendered px at the current scale.
 
@@ -249,6 +250,7 @@ function buildMei({
   stepsPerBeat,
   beatsPerBar = 4,
   barsPerLine = 4,
+  layout,
   useColor = true,
   numStaffLines = 5,
 }: RenderDrumStaffOptions, firstBar: number, endBar: number): string {
@@ -260,7 +262,9 @@ function buildMei({
   const measures: string[] = [];
 
   for (let bar = firstBar; bar < endBar; bar++) {
-    if (bar > firstBar && barsPerLine > 0 && (bar - firstBar) % barsPerLine === 0) measures.push('<sb/>');
+    if (layout !== 'endless' && bar > firstBar && barsPerLine > 0 && (bar - firstBar) % barsPerLine === 0) {
+      measures.push('<sb/>');
+    }
     const startStep = bar * stepsPerBar;
     const stepsThisMeasure = Math.min(stepsPerBar, totalSteps - startStep);
     measures.push(buildMeasure(mergedTracks, bar + 1, startStep, stepsThisMeasure, stepsPerNotationBeat, noteValueKey, useColor));
@@ -634,16 +638,16 @@ function addEndlessHeadings(
     const box = document.createElementNS(SVG_NS, 'svg');
     box.setAttribute('x', String(x + 4));
     box.setAttribute('width', String(Math.max(0, (labels[index + 1]?.x ?? svgWidth) - x - 5)));
-    box.setAttribute('height', '23');
+    box.setAttribute('height', String(HEADING_BAND_HEIGHT));
     const title = document.createElementNS(SVG_NS, 'title');
     title.textContent = heading.label;
     const label = document.createElementNS(SVG_NS, 'text');
     label.setAttribute('class', 'drumlet-notation-page-name');
     label.setAttribute('y', '17');
     label.setAttribute('font-family', 'var(--font-legend, sans-serif)');
-    label.setAttribute('font-size', '13');
+    label.setAttribute('font-size', '14');
     label.setAttribute('font-weight', '600');
-    label.setAttribute('fill', TEXT_COLOR);
+    label.setAttribute('fill', `var(--color-text, ${TEXT_COLOR})`);
     label.textContent = heading.label;
     box.append(title, label);
     strip.append(box);
@@ -680,12 +684,13 @@ export async function renderDrumStaff(container: HTMLElement, options: RenderDru
 
   const headings = options.sectionHeadings ?? [];
   const barStarts = new Map<number, number>();
-  const topPadding = Math.max(...chunks.map(({ result }) => result.topPadding)) + (headings.length ? 23 : 0);
+  const topPadding = Math.max(...chunks.map(({ result }) => result.topPadding)) + (headings.length ? HEADING_BAND_HEIGHT : 0);
   const stepPositions: StepPosition[] = [];
   let svgWidth = 0;
   let svgHeight = 0;
   let startStep = 0;
 
+  // Align each chunk's top staff line before mapping overlays into strip coordinates.
   for (const { svg, unit, result } of chunks) {
     const y = topPadding - result.topPadding;
     svg.setAttribute('x', String(svgWidth));
