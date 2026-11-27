@@ -11,7 +11,7 @@ Next ID: 0010
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t9-review-r1 (t9 #44) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/44 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | changes-requested | child 0001-t9-impl-r2 (t9 #44) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/44 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -66,11 +66,13 @@ Next ID: 0010
 | S23 | improvement | When Steps changes (e.g. 32), stock page-tab names ("Bar 2") no longer match the bars they hold — derive tab labels from bar range or rename on step change | PR #42 review r1 | S | tabs and pad names agree | 0009 review r1 | new |
 | S24 | efficiency | Share the "first bar of page" formula between Grid and EndlessGrid in one helper | PR #42 review r1 | S | no drift | 0009 review r1 | new |
 | S25 | risk | useAudioEngine: a call after release silently re-acquires the shared context and never releases it — guard or throw after dispose (all callers guarded today) | PR #43 review r1 | S | hardening | 0001-t8b review r1 | new |
+| S26 | improvement | Dark theme: notation title, clef and time signature render black on the dark card (pre-existing on main) | PR #44 review r1 | S | readable notation in Dark Studio | 0001-t9 review r1 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0001 t9 in-review→changes-requested — opus r1 @ 0ef5cec: layered package CSS loses to unlayered host CSS (pads shrink/vanish). Lead: emit unlayered scoped CSS (spec anti-goal), verify-dist bans @layer, hostile-host repro required; take verify:lib→SSR test and @source coverage check. Fix r2 sent
 2026-11-28 0001 t9 PR #44 head 0ef5cec (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-a9583e5d-098e33c18423e92f; 250 tests; tarball 1,175,293 B; fresh Vite host verified); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0001 t9 delegated → codex gpt-6.2-sol (high), base c390fa1; thread thread:delegated-task:command%3Amcp%3A3bf9f6de-6d3e-4ea2-a4a0-e91337ca0f18%3Adelegate-task%3A0001-t9-impl-r1
 2026-11-28 0009 merged (#42, fed6ddd) + 0001-t8b merged (#43, 6408ec8); owner OK; main verify ✓ 250 tests. t9 handoff written (t8b nit folded in)
