@@ -71,6 +71,7 @@ export function usePlayerPlayback(state: SequencerState, options: PlaybackOption
   const finish = useCallback(() => {
     // Smplr's default stop can ramp a kit voice with no release time to NaN.
     for (const { instrument } of instruments.current.values()) instrument.stop({ time: 0 });
+    void context.current?.suspend().catch(() => {});
     request.current = null;
     release.current?.();
     release.current = undefined;
@@ -101,9 +102,9 @@ export function usePlayerPlayback(state: SequencerState, options: PlaybackOption
       release.current = releaseClaim;
       setIsStarting(true);
 
-      // Resume inside the user gesture, before sample downloads.
+      // Queue resume in the user gesture even if a preceding suspend hasn't settled.
       context.current = audio.getContext();
-      await audio.ensureRunning();
+      await context.current.resume();
       if (request.current !== token) return;
       prepared.current ??= prepareInstruments(audio, stateRef.current, optionsRef.current.assetBaseUrl).catch(error => {
         prepared.current = null;

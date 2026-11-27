@@ -1,15 +1,21 @@
 // SPDX-License-Identifier: MIT
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { createRef } from 'react';
+import { createRef, useState } from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getKitBaseUrl } from '../audio/customKits.js';
 import { serializeProject } from '../state/projectSerializer.js';
-import { createInitialState } from '../state/sequencerReducer.js';
+import { createInitialState, createNewPatternState } from '../state/sequencerReducer.js';
+import { encodeState } from '../state/shareCodec.js';
 import { DrumletPlayer, GrooveError, type DrumletPlayerHandle, type GrooveInput } from './index.js';
 import { loadStockRhythms } from './resolveGroove.js';
 
 const audio = vi.hoisted(() => {
-  const context = { get currentTime() { return Date.now() / 1000; }, close: vi.fn(async () => {}) };
+  const context = {
+    get currentTime() { return Date.now() / 1000; },
+    close: vi.fn(async () => {}),
+    resume: vi.fn(async () => {}),
+    suspend: vi.fn(async () => {}),
+  };
   return {
     getContext: () => context,
     ensureRunning: vi.fn(async () => context),
@@ -29,6 +35,8 @@ const loadNotation = vi.hoisted(() => vi.fn(async () => ({
 vi.mock('../components/notationPrefetch.js', () => ({ loadNotation }));
 
 const groove = 'country-shuffle';
+const share = encodeState(createNewPatternState())!;
+const project = serializeProject(createNewPatternState());
 const playKey = (container: HTMLElement) => container.querySelector<HTMLButtonElement>('.drumlet-player-play-btn');
 async function readyKey(container: HTMLElement) {
   return waitFor(() => {
@@ -55,10 +63,10 @@ describe('DrumletPlayer', () => {
     expect(audio.ensureRunning).not.toHaveBeenCalled();
   });
 
-  it('never mounts the audio engine or loads notation in none chrome', async () => {
+  it('defaults to grid without audio or notation in none chrome', async () => {
     const ref = createRef<DrumletPlayerHandle>();
     const onReady = vi.fn();
-    const { container } = render(<DrumletPlayer groove={groove} chrome="none" display="notation" onReady={onReady} ref={ref} />);
+    const { container } = render(<DrumletPlayer groove={groove} chrome="none" onReady={onReady} ref={ref} />);
     await waitFor(() => expect(onReady).toHaveBeenCalledTimes(1));
     expect(container.querySelector('.endless-grid')).not.toBeNull();
     expect(container.querySelector('.drumlet-player-play-btn')).toBeNull();
@@ -67,6 +75,84 @@ describe('DrumletPlayer', () => {
     ref.current?.seek(5);
     expect(useAudioEngine).not.toHaveBeenCalled();
     expect(loadNotation).not.toHaveBeenCalled();
+  });
+
+  it('renders requested notation in none chrome without transport or audio', async () => {
+    const { container } = render(<DrumletPlayer groove={groove} chrome="none" display="notation" />);
+    expect(await screen.findByText('endless score, step -1')).toBeTruthy();
+    expect(container.querySelector('.endless-grid, .transport-bar, .drumlet-player-play-btn')).toBeNull();
+    expect(useAudioEngine).not.toHaveBeenCalled();
+  });
+
+  it.each<[string, () => GrooveInput, () => GrooveInput]>([
+    ['stock', () => ({ stock: groove }), () => ({ stock: groove })],
+    ['share', () => ({ share }), () => ({ share })],
+    ['project', () => structuredClone(project), () => {
+      const { version, ...fields } = structuredClone(project);
+      return { ...fields, version };
+    }],
+  ])('keeps playing when a host recreates an equal %s input', async (_, first, next) => {
+    const ref = createRef<DrumletPlayerHandle>();
+    const onReady = vi.fn();
+    const onStop = vi.fn();
+    const element = (input: GrooveInput) => <DrumletPlayer groove={input} ref={ref} onReady={onReady} onStop={onStop} chrome="minimal" />;
+    const { container, rerender } = render(element(first()));
+    const key = await readyKey(container);
+    await act(async () => ref.current!.play());
+    await act(async () => rerender(element(next())));
+    expect(playKey(container)).toBe(key);
+    expect(key.getAttribute('aria-label')).toBe('Stop');
+    expect(onReady).toHaveBeenCalledTimes(1);
+    expect(onStop).not.toHaveBeenCalled();
+    expect(audio.getContext().close).not.toHaveBeenCalled();
+  });
+
+  it('keeps playing when each step updates host state with an inline share input', async () => {
+    const ref = createRef<DrumletPlayerHandle>();
+    const onReady = vi.fn();
+    function Host() {
+      const [step, setStep] = useState(-1);
+      return (
+        <DrumletPlayer
+          groove={{ share }}
+          ref={ref}
+          chrome="minimal"
+          className={`host-step-${step}`}
+          onReady={onReady}
+          onStep={setStep}
+        />
+      );
+    }
+    const { container } = render(<Host />);
+    const key = await readyKey(container);
+    vi.useFakeTimers();
+    try {
+      await act(async () => ref.current!.play());
+      act(() => vi.advanceTimersByTime(140));
+      expect(container.querySelector('.host-step-0')).not.toBeNull();
+      act(() => vi.advanceTimersByTime(500));
+      expect(container.firstElementChild?.className).toMatch(/\bhost-step-[1-9]\d*\b/);
+      expect(playKey(container)).toBe(key);
+      expect(key.getAttribute('aria-label')).toBe('Stop');
+      expect(onReady).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reloads a changed groove and tears down its previous playback', async () => {
+    const ref = createRef<DrumletPlayerHandle>();
+    const onReady = vi.fn();
+    const element = (stock: string) => <DrumletPlayer groove={{ stock }} ref={ref} onReady={onReady} chrome="minimal" />;
+    const { container, rerender } = render(element(groove));
+    const first = await readyKey(container);
+    await act(async () => ref.current!.play());
+    rerender(element('country-train-beat'));
+    await waitFor(() => expect(onReady).toHaveBeenCalledTimes(2));
+    const next = playKey(container);
+    expect(next).not.toBe(first);
+    expect(next?.getAttribute('aria-label')).toBe('Play');
+    expect(audio.getContext().close).toHaveBeenCalledTimes(1);
   });
 
   it.each<[string, GrooveInput, GrooveError['code']]>([
@@ -104,6 +190,21 @@ describe('DrumletPlayer', () => {
     expect(keyB.getAttribute('aria-label')).toBe('Stop');
     expect(keyA.getAttribute('aria-label')).toBe('Play');
     expect(onStop).toHaveBeenCalledTimes(1);
+    expect(audio.getContext().suspend).toHaveBeenCalledTimes(1);
+  });
+
+  it('suspends on stop and requests a resume on immediate replay', async () => {
+    const ref = createRef<DrumletPlayerHandle>();
+    const { container } = render(<DrumletPlayer groove={groove} ref={ref} chrome="minimal" />);
+    const key = await readyKey(container);
+    await act(async () => ref.current!.play());
+    await act(async () => {
+      ref.current!.stop();
+      await ref.current!.play();
+    });
+    expect(audio.getContext().suspend).toHaveBeenCalledTimes(1);
+    expect(audio.getContext().resume).toHaveBeenCalledTimes(2);
+    expect(key.getAttribute('aria-label')).toBe('Stop');
   });
 
   it('does not start an older request after another player claims during sample loading', async () => {
@@ -182,6 +283,7 @@ describe('DrumletPlayer', () => {
       await act(async () => ref.current!.play());
       act(() => vi.advanceTimersByTime(5000));
       expect(onStop).toHaveBeenCalledTimes(1);
+      expect(audio.getContext().suspend).toHaveBeenCalledTimes(1);
       expect(key.getAttribute('aria-label')).toBe('Play');
       expect(vi.getTimerCount()).toBe(0);
     } finally {

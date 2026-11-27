@@ -38,15 +38,35 @@ export interface DrumletPlayerHandle {
 
 type Playback = ReturnType<typeof usePlayerPlayback>;
 type ResolvedGroove = { state: SequencerState } | { error: Error };
+type GrooveKey = string | object;
+
+function grooveKey(input: GrooveInput): GrooveKey {
+  if (typeof input === 'string') return `string:${input}`;
+  if (!input || typeof input !== 'object') return input;
+  if ('stock' in input) return typeof input.stock === 'string' ? `stock:${input.stock}` : input;
+  if ('share' in input) return typeof input.share === 'string' ? `share:${input.share}` : input;
+  try {
+    return `project:${JSON.stringify(input, (_key, value: unknown) =>
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? Object.fromEntries(Object.keys(value).sort().map(key => [key, Reflect.get(value, key)]))
+        : value)}`;
+  } catch {
+    // Non-JSON input still goes through the resolver's error handling.
+    return input;
+  }
+}
 
 export const DrumletPlayer = forwardRef<DrumletPlayerHandle, DrumletPlayerProps>(function DrumletPlayer(
   { groove, chrome = 'full', theme = 'light', className, onReady, onError, ...options }, ref,
 ) {
-  const [resolution, setResolution] = useState<{ input: GrooveInput; result?: ResolvedGroove }>({ input: groove });
+  const key = useMemo(() => grooveKey(groove), [groove]);
+  const [resolution, setResolution] = useState<{ key: GrooveKey; result?: ResolvedGroove }>({ key });
   const playbackRef = useRef<DrumletPlayerHandle>(null);
   const reportError = useEffectEvent((error: Error) => onError?.(error));
   const reportReady = useEffectEvent(() => onReady?.());
-  if (resolution.input !== groove) setResolution({ input: groove });
+  const resolveCurrentGroove = useEffectEvent(() => resolveGrooveAsync(groove));
+  const grooveChanged = !Object.is(resolution.key, key);
+  if (grooveChanged) setResolution({ key });
 
   useImperativeHandle(ref, () => ({
     async play() { await playbackRef.current?.play(); },
@@ -56,19 +76,19 @@ export const DrumletPlayer = forwardRef<DrumletPlayerHandle, DrumletPlayerProps>
 
   useEffect(() => {
     let active = true;
-    void resolveGrooveAsync(groove).then(
-      state => { if (active) setResolution({ input: groove, result: { state } }); },
+    void resolveCurrentGroove().then(
+      state => { if (active) setResolution({ key, result: { state } }); },
       cause => {
         if (!active) return;
         const error = cause instanceof Error ? cause : new Error(String(cause));
-        setResolution({ input: groove, result: { error } });
+        setResolution({ key, result: { error } });
         reportError(error);
       },
     );
     return () => { active = false; };
-  }, [groove]);
+  }, [key]);
 
-  const current = resolution.input === groove ? resolution.result : undefined;
+  const current = grooveChanged ? undefined : resolution.result;
   useEffect(() => {
     if (current && 'state' in current) reportReady();
   }, [current]);
@@ -119,7 +139,7 @@ function ResolvedPlayer({
   const surface: PlayerSurfaceProps = {
     state: playerState,
     controls,
-    display: controls.audio ? display : 'grid',
+    display: chrome === 'none' ? initialDisplay : display,
     view,
     setDisplay,
     setView: value => setView({ prop: initialView, value }),
