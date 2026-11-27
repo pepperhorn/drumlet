@@ -11,8 +11,8 @@ Next ID: 0003
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0002 | [pr] Hardware look + glowing silicone step pads | changes-requested | lead: delegate fix r1 | claudeAgent/claude-opus-5-5 | feat/hardware-pads | https://github.com/pepperhorn/drumlet/pull/27 | — | review r2: codex gpt-6.2-sol @ 5535f51 | — | — | — | 2026-11-27 |
-| 0001 | Drumlet Player (embeddable component) + endless view | planned | review pr27-review-r2 (prereq #27 must merge before t1) | — | — | — | — | — | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | — | 2026-11-27 |
+| 0002 | [pr] Hardware look + glowing silicone step pads | changes-requested | child 0002-impl-r1 | claudeAgent/claude-sonnet-5-5 (fix r1) | feat/hardware-pads (local feat/hardware-pads-r1) | https://github.com/pepperhorn/drumlet/pull/27 | — | impl r1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0002-impl-r1 | — | — | — | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | planned | child 0002-impl-r1 (prereq #27 must merge before t1) | — | — | — | — | — | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | — | 2026-11-27 |
 
 ## Done / closed
 
@@ -30,6 +30,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0002 fix r1 dispatched → claudeAgent claude-sonnet-5-5 (effort high)
 2026-11-27 0002 in-review→changes-requested — codex r2: 4×P2 (knob→BPM shortcut leak, hidden selection/split rings, hidden focus rings, theme-extension contract) + 1×P3 (label sizes); fix handoff docs/handoffs/2026-11-27-0002-review-fixes--lead-to-claude.md
 2026-11-27 0002 review r1 ended unreviewed (child hit a setup prompt: worktree came from a pre-#26 checkout); r2 launched from main
 2026-11-27 0002 →in-review — adopted PR #27 (pre-orch, Claude-authored); review r1 codex gpt-6.2-sol at 5535f51
