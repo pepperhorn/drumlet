@@ -4,7 +4,7 @@ import { NOTE_VALUES } from '../state/sequencerReducer.js';
 import type { SequencerState } from '../state/sequencerReducer.js';
 import { effectiveStep } from '../util/stepHelpers.js';
 import type { AudioEngineApi } from './useAudioEngine.js';
-import { advancePosition, fromGlobalStep, toGlobalStep } from './playPosition.js';
+import { advancePosition, fromGlobalStep, toGlobalStep, type PlayMode } from './playPosition.js';
 
 const LOOKAHEAD = 0.1; // seconds
 const SCHEDULE_INTERVAL = 25; // ms
@@ -37,6 +37,7 @@ export function useTransport(
 
   const playRequestRef = useRef<symbol | null>(null);
   const nextPositionRef = useRef<Position | null>(null);
+  const activeModeRef = useRef<PlayMode>('page');
   const selectedPageRef = useRef(0);
   const nextStepTimeRef = useRef(0);
   const endTimeRef = useRef<number | null>(null);
@@ -71,18 +72,47 @@ export function useTransport(
     setPosition(null);
   }, [clearPlayback]);
 
+  const endPlayback = useCallback(() => {
+    stop();
+    onEndedRef.current?.();
+  }, [stop]);
+
   const scheduleNotes = useCallback(() => {
-    const ctx = getContext();
-    if (endTimeRef.current !== null) {
-      if (ctx.currentTime >= endTimeRef.current) {
-        stop();
-        onEndedRef.current?.();
-      }
+    const state = stateRef.current;
+    const lastPage = state.pages.length - 1;
+    if (lastPage < 0) {
+      endPlayback();
       return;
     }
 
-    const state = stateRef.current;
+    const cursor = nextPositionRef.current;
+    if (!cursor) return;
     const mode = state.playMode ?? 'page';
+    const modeChanged = activeModeRef.current !== mode;
+    const cursorPageRemoved = cursor.page > lastPage;
+    const ctx = getContext();
+    const endTime = endTimeRef.current;
+    if (endTime !== null && !modeChanged && !cursorPageRemoved) {
+      if (ctx.currentTime >= endTime) endPlayback();
+      return;
+    }
+
+    const selected = state.currentPageIndex;
+    const followSelection = modeChanged
+      ? mode === 'groove'
+      : mode === 'page' && selectedPageRef.current !== selected;
+    const pageIndex = Math.min(followSelection ? selected : cursor.page, lastPage);
+    activeModeRef.current = mode;
+    selectedPageRef.current = selected;
+    if (endTime !== null || pageIndex !== cursor.page) {
+      // If the final step was already submitted, continue at the next page boundary.
+      nextPositionRef.current = { page: pageIndex, step: endTime === null ? cursor.step : 0 };
+      endTimeRef.current = null;
+    }
+    if (mode === 'page' && (modeChanged || (cursorPageRemoved && pageIndex !== selected))) {
+      state._onPageAdvance?.(pageIndex);
+    }
+
     const settings = {
       mode,
       pages: state.pages.length,
@@ -102,11 +132,7 @@ export function useTransport(
     while (queue[1] && queue[1].time <= ctx.currentTime) queue.shift();
 
     while (nextPositionRef.current && nextStepTimeRef.current < ctx.currentTime + LOOKAHEAD) {
-      let pos = nextPositionRef.current;
-      if (mode === 'page' && selectedPageRef.current !== state.currentPageIndex) {
-        selectedPageRef.current = state.currentPageIndex;
-        pos = { ...pos, page: state.currentPageIndex };
-      }
+      const pos = nextPositionRef.current;
       const page = state.pages[pos.page];
       if (!page) break;
       const { step } = pos;
@@ -165,13 +191,7 @@ export function useTransport(
         }
       }
 
-      const visual = toVisualPosition(pos, state.stepsPerPage);
-      if (mode === 'groove') {
-        queue.push({ position: visual, time: nextStepTimeRef.current });
-      } else {
-        visualPositionRef.current = visual;
-        queue.length = 0;
-      }
+      queue.push({ position: toVisualPosition(pos, state.stepsPerPage), time: nextStepTimeRef.current });
 
       nextStepTimeRef.current += stepDuration;
       const next = advancePosition(pos, settings);
@@ -185,7 +205,7 @@ export function useTransport(
         state._onPageAdvance?.(next.page);
       }
     }
-  }, [getContext, stateRef, stop, triggerNote]);
+  }, [endPlayback, getContext, stateRef, triggerNote]);
 
   const updateVisual = useCallback(function tick(): void {
     const now = getContext().currentTime;
@@ -212,14 +232,11 @@ export function useTransport(
     if (playRequestRef.current !== request) return;
 
     const state = stateRef.current;
+    const mode = state.playMode ?? 'page';
+    activeModeRef.current = mode;
     selectedPageRef.current = state.currentPageIndex;
     if (nextPositionRef.current === null) {
-      const mode = state.playMode ?? 'page';
-      const page = mode === 'groove' ? 0 : state.currentPageIndex;
-      nextPositionRef.current = { page, step: 0 };
-      if (mode === 'page') {
-        visualPositionRef.current = toVisualPosition({ page, step: state.stepsPerPage - 1 }, state.stepsPerPage);
-      }
+      nextPositionRef.current = { page: mode === 'groove' ? 0 : state.currentPageIndex, step: 0 };
     }
     nextStepTimeRef.current = ctx.currentTime + LOOKAHEAD;
 

@@ -50,7 +50,7 @@ function setupTransport({ onEnded, playMode, loopGroove, chainMode = false }: {
   stateRef.current._onPageAdvance = onPageAdvance;
   const hook = renderHook(() => useTransport(stateRef, engine, { onEnded }));
   const noteIds = () => triggerNote.mock.calls.map(([track]) => track.id);
-  return { ...hook, ctx, ensureRunning, triggerNote, onPageAdvance, noteIds };
+  return { ...hook, stateRef, ctx, ensureRunning, triggerNote, onPageAdvance, noteIds };
 }
 
 function tick(ms: number) {
@@ -133,6 +133,102 @@ describe('useTransport', () => {
     tick(150);
     expect(triggerNote.mock.calls[1]?.slice(0, 2)).toEqual([expect.objectContaining({ id: 'track-0' }), 1]);
     act(() => result.current.stop());
+  });
+
+  it('keeps the groove cursor on groove → page and selects its page once', async () => {
+    const { result, stateRef, onPageAdvance, triggerNote } = setupTransport({ playMode: 'groove' });
+    await act(() => result.current.play());
+    tick(610);
+    expect(result.current.currentPlayPage).toBe(2);
+    expect(stateRef.current.currentPageIndex).toBe(1);
+    const count = triggerNote.mock.calls.length;
+
+    stateRef.current.playMode = 'page';
+    tick(365);
+
+    expect(onPageAdvance.mock.calls).toEqual([[2]]);
+    expect(stateRef.current.currentPageIndex).toBe(2);
+    expect(triggerNote.mock.calls.slice(count).map(([track, velocity]) => [track.id, velocity]))
+      .toEqual([['track-2', 2], ['track-2', 1], ['track-2', 2]]);
+    expect(result.current.isPlaying).toBe(true);
+  });
+
+  it('continues from the selected page at the next step on page → groove', async () => {
+    const { result, stateRef, onPageAdvance, triggerNote } = setupTransport();
+    await act(() => result.current.play());
+    tick(105);
+    expect(triggerNote.mock.calls).toHaveLength(1);
+
+    stateRef.current.currentPageIndex = 2;
+    stateRef.current.playMode = 'groove';
+    tick(145);
+
+    expect(triggerNote.mock.calls[1]?.slice(0, 2)).toEqual([expect.objectContaining({ id: 'track-2' }), 2]);
+    expect(result.current).toMatchObject({ currentPlayPage: 2, currentGlobalStep: 5 });
+    expect(onPageAdvance).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { before: 610, after: 150, velocity: 2, globalStep: 3 },
+    { before: 750, after: 140, velocity: 1, globalStep: 2 },
+  ])('clamps a removed groove cursor and keeps playing (shrinks at $before ms)', async ({ before, after, velocity, globalStep }) => {
+    const onEnded = vi.fn();
+    const { result, stateRef, triggerNote } = setupTransport({ playMode: 'groove', loopGroove: false, onEnded });
+    await act(() => result.current.play());
+    tick(before);
+    expect(result.current.currentPlayPage).toBe(2);
+    const count = triggerNote.mock.calls.length;
+
+    stateRef.current.pages = stateRef.current.pages.slice(0, 2);
+    tick(after);
+
+    expect(triggerNote.mock.calls[count]?.slice(0, 2)).toEqual([expect.objectContaining({ id: 'track-1' }), velocity]);
+    expect(result.current).toMatchObject({ isPlaying: true, currentPlayPage: 1, currentGlobalStep: globalStep });
+    expect(onEnded).not.toHaveBeenCalled();
+  });
+
+  it.each(['page', 'groove'] as const)('ends %s playback once when no pages remain', async (playMode) => {
+    const onEnded = vi.fn();
+    const { result, stateRef, triggerNote } = setupTransport({ playMode, loopGroove: false, onEnded });
+    const clear = vi.spyOn(globalThis, 'clearInterval');
+    const cancel = vi.spyOn(globalThis, 'cancelAnimationFrame');
+    await act(() => result.current.play());
+    tick(750);
+    expect(result.current.isPlaying).toBe(true);
+    const count = triggerNote.mock.calls.length;
+
+    stateRef.current.pages = [];
+    tick(25);
+
+    expect(result.current).toMatchObject({ isPlaying: false, currentGlobalStep: -1 });
+    expect(clear).toHaveBeenCalledTimes(1);
+    expect(cancel).toHaveBeenCalledTimes(1);
+    tick(1_000);
+    expect(triggerNote).toHaveBeenCalledTimes(count);
+    expect(onEnded).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['page', 'groove'] as const)('waits for the audio clock before showing the %s playhead', async (playMode) => {
+    const { result, triggerNote } = setupTransport({ playMode });
+    await act(() => result.current.play());
+    tick(80);
+    expect(triggerNote).toHaveBeenCalledTimes(1);
+    expect(result.current.currentGlobalStep).toBe(-1);
+    tick(35);
+    expect(result.current.currentGlobalStep).toBe(playMode === 'page' ? 2 : 0);
+  });
+
+  it('selects the target page when seeking in page mode', async () => {
+    const { result, stateRef, onPageAdvance, triggerNote } = setupTransport();
+    act(() => result.current.seek(5));
+
+    expect(onPageAdvance.mock.calls).toEqual([[2]]);
+    expect(stateRef.current.currentPageIndex).toBe(2);
+    await act(() => result.current.play());
+    tick(115);
+
+    expect(triggerNote.mock.calls[0]?.slice(0, 2)).toEqual([expect.objectContaining({ id: 'track-2' }), 2]);
+    expect(result.current.currentGlobalStep).toBe(5);
   });
 
   it.each([
