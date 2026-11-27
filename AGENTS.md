@@ -131,3 +131,7 @@ The repo docs are the **source of truth** for this project. GBrain is the **memo
 - **Never** write secrets, tokens, `.env` values, or customer data to GBrain.
 - If GBrain isn't available in your session, say so in your handoff (`GBrain: unavailable`) and carry on.
 <!-- ph-orch:end -->
+
+## Project addenda (outside the managed block)
+
+- **Auto-merge line count (owner, 2026-11-27):** for §5a's "at most 50 changed lines", count only changed lines outside `docs/**` (handoffs, specs, plans and the ledger don't count). Measure with `gh pr diff <n> --name-only` + `git diff --numstat origin/main...<head> -- . ':(exclude)docs/**'`. All other §5a conditions still apply.
