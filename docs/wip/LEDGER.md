@@ -11,8 +11,8 @@ Next ID: 0003
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0002 | [pr] Hardware look + glowing silicone step pads | in-review | review pr27-review-r1 | claudeAgent/claude-opus-5-5 | feat/hardware-pads | https://github.com/pepperhorn/drumlet/pull/27 | — | review: codex gpt-6.2-sol @ 5535f51 | — | — | — | 2026-11-27 |
-| 0001 | Drumlet Player (embeddable component) + endless view | planned | review pr27-review-r1 (prereq #27 must merge before t1) | — | — | — | — | — | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | — | 2026-11-27 |
+| 0002 | [pr] Hardware look + glowing silicone step pads | in-review | review pr27-review-r2 | claudeAgent/claude-opus-5-5 | feat/hardware-pads | https://github.com/pepperhorn/drumlet/pull/27 | — | review r2: codex gpt-6.2-sol @ 5535f51 | — | — | — | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | planned | review pr27-review-r2 (prereq #27 must merge before t1) | — | — | — | — | — | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | — | 2026-11-27 |
 
 ## Done / closed
 
@@ -30,6 +30,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0002 review r1 ended unreviewed (child hit a setup prompt: worktree came from a pre-#26 checkout); r2 launched from main
 2026-11-27 0002 →in-review — adopted PR #27 (pre-orch, Claude-authored); review r1 codex gpt-6.2-sol at 5535f51
 2026-11-27 — PR #26 merged (ph-orch setup + 0001 spec/plan); main ruleset now has admin-role bypass for lead docs pushes
 2026-11-27 0001 proposed→planned — spec approved by owner; plan approved; prerequisites: PR #26 (ph-orch setup), PR #27 (hardware pads)
