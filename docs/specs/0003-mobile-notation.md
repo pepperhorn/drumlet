@@ -6,12 +6,14 @@ Status: approved (lead, from owner bug report with phone screenshots) · 2026-11
 1. Tapping the notation toggle "appears to freeze": "Loading notation…" text, then an empty card for several seconds, no animation or info.
    - Measured: `NotationView-*.js` is **7.9 MB (2.26 MB brotli/gzip)** because `verovio/wasm` inlines the WASM; 5.6 s to download from a fast server link, then parse + WASM compile on the phone. Petaluma.zip (535 KB) also loads on first render. `serve` sends no `Cache-Control` for `/assets/*`, so returning visitors revalidate.
 2. Once rendered, the score is wider than the phone: "Bars/line" defaults to 2 in portrait regardless of container width, so the system overflows the card.
+4. 16th (and 8th/32nd) rests render with a slanted stem — Petaluma's handwritten rest glyphs. Owner: rests should have a vertical stem.
 3. The grid→notation toggle icon is a Petaluma glyph (`PageTabs.tsx:161`); the font isn't loaded until notation renders, so it shows as a blob.
 
 ## Goals
 - Visible, honest loading state from the tap until the score is on screen.
 - Notation is usually ready before the user taps.
 - Score fits the card width by default on any screen; the user can still pick bars/line.
+- Rests drawn with upright stems; noteheads, flags and the rest of the score keep the Petaluma look.
 - A clear notation icon that never depends on a lazily-loaded font.
 
 ## Non-goals
@@ -23,3 +25,4 @@ Status: approved (lead, from owner bug report with phone screenshots) · 2026-11
 - **Caching**: ship `public/serve.json` so `serve` sends `Cache-Control: public, max-age=31536000, immutable` for `/assets/**` (hashed files) and `no-cache` for `index.html`. Keep the SPA rewrite `serve -s` relies on.
 - **Fit to width**: new default "Auto" bars/line = the largest of 1–4 that fits the scroll container's width at the current Size (measured with a ResizeObserver; re-render on width change, debounced). If even 1 bar doesn't fit, render 1 bar/line scaled down to fit (min scale 0.6, then allow horizontal scroll). Manual 2/3/4/∞ still override; add an "Auto" chip that is selected by default. Score left margin and title must not clip on 360 px.
 - **Icon**: replace the Petaluma glyph with an inline SVG (two beamed eighth notes, `currentColor`, 18 px mobile / 15 px desktop) with the label "Notation" (visible ≥ md, `aria-label` always). The grid icon shown while in notation stays as is.
+- **Rests**: keep Petaluma as the score font, but draw rest glyphs (SMuFL U+E4E3–E4E9: whole … 64th rests) from Leland, which verovio bundles, so stems are vertical. Builder picks the mechanism (verovio font fallback option if it supports per-glyph override; otherwise swap the rest `<symbol>`/`<use>` defs in the rendered SVG with Leland's paths) — no extra font download. Test: rendered SVG for a 16th-rest groove references Leland rest glyphs, not Petaluma's.

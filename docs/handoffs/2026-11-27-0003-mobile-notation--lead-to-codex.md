@@ -10,7 +10,7 @@
 - **Status:** open
 
 ## Goal
-Fix the owner's phone bug report on drumlet.app: tapping the notation toggle must show a clear loading state until the score appears (and usually be ready already via prefetch), the score must fit the card width by default, and the toggle icon must render without the lazily-loaded music font. Exactly as the spec's Decisions and the plan's Steps say.
+Fix the owner's phone bug report on drumlet.app: tapping the notation toggle must show a clear loading state until the score appears (and usually be ready already via prefetch), the score must fit the card width by default, the toggle icon must render without the lazily-loaded music font, and rests must have vertical stems (owner: Petaluma's 16th rest stem is slanted). Exactly as the spec's Decisions and the plan's Steps say.
 
 ## Context you need
 - Spec and plan above (read both fully). Owner screenshots described in the spec's Problem section.
@@ -28,6 +28,7 @@ Fix the owner's phone bug report on drumlet.app: tapping the notation toggle mus
 - [ ] From tap to score there is never an empty card: engine → render phases visible, slow (15 s) and error states with Retry.
 - [ ] Prefetch on idle unless saveData / slow-2g / 2g / 3g; also on toggle pointerdown/focus; idempotent.
 - [ ] Default "Auto" bars/line: a 4-bar stock groove fits a 360 px and 412 px wide phone without horizontal scroll; manual 2/3/4/∞ still work.
+- [ ] Rests use Leland glyphs with upright stems; rest of score stays Petaluma; no extra font download.
 - [ ] Toggle icon is an inline SVG with an accessible label; it renders before notation has ever loaded.
 - [ ] `/assets/*` served with `Cache-Control: public, max-age=31536000, immutable`; `index.html` `no-cache`; SPA rewrite still works (check a deep path returns index.html).
 - [ ] All plan tests exist and pass; contextual class names on every new element; DESIGN.md min sizes.
