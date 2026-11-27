@@ -11,12 +11,13 @@ Next ID: 0003
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t2-review-r1 (t2 #29), child 0001-t4-impl-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t1-kit-loader | https://github.com/pepperhorn/drumlet/pull/28 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t2-review-r1 (t2 #29), child 0001-t4-impl-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/29 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0001-t1 | Test harness, re-encoded kit, format-aware kit loader | https://github.com/pepperhorn/drumlet/pull/28 | 2026-11-27 (f8c05d6) | 2 review rounds (opus); plan KIT_FALLBACKS amended |
 | 0002 | [pr] Hardware look + glowing silicone step pads | https://github.com/pepperhorn/drumlet/pull/27 | 2026-11-27 (3384c8f) | 4 review rounds (codex gpt-6.2-sol); fixes by claude-sonnet-5-5 |
 
 ## Suggestions
