@@ -5,12 +5,15 @@
 > Waiting on: `child <taskId>` · `review <taskId>` · `ci` · `human: <why>` · `lead: <next action>`. Set it on every status change. A row needs the lead when it starts with `lead`, or when it's empty and Status is dispatched, in-review, changes-requested, ready, or merged. The lead's Stop hook won't let the lead end its turn while any row needs it.
 > Type: normal items have a spec and plan. Quick items have the title prefix `[quick]` (no spec or plan, a short handoff). PRs adopted by `orch-sweep` have the prefix `[pr]`.
 
-Next ID: 0006
+Next ID: 0009
 
 ## Active
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0006 | [quick] Notation beat counts restart each bar | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0006-beat-counts-per-bar | — | — | — | — | — | docs/handoffs/2026-11-27-0006-beat-counts-per-bar--lead-to-codex.md | 2026-11-27 |
+| 0007 | [quick] Stop renderStaff test timing out | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0007-flaky-renderstaff-test | — | — | — | — | — | docs/handoffs/2026-11-27-0007-flaky-renderstaff-test--lead-to-codex.md | 2026-11-27 |
+| 0008 | [quick] Screen-reader names for step pads | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0008-pad-screen-reader-names | — | — | — | — | — | docs/handoffs/2026-11-27-0008-pad-screen-reader-names--lead-to-codex.md | 2026-11-27 |
 | 0001 | Drumlet Player (embeddable component) + endless view | dispatched | child 0001-t7-impl-r1, child 0001-t8-impl-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
@@ -44,19 +47,20 @@ Next ID: 0006
 | S8 | improvement | Groove mode, loop off: deleting the last page during its final step plays one extra bar before stopping | PR #30 review r2 (non-blocking) | S | correct stop | 0001-t4 review r2 | new |
 | S9 | improvement | resolveGroove: accept `&s=` later in the hash (app does), clearer error for sync stock lookup before catalog load, report catalog fetch failure as a load error not `invalid` | PR #31 review r1 nits; src/player/resolveGroove.ts | S | fewer confusing player errors | 0001-t3 review r1 | new |
 | S10 | improvement | useAutoFollow: pause only on horizontal wheel, not vertical — scrolling the page past an embedded player currently stops it following | PR #32 review r2; src/components/useAutoFollow.ts wheel handler | S | embedded player keeps following while the host page scrolls | 0001-t5 review r2 | accepted → 0004 |
-| S11 | improvement | Step pads need screen-reader names (track, step, velocity) — read as the velocity letter or nothing today (paged grid too) | PR #32 review r2; src/components/Cell.tsx | S | accessibility | 0001-t5 review r2 | new |
+| S11 | improvement | Step pads need screen-reader names (track, step, velocity) — read as the velocity letter or nothing today (paged grid too) | PR #32 review r2; src/components/Cell.tsx | S | accessibility | 0001-t5 review r2 | accepted → 0008 |
 | S12 | improvement | Notation "Still loading" Retry reloads the whole page — on slow phones it throws away the half-done 2.3 MB download and the undo history; retry the import in place instead | PR #33 review r1 | S | better slow-connection UX | 0003 review r1 | accepted → 0005 |
 | S13 | improvement | loadNotation caches a failed import, so a failed background prefetch sends the first tap straight to the error card | PR #33 review r1 | S | resilience | 0003 review r1 | accepted → 0005 |
 | S14 | improvement | 2/2 with 16th steps: 5- or 7-sixteenth gaps become note + 16th rest (spec-allowed; no stock groove hits it) | PR #33 review r1; src/notation/beatToEvents.ts | S | notation correctness for user patterns | 0003 review r1 | new |
-| S15 | risk | `src/notation/renderStaff.test.ts` occasionally times out at the 5 s default under parallel load (seen by implementer and reviewer; passes on rerun) — raise its timeout or share the verovio toolkit across tests | PR #35 review r1 | S | stops flaky verify runs | 0005 review r1 | new |
+| S15 | risk | `src/notation/renderStaff.test.ts` occasionally times out at the 5 s default under parallel load (seen by implementer and reviewer; passes on rerun) — raise its timeout or share the verovio toolkit across tests | PR #35 review r1 | S | stops flaky verify runs | 0005 review r1 | accepted → 0007 |
 | S16 | improvement | Add a `vite:preloadError` listener that reloads only when a deploy has removed a lazy chunk (old tabs after a release) | PR #35 review r1 | S | no dead tabs after deploys | 0005 review r1 | new |
 | S17 | improvement | Endless notation >~222 bars: 64-bar chunks show a ~70 px staff break and repeat clef/time sig/bar no. at each join; clip later chunks' opening margin so barlines meet | PR #36 review r1 | S | seamless very long scores (rare) | 0001-t6 review r1 | new |
-| S18 | improvement | Notation beat counts never restart per bar (bar 2 counts from "5"; long strips reach 3-digit counts) | PR #36 review r1 (pre-existing on main) | S | readable counts | 0001-t6 review r1 | new |
+| S18 | improvement | Notation beat counts never restart per bar (bar 2 counts from "5"; long strips reach 3-digit counts) | PR #36 review r1 (pre-existing on main) | S | readable counts | 0001-t6 review r1 | accepted → 0006 |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 owner accepted S18, S15, S11 → quick items 0006, 0007, 0008 (disjoint Owns with each other and with t7/t8)
 2026-11-27 0001 t7 + t8 delegated in parallel → codex gpt-6.2-sol (high), base 9024a38; threads thread:delegated-task:command%3Amcp%3Afbebc0a5-420a-44e6-ae7f-c62cd135f281%3Adelegate-task%3A0001-t7-impl-r1 / …%3A0001-t8-impl-r1
 2026-11-27 0001 t6 merged (#36, 23c53b9) + 0005 merged (#35, d9291cc); owner OK; main verify ✓ 194 tests. t7 + t8 handoffs written for parallel dispatch (disjoint Owns)
 2026-11-27 0001 t6 review r1 (opus) approved @ 29fd580 (wrapped identical on all 98 grooves; spikes are host noise, not t6); merge needs owner OK. Plan Task 7 note: pass currentGlobalStep -1 when stopped
