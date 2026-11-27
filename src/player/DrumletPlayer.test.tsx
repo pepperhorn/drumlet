@@ -12,20 +12,26 @@ import { loadStockRhythms } from './resolveGroove.js';
 const audio = vi.hoisted(() => {
   const context = {
     get currentTime() { return Date.now() / 1000; },
-    close: vi.fn(async () => {}),
-    resume: vi.fn(async () => {}),
-    suspend: vi.fn(async () => {}),
   };
   return {
     getContext: () => context,
     ensureRunning: vi.fn(async () => context),
+    stopAudio: vi.fn(),
+    dispose: vi.fn(),
     loadTrackInstrument: vi.fn(async () => ({})),
     triggerNote: vi.fn(),
     instrumentsRef: { current: new Map() },
   };
 });
 const useAudioEngine = vi.hoisted(() => vi.fn(() => audio));
-vi.mock('../audio/useAudioEngine.js', () => ({ useAudioEngine }));
+vi.mock('../audio/useAudioEngine.js', async () => {
+  const { useLayoutEffect } = await import('react');
+  return { useAudioEngine: () => {
+    const engine = useAudioEngine();
+    useLayoutEffect(() => () => engine.dispose(), [engine]);
+    return engine;
+  } };
+});
 
 const loadNotation = vi.hoisted(() => vi.fn(async () => ({
   default: ({ currentGlobalStep, layout }: { currentGlobalStep: number; layout: string }) => (
@@ -104,7 +110,7 @@ describe('DrumletPlayer', () => {
     expect(key.getAttribute('aria-label')).toBe('Stop');
     expect(onReady).toHaveBeenCalledTimes(1);
     expect(onStop).not.toHaveBeenCalled();
-    expect(audio.getContext().close).not.toHaveBeenCalled();
+    expect(audio.dispose).not.toHaveBeenCalled();
   });
 
   it('keeps playing when each step updates host state with an inline share input', async () => {
@@ -152,7 +158,7 @@ describe('DrumletPlayer', () => {
     const next = playKey(container);
     expect(next).not.toBe(first);
     expect(next?.getAttribute('aria-label')).toBe('Play');
-    expect(audio.getContext().close).toHaveBeenCalledTimes(1);
+    expect(audio.dispose).toHaveBeenCalledTimes(1);
   });
 
   it.each<[string, GrooveInput, GrooveError['code']]>([
@@ -190,10 +196,10 @@ describe('DrumletPlayer', () => {
     expect(keyB.getAttribute('aria-label')).toBe('Stop');
     expect(keyA.getAttribute('aria-label')).toBe('Play');
     expect(onStop).toHaveBeenCalledTimes(1);
-    expect(audio.getContext().suspend).toHaveBeenCalledTimes(1);
+    expect(audio.stopAudio).toHaveBeenCalledTimes(1);
   });
 
-  it('suspends on stop and requests a resume on immediate replay', async () => {
+  it('deactivates audio on stop and reactivates on immediate replay', async () => {
     const ref = createRef<DrumletPlayerHandle>();
     const { container } = render(<DrumletPlayer groove={groove} ref={ref} chrome="minimal" />);
     const key = await readyKey(container);
@@ -202,8 +208,8 @@ describe('DrumletPlayer', () => {
       ref.current!.stop();
       await ref.current!.play();
     });
-    expect(audio.getContext().suspend).toHaveBeenCalledTimes(1);
-    expect(audio.getContext().resume).toHaveBeenCalledTimes(2);
+    expect(audio.stopAudio).toHaveBeenCalledTimes(1);
+    expect(audio.ensureRunning).toHaveBeenCalledTimes(4);
     expect(key.getAttribute('aria-label')).toBe('Stop');
   });
 
@@ -224,6 +230,29 @@ describe('DrumletPlayer', () => {
     await act(async () => finishLoad());
     await waitFor(() => expect(onPlayB).toHaveBeenCalledTimes(1));
     expect(onPlayA).not.toHaveBeenCalled();
+  });
+
+  it('does not start queued kit loads after their player unmounts', async () => {
+    let finishLoad!: () => void;
+    const pending = new Promise<void>(resolve => { finishLoad = resolve; });
+    audio.loadTrackInstrument.mockImplementation(async () => { await pending; return {}; });
+    const first = render(<DrumletPlayer groove={groove} />);
+    const second = render(<DrumletPlayer groove={groove} />);
+    const firstKey = await readyKey(first.container);
+    const secondKey = await readyKey(second.container);
+
+    try {
+      fireEvent.click(firstKey);
+      await waitFor(() => expect(audio.loadTrackInstrument).toHaveBeenCalled());
+      const firstLoads = audio.loadTrackInstrument.mock.calls.length;
+      fireEvent.click(secondKey);
+      await waitFor(() => expect(audio.ensureRunning).toHaveBeenCalledTimes(2));
+      second.unmount();
+      await act(async () => finishLoad());
+      expect(audio.loadTrackInstrument).toHaveBeenCalledTimes(firstLoads);
+    } finally {
+      await act(async () => finishLoad());
+    }
   });
 
   it('releases playback on a load error and allows retry', async () => {
@@ -247,8 +276,6 @@ describe('DrumletPlayer', () => {
     const onReady = vi.fn();
     const { unmount } = render(<DrumletPlayer groove={groove} onStep={onStep} onReady={onReady} ref={ref} />);
     await waitFor(() => expect(onReady).toHaveBeenCalledTimes(1));
-    const instrument = { stop: vi.fn<(options: { time: number }) => void>(), disconnect: vi.fn() };
-    audio.instrumentsRef.current.set('loaded-track', { instrument });
     vi.useFakeTimers();
     try {
       await act(async () => {
@@ -260,9 +287,7 @@ describe('DrumletPlayer', () => {
       expect(audio.triggerNote).toHaveBeenCalled();
       const scheduled = audio.triggerNote.mock.calls.length;
       await act(async () => unmount());
-      expect(instrument.stop).toHaveBeenCalledExactlyOnceWith({ time: 0 });
-      expect(instrument.disconnect).toHaveBeenCalledTimes(1);
-      expect(audio.getContext().close).toHaveBeenCalledTimes(1);
+      expect(audio.dispose).toHaveBeenCalledTimes(1);
       act(() => vi.advanceTimersByTime(1000));
       expect(audio.triggerNote).toHaveBeenCalledTimes(scheduled);
       expect(vi.getTimerCount()).toBe(0);
@@ -283,7 +308,7 @@ describe('DrumletPlayer', () => {
       await act(async () => ref.current!.play());
       act(() => vi.advanceTimersByTime(5000));
       expect(onStop).toHaveBeenCalledTimes(1);
-      expect(audio.getContext().suspend).toHaveBeenCalledTimes(1);
+      expect(audio.stopAudio).toHaveBeenCalledTimes(1);
       expect(key.getAttribute('aria-label')).toBe('Play');
       expect(vi.getTimerCount()).toBe(0);
     } finally {
