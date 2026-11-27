@@ -1,0 +1,33 @@
+{
+  "name": "@pepperhorn/drumlet-player",
+  "version": "0.1.0",
+  "description": "Embeddable React drum groove player with a pad grid, notation, and acoustic samples.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/types/player/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./style.css": "./dist/style.css",
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": ["*.css"],
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  },
+  "dependencies": {
+    "smplr": "^0.20.0",
+    "verovio": "^6.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pepperhorn/drumlet.git",
+    "directory": "packages/drumlet-player"
+  }
+}

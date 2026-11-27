@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
 
 interface KnobProps {

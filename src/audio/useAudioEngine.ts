@@ -26,6 +26,7 @@ interface AudioTrack extends Track {
 export interface AudioEngineApi {
   getContext: () => AudioContext;
   ensureRunning: () => Promise<AudioContext>;
+  stopAudio?: () => void;
   loadTrackInstrument: (track: AudioTrack, opts?: { force?: boolean }) => Promise<AudioInstrument | null>;
   triggerNote: (track: AudioTrack, velocityLevel: number, time: number, velMode?: VelMode) => void;
   updateTrackVolume: (trackId: string, volume: number) => void;
@@ -35,6 +36,8 @@ export interface AudioEngineApi {
   testAudio: () => Promise<void>;
   instrumentsRef: MutableRefObject<Map<string, InstrumentEntry>>;
 }
+
+type StoppableAudioEngine = AudioEngineApi & Required<Pick<AudioEngineApi, 'stopAudio'>>;
 
 interface EngineGraph {
   id: string;
@@ -46,7 +49,7 @@ interface EngineGraph {
 
 let nextEngineId = 0;
 
-export function useAudioEngine() {
+export function useAudioEngine(): StoppableAudioEngine {
   const graphRef = useRef<EngineGraph | null>(null);
   const instrumentsRef = useRef<Map<string, InstrumentEntry>>(new Map());
 
@@ -312,7 +315,7 @@ export function useAudioEngine() {
     }
   }, [ensureRunning, getGraph]);
 
-  return useMemo<AudioEngineApi & { stopAudio: () => void }>(() => ({
+  return useMemo<StoppableAudioEngine>(() => ({
     getContext,
     ensureRunning,
     stopAudio,

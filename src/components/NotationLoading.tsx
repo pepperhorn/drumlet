@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { Component, useEffect, useState, type ReactNode } from 'react';
 
 type Phase = 'engine' | 'render' | 'slow' | 'error';

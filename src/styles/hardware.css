@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MIT */
 /* ---------------------------------------------------------------------------
    Hardware materials — ported from the Module (JV/Polysix-style) instrument.
    Faceplate texture, recessed wells, moulded keycap buttons, domed knobs and
@@ -7,7 +8,8 @@
    change HOW a colour is lit, never WHICH colour.
 --------------------------------------------------------------------------- */
 
-:root {
+:root,
+.drumlet-player {
   /* how much white a derived (custom-theme) surface is lifted by */
   --mat-lift: 60%;
 
@@ -63,7 +65,8 @@
 }
 
 :root[data-theme="dark"],
-:root[data-theme-mode="dark"] {
+:root[data-theme-mode="dark"],
+.drumlet-player[data-theme="dark"] {
   --mat-lift: 10%;
   --room-bg: radial-gradient(ellipse at 50% 0%, #2A3345 0%, #1A2030 55%, #10131B 100%);
 

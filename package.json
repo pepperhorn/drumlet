@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
+    "lint": "eslint . --ignore-pattern \"packages/drumlet-player/dist/**\"",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "build:rhythms": "node scripts/build-stock-rhythms.mjs",
-    "test": "vitest run"
+    "test": "vitest run --exclude packages/drumlet-player/scripts/ssr-import.test.mjs",
+    "build:lib": "vite build --config packages/drumlet-player/vite.config.ts && tsc -p packages/drumlet-player/tsconfig.build.json && node packages/drumlet-player/scripts/build-css.mjs && node packages/drumlet-player/scripts/copy-kits.mjs",
+    "verify:lib": "node packages/drumlet-player/scripts/verify-dist.mjs"
   },
   "dependencies": {
     "@directus/sdk": "^17.0.2",
@@ -29,6 +31,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@tailwindcss/cli": "4.2.2",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
@@ -39,10 +42,15 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "jsdom": "^28.1.0",
+    "postcss": "8.5.8",
+    "postcss-selector-parser": "7.2.1",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.1",
     "vite": "^8.0.1",
     "vitest": "^5.1.2",
     "zod": "^4.3.6"
-  }
+  },
+  "workspaces": [
+    "packages/drumlet-player"
+  ]
 }

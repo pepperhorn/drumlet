@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { lazy, Suspense, useState, type ComponentProps } from 'react';
 import { NotationEngineBoundary, NotationPending } from './NotationLoading.js';
 import { loadNotation } from './notationPrefetch.js';

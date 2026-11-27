@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { createInitialState } from './sequencerReducer.js';
 import type { SequencerState, Track, Step, MultiStep, SplitCount, VelMode } from './sequencerReducer.js';
 

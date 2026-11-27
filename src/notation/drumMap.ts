@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Maps drum sound names to percussion staff positions.
  */

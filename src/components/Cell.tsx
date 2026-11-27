@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { memo, useRef, useState, useEffect, type CSSProperties } from 'react';
 import { getVelocityLabel, getVelocityOpacity } from '../audio/velocityConfig.js';
 import type { VelMode } from '../state/sequencerReducer.js';

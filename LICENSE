@@ -1,3 +1,9 @@
+The Drumlet app is licensed under AGPL-3.0. The @pepperhorn/drumlet-player
+package and shared files marked SPDX-License-Identifier: MIT are available
+under the MIT license in packages/drumlet-player/LICENSE. The package also
+includes generated stock groove data under MIT. Third-party assets retain
+their own licenses.
+
                     GNU AFFERO GENERAL PUBLIC LICENSE
                        Version 3, 19 November 2007
 

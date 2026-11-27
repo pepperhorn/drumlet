@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Velocity level definitions for 3 modes:
  *

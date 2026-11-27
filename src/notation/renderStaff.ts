@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Verovio drum notation renderer.
  *
