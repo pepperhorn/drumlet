@@ -1,11 +1,14 @@
 /* SPDX-License-Identifier: MIT */
-:where(:not(svg, svg *)) {
+.drumlet-player,
+.drumlet-player :where(:not(svg, svg *)) {
   all: revert;
   box-sizing: border-box;
+  font-size: inherit;
   border: 0 solid;
 }
 
-*::before, *::after {
+.drumlet-player *::before,
+.drumlet-player *::after {
   box-sizing: border-box;
 }
 
@@ -32,14 +35,14 @@
   --color-cell-hover: #D8CFB7;
 }
 
-:where(button, input) {
+.drumlet-player :where(button, input) {
   color: inherit;
   font: inherit;
   background: transparent;
   padding: 0;
 }
 
-:where(p) {
+.drumlet-player :where(p) {
   margin: 0;
 }
 
@@ -53,4 +56,14 @@
 .grid-scroll::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: 3px;
+}
+
+/* EndlessGrid sets these inline in rem for the app. Keep host root sizing out of the player. */
+.endless-label-spacer,
+.endless-track-label {
+  width: min(112px, 25cqw) !important;
+}
+
+.endless-grid {
+  scroll-padding-left: min(112px, 25%) !important;
 }

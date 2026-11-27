@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 @import "tailwindcss/theme.css" layer(theme);
+@import "./base.css" layer(base);
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 @import "../../styles/hardware.css";
 
@@ -7,6 +8,7 @@
 @source "../../components/Cell.tsx";
 @source "../../components/EndlessGrid.tsx";
 @source "../../components/Knob.tsx";
+@source "../../components/NotationBoundary.tsx";
 @source "../../components/NotationLoading.tsx";
 @source "../../components/NotationView.tsx";
 

@@ -12,7 +12,7 @@
     "build:rhythms": "node scripts/build-stock-rhythms.mjs",
     "test": "vitest run --exclude packages/drumlet-player/scripts/ssr-import.test.mjs",
     "build:lib": "vite build --config packages/drumlet-player/vite.config.ts && tsc -p packages/drumlet-player/tsconfig.build.json && node packages/drumlet-player/scripts/build-css.mjs && node packages/drumlet-player/scripts/copy-kits.mjs",
-    "verify:lib": "node packages/drumlet-player/scripts/verify-dist.mjs"
+    "verify:lib": "node packages/drumlet-player/scripts/verify-dist.mjs && node packages/drumlet-player/scripts/ssr-import.test.mjs"
   },
   "dependencies": {
     "@directus/sdk": "^17.0.2",

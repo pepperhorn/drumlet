@@ -98,3 +98,51 @@ results. The scratch server on port 5219 was stopped after checking.
 
 None for t9. Task 10 owns the in-repo embed demo and repeatable browser checks.
 Task 12 owns publishing. No Safari or physical-device playback was checked.
+
+## Review round 2
+
+[Round 1 review](https://github.com/pepperhorn/drumlet/pull/44#pullrequestreview-6093857673).
+The lead chose unlayered CSS for the published player. The build keeps
+Tailwind's source order, then removes the cascade layers. The scoped reset
+now has class specificity, so a host's unlayered element rules cannot reset
+the player's box sizing or typography. The package gives the grid's inline
+`rem` widths and scroll padding pixel equivalents without changing the app's
+shared grid source.
+
+`verify:lib` now runs the plain Node SSR check. The distribution verifier
+rejects every `@layer`, including prefixed ones. The Vite build checks that
+every bundled `src/**/*.tsx` module appears in Tailwind's explicit source
+list. Removing the `NotationBoundary.tsx` entry failed the build, and adding
+`@layer dp-base` failed distribution verification as expected.
+
+A scratch Vite 8 and Tailwind 4 host installed the actual tarball. A 600 px
+player at a 1280 px viewport had the same measurements in both themes in
+Vite dev and production preview.
+
+| Host rules | Round 1 lit pad | Round 1 Play | Fixed lit and unlit pads | Fixed Play |
+|---|---|---|---|---|
+| Clean | 36×36 flex | 44×44 flex | 36×36 flex | 44×44 flex |
+| Button reset and 30 px universal type | 23.7×47 inline | 18×18 block | 36×36 flex | 44×44 flex |
+| Button padding, inline-block and 18 px type | 36×36 inline-block | 44×44 block | 36×36 flex | 44×44 flex |
+| Both hostile styles | 55.7×63 inline-block | 50×34 block | 36×36 flex | 44×44 flex |
+
+The fixed player root measured 600×314 and its track labels measured 112 px
+wide in all cases. Both host sentinels kept the same dimensions and computed
+styles with the package stylesheet present and removed.
+
+| Artifact | Round 1 bytes | Round 2 bytes |
+|---|---:|---:|
+| Tarball | 1,175,293 | 1,175,249 |
+| Main entry | 55,677 | 55,677 |
+| Eager support chunk | 20,156 | 20,156 |
+| Lazy notation wrapper | 36,415 | 36,415 |
+| `style.css` | 38,742 | 38,774 |
+
+After orch-deslop, the full app and package checks passed again, with
+250 tests, two existing lint warnings, and 73 pack entries. All 42 files
+in the standalone production build had the same SHA-256 hashes as round 1.
+Round 2 browser evidence and logs are in `/tmp/drumlet-t9-r2/`.
+The standalone dev app also rendered and played the stock groove at 360
+and 1280 px in both themes. Seven of eight grid and notation screenshot
+pairs were pixel identical to the app baseline. The 360 px light grid
+differed in 42 pixels, by at most 4/255 per channel.

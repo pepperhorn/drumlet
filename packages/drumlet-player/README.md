@@ -24,13 +24,14 @@ a parsed `.dottl` project. Set `chrome` to `minimal` for one Play button or
 
 ## Styles
 
-Load `style.css` after the host stylesheet. It comes precompiled and scoped
-under `.drumlet-player`, with no global reset. Keep host element styles in a
-cascade layer or scope them outside the player. Unlayered host rules targeting
-player elements can still override the player's layered CSS. Apply host layout
-styles to a wrapper around the player. Pads size from the player width rather
-than the viewport. The player uses Fredoka, Inter, JetBrains Mono and Chakra
-Petch when the host provides them, and system fallbacks otherwise.
+Load `style.css` after the host stylesheet. The precompiled, unlayered CSS is
+scoped to `.drumlet-player`. The player's reset and controls take precedence
+over host-wide element rules such as `button { all: unset }` and
+`* { font-size: 30px }`, without changing elements outside the player. Rules
+that deliberately target the player can still override its styles. Apply host
+layout styles to a wrapper. Pads size from the player width rather than the
+viewport. The player uses Fredoka, Inter, JetBrains Mono and Chakra Petch when
+the host provides them, and system fallbacks otherwise.
 
 ## Audio and notation
 

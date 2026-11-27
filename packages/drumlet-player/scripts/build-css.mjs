@@ -15,8 +15,6 @@ export const SCOPE = '.drumlet-player';
 export const SCOPE_GUARD = `:where(${SCOPE}, ${SCOPE} *)`;
 const VAR_PREFIX = '--dp-tw-';
 const NAME_PREFIX = 'dp-';
-const LAYERS = ['properties', 'theme', 'base', 'components', 'utilities'];
-const LAYER_ORDER = `@layer ${LAYERS.map(name => NAME_PREFIX + name).join(', ')};`;
 const guard = selectorParser().astSync(SCOPE_GUARD).first.first;
 
 export function isRootScope(node) {
@@ -79,13 +77,6 @@ function scopeTailwind(css) {
   const keyframes = new Map();
   css.walkAtRules(at => {
     if (at.name === 'property') at.params = at.params.replace(/^--tw-/, VAR_PREFIX);
-    if (at.name === 'layer') {
-      if (!at.nodes) {
-        at.remove();
-        return;
-      }
-      at.params = at.params.split(',').map(layer => NAME_PREFIX + layer.trim()).join(', ');
-    }
     // Reuse the app's responsive classes against the player width, including Cell's pad sizes.
     if (at.name === 'media' && widthQuery.test(at.params)) {
       at.name = 'container';
@@ -97,6 +88,11 @@ function scopeTailwind(css) {
       at.params = keyframes.get(at.params);
     }
   });
+
+  // Flatten after processing nested at-rules, without changing their cascade order.
+  const layers = [];
+  css.walkAtRules('layer', at => { layers.push(at); });
+  for (const layer of layers.reverse()) layer.replaceWith(...(layer.nodes ?? []));
 
   css.walkRules(rule => {
     if (rule.parent.name !== 'keyframes') rule.selector = scopeSelector.processSync(rule.selector);
@@ -113,11 +109,8 @@ function scopeTailwind(css) {
 if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) {
   const css = postcss.parse(compileTailwind());
   scopeTailwind(css);
-  const base = postcss.parse(readFileSync(resolve(styleRoot, 'base.css'), 'utf8'));
-  scopeTailwind(base);
-  css.prepend(postcss.atRule({ name: 'layer', params: 'dp-base', nodes: base.nodes }));
   const { name, version } = JSON.parse(readFileSync(resolve(pkgRoot, 'package.json'), 'utf8'));
-  const output = `/*! ${name} v${version} | Tailwind CSS (MIT) | Scoped to ${SCOPE} */\n${LAYER_ORDER}\n${css}\n`;
+  const output = `/*! ${name} v${version} | Tailwind CSS (MIT) | Scoped to ${SCOPE} */\n${css}\n`;
   writeFileSync(resolve(pkgRoot, 'dist/style.css'), output);
   console.log(`dist/style.css  ${Buffer.byteLength(output)} bytes`);
 }

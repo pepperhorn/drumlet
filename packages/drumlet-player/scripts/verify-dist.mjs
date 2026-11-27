@@ -48,11 +48,10 @@ css.walkDecls(decl => {
   assert(!decl.prop.startsWith('--tw-') && !/var\(\s*--tw-/.test(decl.value), `Unprefixed Tailwind variable in ${decl}`);
 });
 css.walkAtRules(at => {
+  assert(at.name.toLowerCase() !== 'layer', 'Cascade layers are not allowed in the player stylesheet');
   assert(!viewportUnit.test(at.params), `Viewport unit in ${at.name} ${at.params}`);
   if (at.name === 'media') {
     assert(!/\b(?:width|height|orientation|aspect-ratio)\b/i.test(at.params), `Viewport media query: ${at.params}`);
-  } else if (at.name === 'layer') {
-    assert(at.params.split(',').every(layer => layer.trim().startsWith('dp-')), `Unprefixed layer: ${at.params}`);
   } else if (at.name === 'property') {
     assert(at.params.startsWith('--dp-tw-'), `Unprefixed property: ${at.params}`);
   } else if (at.name === 'keyframes') {
