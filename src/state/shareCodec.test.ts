@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createNewPatternState } from './sequencerReducer.js';
-import type { Step } from './sequencerReducer.js';
-import { decodePayload, encodeState } from './shareCodec.js';
+import type { Step, Track } from './sequencerReducer.js';
+import { findStockRhythm, stockRhythmToState } from './stockRhythms.js';
+import { buildShareUrl, decodePayload, encodeState } from './shareCodec.js';
 
 // Produced by encodeState at f8c05d6, including a split step and a Latin-1 name.
 const V3_CODE = 'eyJ2IjozLCJiIjo5OCwic3ciOjAsInN0IjoiOHRoIiwiaHUiOjAsInNwIjo0LCJudiI6IjEvNCIsImJiIjo0LCJzdiI6IjEvMTYiLCJwbSI6eyJpZCI6ImNoYWxsZW5nZS1maXh0dXJlIn0sInQiOlt7Im4iOiJDYWbpIEtpY2siLCJzIjoiNzAoMSwzKTAiLCJ2bSI6Nywidm8iOjgwLCJydiI6MjAsInN0IjoiayIsImtpIjoiYWNvdXN0aWMxIiwia3MiOiJraWNrIn1dfQ';
@@ -13,7 +14,7 @@ describe('share codec', () => {
     const steps: Step[][] = [[3, 0, 0, 0], [0, 1, [1, 3], 0], [0, 0, 0, 3]];
     state.stepsPerPage = 4;
     state.currentPageIndex = 1;
-    state.pages = ['Intro', 'Verse', 'Finale'].map((name, index) => ({
+    state.pages = ['Page 1', 'Verse', 'Finale'].map((name, index) => ({
       id: `page-${index}`,
       name,
       tracks: [{ ...track, id: `track-${index}`, steps: steps[index]! }],
@@ -25,23 +26,86 @@ describe('share codec', () => {
     const wire: unknown = JSON.parse(atob(code!.replace(/-/g, '+').replace(/_/g, '/')));
     expect(wire).toMatchObject({
       v: 4,
+      t: [{ n: track.name }],
       pg: [
-        { n: 'Intro', t: [{ n: track.name, s: '3000' }] },
-        { n: 'Verse', t: [{ n: track.name, s: '01(1,3)0' }] },
-        { n: 'Finale', h: [[4, 'Chorus']], t: [{ n: track.name, s: '0003' }] },
+        { s: ['3000'] },
+        { n: 'Verse', s: ['01(1,3)0'] },
+        { n: 'Finale', h: [[4, 'Chorus']], s: ['0003'] },
       ],
     });
-    expect(wire).not.toHaveProperty('t');
+    expect(wire).not.toHaveProperty('t.0.s');
+    expect(wire).not.toHaveProperty('pg.0.t');
+    expect(wire).not.toHaveProperty('pg.0.n');
     expect(wire).not.toHaveProperty('pg.0.h');
 
     const decoded = decodePayload(code!);
     expect(decoded?.state.pages).toHaveLength(3);
-    expect(decoded?.state.pages.map((page) => page.name)).toEqual(['Intro', 'Verse', 'Finale']);
+    expect(decoded?.state.pages.map((page) => page.name)).toEqual(['Page 1', 'Verse', 'Finale']);
     expect(decoded?.state.pages[1]?.tracks[0]?.steps).toEqual([0, 1, [1, 3], 0]);
     expect(decoded?.state.pages[0]?.sectionHeadings).toEqual([]);
     expect(decoded?.state.pages[2]?.sectionHeadings).toMatchObject([{ step: 4, label: 'Chorus' }]);
+    expect(decoded?.state.pages[0]?.tracks.map(({ id }) => id))
+      .toEqual(decoded?.state.pages[2]?.tracks.map(({ id }) => id));
+    expect(decoded?.state.chainMode).toBe(true);
     expect(decoded?.state.currentPageIndex).toBe(0);
     expect(decoded?.pluginMeta).toEqual({ id: 'challenge' });
+  });
+
+  it('round-trips drum machine, soundfont and kit tracks with their velocity modes', () => {
+    const state = createNewPatternState();
+    const page = state.pages[0]!;
+    const [dm, sf, kit] = page.tracks;
+    const sources: Partial<Track>[] = [
+      { sourceType: 'drumMachine', instrument: 'LM-2', group: 'snare', velMode: 1, volume: 0, reverb: 36, steps: [1, 0, 0, 0] },
+      { sourceType: 'soundfont', soundfontName: 'taiko', velMode: 3, volume: 80, reverb: 20, steps: [0, [1, 3], 0, 0] },
+      { sourceType: 'kit', kitId: 'acoustic1', kitSample: 'ride', velMode: 7, steps: [0, 0, [4, 7, 0], 0] },
+    ];
+    state.stepsPerPage = 4;
+    page.tracks = [dm!, sf!, kit!].map((track, index) => ({
+      ...track,
+      ...sources[index],
+    }));
+    state.pages.push({ ...page, name: 'Page 2', tracks: page.tracks.map((track) => ({
+      ...track,
+      steps: [0, 0, 0, 0],
+    })) });
+
+    const decoded = decodePayload(encodeState(state)!);
+    expect(decoded?.state.pages[0]?.tracks).toMatchObject(sources);
+    expect(decoded?.state.pages[1]?.tracks.map(({ steps }) => steps)).toEqual([
+      [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
+    ]);
+    const first = decoded?.state.pages[0]?.tracks.map(({ id }) => id);
+    expect(new Set(first).size).toBe(3);
+    expect(decoded?.state.pages[1]?.tracks.map(({ id }) => id)).toEqual(first);
+  });
+
+  it('appends a later-only track and aligns reordered tracks by id', () => {
+    const state = createNewPatternState();
+    const page = state.pages[0]!;
+    const [first, second, later] = page.tracks;
+    state.stepsPerPage = 4;
+    state.pages = [
+      { ...page, tracks: [{ ...first!, steps: [1, 0, 0, 0] }, { ...second!, steps: [0, 0, 0, 0] }] },
+      { ...page, name: 'Page 2', tracks: [{ ...later!, steps: [0, 3, 0, 0] }, { ...first!, steps: [0, 0, 0, 1] }] },
+    ];
+
+    const code = encodeState(state)!;
+    const wire: unknown = JSON.parse(atob(code.replace(/-/g, '+').replace(/_/g, '/')));
+    expect(wire).toMatchObject({
+      t: [{ n: first!.name }, { n: second!.name }, { n: later!.name }],
+      pg: [{ s: ['1000', 0, 0] }, { s: ['0001', 0, '0300'] }],
+    });
+    const decoded = decodePayload(code);
+    expect(decoded?.state.pages.map((p) => p.tracks.map(({ steps }) => steps))).toEqual([
+      [[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+      [[0, 0, 0, 1], [0, 0, 0, 0], [0, 3, 0, 0]],
+    ]);
+  });
+
+  it('fits the Cuban Cha-Cha stock groove in a 1,600-character share URL', () => {
+    const state = { ...createNewPatternState(), ...stockRhythmToState(findStockRhythm('cuban-cha-cha')!) };
+    expect(buildShareUrl(state)!.length).toBeLessThanOrEqual(1600);
   });
 
   it('preserves Unicode in page names, track names and headings', () => {
@@ -84,7 +148,17 @@ describe('share codec', () => {
   });
 
   it('rejects a v4 section heading with a non-string label', () => {
-    const code = btoa(JSON.stringify({ v: 4, pg: [{ n: 'Intro', t: [], h: [[0, {}]] }] }));
+    const code = btoa(JSON.stringify({ v: 4, t: [], pg: [{ n: 'Intro', s: [], h: [[0, {}]] }] }));
+    expect(decodePayload(code)).toBeNull();
+  });
+
+  it('rejects a v4 step row that does not match the track table', () => {
+    const code = btoa(JSON.stringify({ v: 4, t: [{ n: 'Kick' }], pg: [{ s: [] }] }));
+    expect(decodePayload(code)).toBeNull();
+  });
+
+  it('rejects a compact rest row that would expand into an oversized grid', () => {
+    const code = btoa(JSON.stringify({ v: 4, sp: 1_000_001, t: [{ n: 'Kick' }], pg: [{ s: [0] }] }));
     expect(decodePayload(code)).toBeNull();
   });
 

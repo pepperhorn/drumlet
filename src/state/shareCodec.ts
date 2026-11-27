@@ -14,12 +14,11 @@
 
 import type { SequencerState, Step, NoteValueKey, Page, Track } from './sequencerReducer.js';
 
-interface EncodedTrack {
+interface EncodedTrackMeta {
   n: string;
-  s: string;
-  vm: number;
-  vo: number;
-  rv: number;
+  vm?: number;
+  vo?: number;
+  rv?: number;
   st?: 'dm' | 'sf' | 'k';
   i?: string | null;
   g?: string | null;
@@ -28,10 +27,12 @@ interface EncodedTrack {
   ks?: string | null;
 }
 
+type EncodedTrack = EncodedTrackMeta & { s: string };
+
 interface EncodedPage {
-  n: string;
+  n?: string;
   h?: [step: number, label: string][];
-  t: EncodedTrack[];
+  s: (string | 0)[];
 }
 
 interface PayloadFields {
@@ -48,7 +49,7 @@ interface PayloadFields {
 
 type EncodedPayload = PayloadFields & (
   | { v: 1 | 2 | 3; t: EncodedTrack[] }
-  | { v: 4; pg: EncodedPage[] }
+  | { v: 4; t: EncodedTrackMeta[]; pg: EncodedPage[] }
 );
 
 export interface DecodedPayload {
@@ -72,6 +73,49 @@ function encodeSteps(steps: Step[], count: number): string {
 export function encodeState(state: SequencerState, pluginMeta: Record<string, unknown> | null = null): string | null {
   if (!state.pages.length) return null;
 
+  const tracks: EncodedTrackMeta[] = [];
+  const trackIndices = new Map<string, number>();
+  const pages = state.pages.map((page, pageIndex): EncodedPage => {
+    const claimed = new Set<number>();
+    const knownIndices = page.tracks.map((track) => {
+      const index = trackIndices.get(track.id);
+      if (index === undefined || claimed.has(index)) return undefined;
+      claimed.add(index);
+      return index;
+    });
+    const steps = new Array<string | 0>(tracks.length).fill(0);
+
+    page.tracks.forEach((track, position) => {
+      let index = knownIndices[position];
+      if (index === undefined) {
+        const meta = encodeTrackMeta(track);
+        // ADD_PAGE mints new ids for copies of the same track.
+        if (!claimed.has(position) && JSON.stringify(tracks[position]) === JSON.stringify(meta)) {
+          index = position;
+        } else {
+          index = tracks.length;
+          tracks.push(meta);
+        }
+        claimed.add(index);
+        trackIndices.set(track.id, index);
+      }
+      const pattern = encodeSteps(track.steps, state.stepsPerPage);
+      steps[index] = /^0*$/.test(pattern) ? 0 : pattern;
+    });
+
+    return {
+      n: page.name === defaultPageName(pageIndex) ? undefined : page.name,
+      h: page.sectionHeadings?.length
+        ? page.sectionHeadings.map(({ step, label }) => [step, label])
+        : undefined,
+      s: steps,
+    };
+  });
+
+  for (const page of pages) {
+    while (page.s.length < tracks.length) page.s.push(0);
+  }
+
   const payload: EncodedPayload = {
     v: 4,
     b: state.bpm,
@@ -83,13 +127,8 @@ export function encodeState(state: SequencerState, pluginMeta: Record<string, un
     bb: state.beatsPerBar || 4,
     sv: state.stepValue || '1/16',
     pm: pluginMeta,
-    pg: state.pages.map((page): EncodedPage => ({
-      n: page.name,
-      h: page.sectionHeadings?.length
-        ? page.sectionHeadings.map(({ step, label }) => [step, label])
-        : undefined,
-      t: page.tracks.map((track) => encodeTrack(track, state.stepsPerPage)),
-    })),
+    t: tracks,
+    pg: pages,
   };
 
   // Escape Unicode in the JSON so btoa can encode it without changing legacy decoding.
@@ -99,13 +138,16 @@ export function encodeState(state: SequencerState, pluginMeta: Record<string, un
   return btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function encodeTrack(t: Track, stepsPerPage: number): EncodedTrack {
-  const tr: EncodedTrack = {
+function defaultPageName(index: number): string {
+  return `Page ${index + 1}`;
+}
+
+function encodeTrackMeta(t: Track): EncodedTrackMeta {
+  const tr: EncodedTrackMeta = {
     n: t.name,
-    s: encodeSteps(t.steps, stepsPerPage),
-    vm: t.velMode || 3,
-    vo: t.volume,
-    rv: t.reverb,
+    vm: t.velMode === 3 ? undefined : t.velMode,
+    vo: t.volume === 80 ? undefined : t.volume,
+    rv: t.reverb === 20 ? undefined : t.reverb,
   };
   if (t.sourceType === 'drumMachine') {
     tr.st = 'dm';
@@ -139,6 +181,7 @@ function decodeStepsString(str: string): Step[] {
 }
 
 const COLORS = ['#FF6B6B', '#FFB347', '#A8E06C', '#5BC0EB', '#B39DDB', '#FFAB91', '#66D9A0', '#F48FB1'];
+const MAX_V4_GRID_CELLS = 1_000_000;
 
 export function decodePayload(encoded: string): DecodedPayload | null {
   try {
@@ -148,16 +191,45 @@ export function decodePayload(encoded: string): DecodedPayload | null {
     const p = JSON.parse(json) as EncodedPayload;
 
     if (p.v !== 1 && p.v !== 2 && p.v !== 3 && p.v !== 4) return null;
-    if (p.v === 4 && (!Array.isArray(p.pg) || p.pg.some((page) => !hasValidPageFields(page)))) return null;
-
-    const pages: EncodedPage[] = p.v === 4
-      ? p.pg
-      : [{ n: 'Page 1', t: p.t }];
+    const stepsPerPage = p.sp || 16;
+    let pages: Page[];
+    if (p.v === 4) {
+      if (!Array.isArray(p.t) || !Array.isArray(p.pg)) return null;
+      if (p.t.some((track) => typeof track?.n !== 'string')) return null;
+      if (p.pg.some((page) => !hasValidPageFields(page, p.t.length))) return null;
+      // Compact rest entries must not expand into an unbounded grid.
+      const gridCells = stepsPerPage * Math.max(1, p.t.length) * Math.max(1, p.pg.length);
+      if (!Number.isSafeInteger(stepsPerPage) || stepsPerPage < 1 ||
+        gridCells > MAX_V4_GRID_CELLS) return null;
+      const ids = p.t.map(() => crypto.randomUUID());
+      pages = p.pg.map((page, i) => ({
+        id: crypto.randomUUID(),
+        name: page.n ?? defaultPageName(i),
+        tracks: p.t.map((track, index) => {
+          const pattern = page.s[index]!;
+          const steps = pattern === 0 ? new Array<Step>(stepsPerPage).fill(0) : decodeStepsString(pattern);
+          return decodeTrack(track, index, ids[index]!, steps);
+        }),
+        sectionHeadings: page.h?.map(([step, label]) => ({ id: crypto.randomUUID(), step, label })) ?? [],
+      }));
+    } else {
+      pages = [{
+        id: crypto.randomUUID(),
+        name: defaultPageName(0),
+        tracks: p.t.map((track, index) => decodeTrack(
+          track,
+          index,
+          crypto.randomUUID(),
+          p.v === 3 ? decodeStepsString(track.s) : track.s.split('').map(Number),
+        )),
+        sectionHeadings: [],
+      }];
+    }
 
     const state: SequencerState = {
-      pages: pages.map((page) => decodePage(page, p.v)),
+      pages,
       currentPageIndex: 0,
-      stepsPerPage: p.sp || 16,
+      stepsPerPage,
       bpm: p.b || 120,
       noteValue: (p.nv || '1/4') as NoteValueKey,
       beatsPerBar: p.bb || 4,
@@ -165,7 +237,7 @@ export function decodePayload(encoded: string): DecodedPayload | null {
       swing: p.sw || 0,
       swingTarget: (p.st === '16th' ? '16th' : '8th'),
       humanize: p.hu || 0,
-      chainMode: false,
+      chainMode: pages.length > 1,
       activeCell: null,
       pendingSplit: null,
     };
@@ -177,8 +249,10 @@ export function decodePayload(encoded: string): DecodedPayload | null {
   }
 }
 
-function hasValidPageFields(page: EncodedPage): boolean {
-  if (typeof page?.n !== 'string' || !Array.isArray(page.t)) return false;
+function hasValidPageFields(page: EncodedPage, trackCount: number): boolean {
+  if (!page || (page.n !== undefined && typeof page.n !== 'string') ||
+    !Array.isArray(page.s) || page.s.length !== trackCount ||
+    page.s.some((pattern) => pattern !== 0 && typeof pattern !== 'string')) return false;
   if (page.h === undefined) return true;
   return Array.isArray(page.h) && page.h.every((heading) =>
     Array.isArray(heading) && heading.length === 2 &&
@@ -186,22 +260,9 @@ function hasValidPageFields(page: EncodedPage): boolean {
   );
 }
 
-function decodePage(page: EncodedPage, version: number): Page {
-  return {
-    id: crypto.randomUUID(),
-    name: page.n,
-    tracks: page.t.map((track, index) => decodeTrack(track, index, version)),
-    sectionHeadings: page.h?.map(([step, label]) => ({ id: crypto.randomUUID(), step, label })) ?? [],
-  };
-}
-
-function decodeTrack(tr: EncodedTrack, i: number, version: number): Track {
-  const baseSteps: Step[] = version >= 3
-    ? decodeStepsString(tr.s)
-    : tr.s.split('').map(Number);
-
+function decodeTrack(tr: EncodedTrackMeta, i: number, id: string, steps: Step[]): Track {
   const base: Track = {
-    id: crypto.randomUUID(),
+    id,
     name: tr.n,
     color: COLORS[i % COLORS.length]!,
     volume: tr.vo ?? 80,
@@ -210,7 +271,7 @@ function decodeTrack(tr: EncodedTrack, i: number, version: number): Track {
     _stashedSteps: {},
     mute: false,
     solo: false,
-    steps: baseSteps,
+    steps,
     soundfontName: null,
     customSampleName: null,
     kitId: null,
@@ -221,7 +282,6 @@ function decodeTrack(tr: EncodedTrack, i: number, version: number): Track {
   };
 
   if (tr.st === 'dm') {
-    base.sourceType = 'drumMachine';
     base.instrument = tr.i || 'TR-808';
     base.group = tr.g || 'kick';
   } else if (tr.st === 'sf') {
@@ -232,7 +292,6 @@ function decodeTrack(tr: EncodedTrack, i: number, version: number): Track {
     base.kitId = tr.ki ?? null;
     base.kitSample = tr.ks ?? null;
   } else {
-    base.sourceType = 'drumMachine';
     base.instrument = 'TR-808';
     base.group = 'kick';
   }
