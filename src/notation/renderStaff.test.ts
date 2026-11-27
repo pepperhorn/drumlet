@@ -11,19 +11,24 @@ it('chooses the largest number of full bars that fits at the selected size', () 
   expect(fitStaffToWidth(310, 16, 45)).toEqual({ bars: 1, scale: 34 });
 });
 
-it('engraves onsets, keeps split tuplets, and interpolates skipped grid steps', async () => {
+async function stubVerovioGeometry() {
   const font = await readFile('public/fonts/Petaluma.zip');
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(new Uint8Array(font))));
   // jsdom has no layout engine. Derive the horizontal position from Verovio's
-  // note transforms and supply a fixed right boundary for the last span.
+  // note/rest transforms and staff paths.
   Object.defineProperty(SVGElement.prototype, 'getBBox', {
     configurable: true,
     value(this: SVGElement) {
       const use = this.querySelector('use')?.getAttribute('transform') ?? '';
-      const x = Number(/translate\((\d+)/.exec(use)?.[1] ?? 0);
-      return { x, y: 0, width: this.tagName === 'path' ? 8200 : 10, height: 10 };
+      const span = /^M(\d+) \d+ L(\d+) /.exec(this.getAttribute('d') ?? '');
+      const x = Number(span?.[1] ?? /translate\((\d+)/.exec(use)?.[1] ?? 0);
+      return { x, y: 0, width: span ? Number(span[2]) - x : 10, height: 10 };
     },
   });
+}
+
+it('engraves onsets, keeps split tuplets, and interpolates skipped grid steps', async () => {
+  await stubVerovioGeometry();
 
   const score = document.createElement('div');
   const track = {
@@ -47,6 +52,38 @@ it('engraves onsets, keeps split tuplets, and interpolates skipped grid steps', 
     expect(result.stepPositions.filter(Boolean)).toHaveLength(16);
     expect(result.stepPositions[1]!.x).toBeCloseTo((result.stepPositions[0]!.x + result.stepPositions[2]!.x) / 2);
     expect(result.stepPositions[15]!.x).toBeGreaterThan(result.stepPositions[12]!.x);
+  } finally {
+    Reflect.deleteProperty(SVGElement.prototype, 'getBBox');
+  }
+});
+
+it.each([
+  { bars: 8, systems: 1 },
+  { bars: 225, systems: 4 },
+])('places $bars bars in $systems horizontal systems with global step positions', async ({ bars, systems }) => {
+  await stubVerovioGeometry();
+  const score = document.createElement('div');
+  const totalSteps = bars * 16;
+  const track = {
+    id: 'kick', name: 'Kick', group: 'kick', color: '#A8E06C',
+    steps: Array.from({ length: totalSteps }, (_, step) => step % 4 === 0 ? 3 : 0),
+  } as MergedTrack;
+
+  try {
+    const result = await renderDrumStaff(score, {
+      layout: 'endless', mergedTracks: [track], totalSteps, noteValueKey: '1/16',
+      beatNoteValue: '1/4', stepsPerBeat: 4, useColor: false, numStaffLines: 1,
+    });
+    const svg = score.firstElementChild!;
+    const groups = Array.from(svg.querySelectorAll('g.system'));
+    expect(groups).toHaveLength(systems);
+    expect(svg.querySelectorAll('g.measure')).toHaveLength(bars);
+    expect(groups.every(group => group.querySelectorAll('g.measure').length <= 64)).toBe(true);
+    expect(svg.querySelectorAll('#bar-1')).toHaveLength(1);
+    expect(svg.querySelector(`#bar-${bars}`)).not.toBeNull();
+    expect(result.stepPositions.filter(Boolean)).toHaveLength(totalSteps);
+    expect(new Set(result.stepPositions.map(pos => pos.y)).size).toBe(1);
+    expect(result.stepPositions.every((pos, step, all) => step === 0 || pos.x > all[step - 1]!.x)).toBe(true);
   } finally {
     Reflect.deleteProperty(SVGElement.prototype, 'getBBox');
   }

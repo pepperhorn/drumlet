@@ -46,5 +46,7 @@ None.
 ---
 ## Receiver ack
 
+I will add the endless layout and global playhead to notation without changing wrapped output or wiring it into the app. I will test eight bars as one system, check page joins and auto-follow in Chromium, and measure commits and render cost per step. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
