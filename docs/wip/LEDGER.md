@@ -11,7 +11,7 @@ Next ID: 0003
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t1-review-r2 | codex/gpt-6.2-sol (t1) | orch/0001-t1-kit-loader | https://github.com/pepperhorn/drumlet/pull/28 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | ready | human: approve merge of #28 (adds dev deps, >50 lines) | codex/gpt-6.2-sol (t1) | orch/0001-t1-kit-loader | https://github.com/pepperhorn/drumlet/pull/28 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -28,11 +28,14 @@ Next ID: 0003
 | S1 | improvement | Raise Steps/Split selector labels to ≥12px desktop | PageTabs.tsx Steps/Split options 10px at md (pre-existing) | S | DESIGN.md min sizes | 0002 return handoff | new |
 | S2 | improvement | Raise mobile MPC pad label to ≥14px | MpcPads.tsx `mpc-pad-label` text-[10px] | S | readability on phones | 0002 return handoff | new |
 | S3 | next step | Restyle mobile transport + header buttons as keycaps | App.tsx mobile-transport, drumlet-header buttons still flat Tailwind | M | consistent hardware look | PR #27 body | new |
+| S4 | improvement | Cache a failed audio format per session so a broken format isn't re-downloaded for every sample | PR #28 review r2 suggestion; src/audio/customKits.ts retry path | S | fewer wasted fetches on broken decoders | 0001-t1 review r2 | new |
+| S5 | efficiency | Share one in-flight fetch when the same kit sample is requested twice concurrently | PR #28 review r2 suggestion | S | avoids duplicate downloads on load | 0001-t1 review r2 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0001 in-review→ready — t1 review r2 (opus) approved @ 5e09ee8; merge needs owner OK (dev deps, size)
 2026-11-27 0001 changes-requested→in-review — t1 fix pushed @ 5e09ee8 (12-rule fallback, 92 tests); review r2 claudeAgent claude-opus-5-5
 2026-11-27 0001 in-review→changes-requested — t1 review r1 (opus) @ 2aeae39: kit fallback maps app hihat-* groups to kick (plan table was wrong; plan Task 1 KIT_FALLBACKS amended); fix r2 sent to implementer thread
 2026-11-27 0001 dispatched→in-review — t1 PR #28 head 2aeae39 (codex gpt-6.2-sol); review r1 claudeAgent claude-opus-5-5
