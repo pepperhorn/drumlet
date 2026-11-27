@@ -49,5 +49,7 @@ None.
 ---
 ## Receiver ack
 
+I will add the persisted App view toggle, wire Endless to groove playback, editing and looping, and keep Paged aligned with the playing bar when switching back. I will verify both renderers and the mobile bar without changing the player or shared rendering internals. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
