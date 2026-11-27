@@ -28,7 +28,7 @@ npm ci && npm run typecheck && npm run lint && npm run build && npm test
 ---
 ## Receiver ack
 
-I will name the regular, split and sub-step pads in both grids and expose their pressed state. I will change only the three owned components and their tests, pass primitive context to Cell, and verify the 8×8 endless grid still commits once per playhead step. No open questions.
+I will name existing pads in both grids and expose their pressed state. Grid will pass the musical beat size separately from its display grouping. I will test split masters in both grids and expanded sub-steps only in the paged grid, then measure the 8×8 endless grid.
 
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
