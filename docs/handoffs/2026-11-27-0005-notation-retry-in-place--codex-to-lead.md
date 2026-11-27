@@ -5,7 +5,7 @@
 - **Ledger:** 0005 (quick)
 - **Branch:** `orch/0005-notation-retry-in-place`
 - **Worktree:** `/home/shaun/.t3/worktrees/drumlet/t3-6bb80683-a6b24001507b175a`
-- **PR:** Draft pending push
+- **PR:** [#35](https://github.com/pepperhorn/drumlet/pull/35) (draft)
 - **Base:** `9e28762` (includes the dispatch handoff, based on `e480679`)
 - **Implementation:** `88652679844ae2e79b9bb88ce7b2e6e326f2c591`
 - **Outcome:** Done. Ready for review.
