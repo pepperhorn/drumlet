@@ -5,20 +5,23 @@
 > Waiting on: `child <taskId>` · `review <taskId>` · `ci` · `human: <why>` · `lead: <next action>`. Set it on every status change. A row needs the lead when it starts with `lead`, or when it's empty and Status is dispatched, in-review, changes-requested, ready, or merged. The lead's Stop hook won't let the lead end its turn while any row needs it.
 > Type: normal items have a spec and plan. Quick items have the title prefix `[quick]` (no spec or plan, a short handoff). PRs adopted by `orch-sweep` have the prefix `[pr]`.
 
-Next ID: 0009
+Next ID: 0010
 
 ## Active
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0007 | [quick] Stop renderStaff test timing out | in-review | review 0007-review-r1 | codex/gpt-6.2-sol | orch/0007-flaky-renderstaff-test | https://github.com/pepperhorn/drumlet/pull/41 | /home/shaun/.t3/worktrees/drumlet/t3-42a01f58-9c0aacdc8552f57c | — | — | — | docs/handoffs/2026-11-27-0007-flaky-renderstaff-test--lead-to-codex.md | 2026-11-27 |
-| 0008 | [quick] Screen-reader names for step pads | ready | human: approve merge of #40 (163 code lines) | codex/gpt-6.2-sol | orch/0008-pad-screen-reader-names | https://github.com/pepperhorn/drumlet/pull/40 | /home/shaun/.t3/worktrees/drumlet/t3-3a765015-e6e6ca0b90898655 | — | — | — | docs/handoffs/2026-11-27-0008-pad-screen-reader-names--lead-to-codex.md | 2026-11-27 |
-| 0001 | Drumlet Player (embeddable component) + endless view | ready | human: approve merges of #37 (t7) and #38 (t8) (>50 code lines) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/37, https://github.com/pepperhorn/drumlet/pull/38 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0009 | [quick] Pad-name follow-ups: global bar numbers, aria-expanded | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0009-pad-names-followups | — | — | — | — | — | docs/handoffs/2026-11-28-0009-pad-names-followups--lead-to-codex.md | 2026-11-28 |
+| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | lead: delegate t8b | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0001-t8 | DrumletPlayer component | https://github.com/pepperhorn/drumlet/pull/38 | 2026-11-28 (3af5989) | 2 review rounds (opus); owner OK |
+| 0001-t7 | App Paged / Endless toggle | https://github.com/pepperhorn/drumlet/pull/37 | 2026-11-28 (e65dc20) | 2 review rounds (opus); owner OK |
+| 0008 | [quick] Screen-reader names for step pads | https://github.com/pepperhorn/drumlet/pull/40 | 2026-11-28 (2153eed) | 1 review round (opus); owner OK |
+| 0007 | [quick] Stop renderStaff test timing out | https://github.com/pepperhorn/drumlet/pull/41 | 2026-11-28 (779b351) | auto-merged (39 code lines, test-only) |
 | 0006 | [quick] Notation beat counts restart each bar | https://github.com/pepperhorn/drumlet/pull/39 | 2026-11-27 (1fd5e11) | auto-merged (48 code lines, approve, no checks); main verify ✓ 197 tests |
 | 0005 | [quick] Notation Retry without page reload | https://github.com/pepperhorn/drumlet/pull/35 | 2026-11-27 (d9291cc) | 2 review rounds (opus); owner OK |
 | 0001-t6 | Endless notation | https://github.com/pepperhorn/drumlet/pull/36 | 2026-11-27 (23c53b9) | 1 review round (opus); owner OK |
@@ -56,14 +59,15 @@ Next ID: 0009
 | S17 | improvement | Endless notation >~222 bars: 64-bar chunks show a ~70 px staff break and repeat clef/time sig/bar no. at each join; clip later chunks' opening margin so barlines meet | PR #36 review r1 | S | seamless very long scores (rare) | 0001-t6 review r1 | new |
 | S18 | improvement | Notation beat counts never restart per bar (bar 2 counts from "5"; long strips reach 3-digit counts) | PR #36 review r1 (pre-existing on main) | S | readable counts | 0001-t6 review r1 | accepted → 0006 |
 | S19 | next step | Shared AudioContext per page → plan Task 8b (after t8; gates t10/t12) | PR #38 review r1: 8 players left 8 running contexts | M | avoids browser context caps on lesson pages | 0001-t8 review r1 | accepted → 0001-t8b |
-| S20 | improvement | Paged grid pad names count bars within the page (page 3 says "bar 1") — pass the page offset from App.tsx; after 0001-t7 merges | PR #40 review r1 | S | correct screen-reader bar numbers | 0008 review r1 | new |
-| S21 | improvement | Split-pad master toggles open/closed → `aria-expanded` instead of `aria-pressed` | PR #40 review r1 | S | accurate a11y semantics | 0008 review r1 | new |
+| S20 | improvement | Paged grid pad names count bars within the page (page 3 says "bar 1") — pass the page offset from App.tsx; after 0001-t7 merges | PR #40 review r1 | S | correct screen-reader bar numbers | 0008 review r1 | accepted → 0009 |
+| S21 | improvement | Split-pad master toggles open/closed → `aria-expanded` instead of `aria-pressed` | PR #40 review r1 | S | accurate a11y semantics | 0008 review r1 | accepted → 0009 |
 | S22 | efficiency | Move spoken velocity names next to the on-screen labels in velocityConfig.ts | PR #40 review r1; src/components/Cell.tsx | S | one source of truth | 0008 review r1 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 merged #41 (0007, auto), #40 (0008), #37 (t7), #38 (t8) — owner OK; main verify ✓ 243 tests at default timeout. t8b + quick 0009 (S20+S21) handoffs written for parallel dispatch
 2026-11-28 session restart. 0001 t7 r2 (opus) approved @ d00ffcf; t8 r2 (opus) approved @ dc7ba43 — both await owner OK. 0007 PR #41 head 4b26baa (10/10 runs at load ~55); review r1 claudeAgent claude-opus-5-5
 2026-11-27 0008 review r1 (opus) approved @ de77cdd; 163 code lines → owner OK needed; S20–S22 added
 2026-11-27 0001 t7 fix r2 pushed @ d00ffcf (desktop bar 54/50 px = main; endless bar tabs scroll + select; 199 tests); review r2 claudeAgent claude-opus-5-5
