@@ -13,7 +13,8 @@ import PageTabs from './components/PageTabs.js';
 import Library from './components/Library.js';
 import SavePrompt from './components/SavePrompt.js';
 import ShareModal from './components/ShareModal.js';
-const NotationView = lazy(() => import('./components/NotationView.js'));
+import { NotationEngineBoundary, NotationPending } from './components/NotationLoading.js';
+import { loadNotation, prefetchNotation, shouldPrefetchOnIdle } from './components/notationPrefetch.js';
 import MpcPads from './components/MpcPads.js';
 import PluginModal from './components/PluginModal.js';
 import SoundPicker from './components/SoundPicker.js';
@@ -34,6 +35,14 @@ import type { LibraryItem, LibraryAction } from './plugins/librarySchema.js';
 import { createPluginRuntime } from './plugins/runtime.js';
 import { PRACTICE_PLUGIN_ID } from './plugins/modePlugins.js';
 
+const NotationView = lazy(loadNotation);
+
+function retryNotationEngine() {
+  // A rejected module load is cached for this document, including by React.lazy.
+  history.replaceState({ ...history.state, retryNotation: true }, '');
+  window.location.reload();
+}
+
 const PAD_KEYS = ['A', 'S', 'D', 'F', 'J', 'K', 'L', ';'];
 
 function Drumlet() {
@@ -50,7 +59,30 @@ function Drumlet() {
   const audioStartedRef = useRef(false);
   const [audioStarted, setAudioStarted] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [notationView, setNotationView] = useState(false);
+  const [notationView, setNotationView] = useState(() => history.state?.retryNotation === true);
+  const [notationStartedAt, setNotationStartedAt] = useState<number>();
+
+  useEffect(() => {
+    if (history.state?.retryNotation) history.replaceState({ ...history.state, retryNotation: false }, '');
+    const { connection } = navigator as Navigator & { connection?: Parameters<typeof shouldPrefetchOnIdle>[0] };
+    if (!shouldPrefetchOnIdle(connection)) return;
+    const warm = () => { void prefetchNotation().catch(() => {}); };
+    // Wait until after the first paint even in browsers without requestIdleCallback.
+    let cancelIdle: (() => void) | undefined;
+    const frame = requestAnimationFrame(() => {
+      if (typeof window.requestIdleCallback === 'function') {
+        const idle = window.requestIdleCallback(warm);
+        cancelIdle = () => window.cancelIdleCallback(idle);
+      } else {
+        const timeout = window.setTimeout(warm, 0);
+        cancelIdle = () => window.clearTimeout(timeout);
+      }
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      cancelIdle?.();
+    };
+  }, []);
   const [playMode, setPlayMode] = useState(false);
   const [showFullTransport, setShowFullTransport] = useState(false);
   const activeCell = state.activeCell;
@@ -1164,7 +1196,11 @@ function Drumlet() {
           onUpdateSectionHeading={(id, label) => dispatch({ type: 'UPDATE_SECTION_HEADING', id, label })}
           onRemoveSectionHeading={(id) => dispatch({ type: 'REMOVE_SECTION_HEADING', id })}
           notationView={notationView}
-          onToggleNotation={() => setNotationView((v) => !v)}
+          onToggleNotation={() => {
+            setNotationStartedAt(Date.now());
+            if (!notationView) void prefetchNotation().catch(() => {});
+            setNotationView(!notationView);
+          }}
           canUndo={canUndo}
           canRedo={canRedo}
           onUndo={undo}
@@ -1213,20 +1249,23 @@ function Drumlet() {
       )}
 
       {notationView && currentPage && (
-        <Suspense fallback={<div className="notation-loading mb-4 flex items-center justify-center py-8"><span className="notation-loading-text text-sm text-muted">Loading notation...</span></div>}>
-          <div className="notation-view-wrap mb-4">
-            <NotationView
-              pages={state.pages}
-              stepsPerPage={state.stepsPerPage}
-              currentStep={currentStep}
-              currentPageIndex={state.currentPageIndex}
-              noteValue={state.noteValue}
-              beatsPerBar={state.beatsPerBar}
-              stepValue={state.stepValue}
-              onClose={() => setNotationView(false)}
-            />
-          </div>
-        </Suspense>
+        <div className="notation-view-wrap mb-4">
+          <NotationEngineBoundary onRetry={retryNotationEngine}>
+            <Suspense fallback={<NotationPending phase="engine" startedAt={notationStartedAt} onRetry={retryNotationEngine} />}>
+              <NotationView
+                pages={state.pages}
+                stepsPerPage={state.stepsPerPage}
+                currentStep={currentStep}
+                currentPageIndex={state.currentPageIndex}
+                noteValue={state.noteValue}
+                beatsPerBar={state.beatsPerBar}
+                stepValue={state.stepValue}
+                startedAt={notationStartedAt}
+                onClose={() => setNotationView(false)}
+              />
+            </Suspense>
+          </NotationEngineBoundary>
+        </div>
       )}
 
       {!notationView && currentPage && (

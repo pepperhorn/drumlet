@@ -1,10 +1,12 @@
-import { useRef, useEffect, useState, useCallback, useMemo, useSyncExternalStore, memo } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
 import type { Page, Track, NoteValueKey, SectionHeading } from '../state/sequencerReducer.js';
-import { renderDrumStaff, type RenderDrumStaffResult, type StepPosition, type MergedTrack } from '../notation/renderStaff.js';
+import { fitStaffToWidth, renderDrumStaff, type RenderDrumStaffOptions, type RenderDrumStaffResult, type StepPosition, type MergedTrack } from '../notation/renderStaff.js';
 import { downloadSVG, downloadPNG } from '../notation/notationExport.js';
 import { effectiveStep } from '../util/stepHelpers.js';
 import { v4 as uuid } from 'uuid';
+import { NotationLoading, NotationPending } from './NotationLoading.js';
+import { restartPendingPetaluma } from './notationPrefetch.js';
 
 type SizeKey = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
@@ -13,20 +15,7 @@ const SIZE_LABELS: Record<SizeKey, string> = { sm: 'S', md: 'M', lg: 'L', xl: 'X
 const SIZE_FONT: Record<SizeKey, number> = { sm: 9, md: 11, lg: 14, xl: 18, '2xl': 24 };
 const SCORE_SCALE: Record<SizeKey, number> = { sm: 36, md: 41, lg: 45, xl: 52, '2xl': 62 };
 
-const BARS_PER_LINE_OPTIONS = [0, 2, 3, 4]; // 0 = ∞ (single scrolling line)
-
-// Portrait viewport → 2 bars/line default, landscape/desktop → 4. The user can
-// still override with the Bars/line buttons; their pick wins until reset.
-const portraitQuery = typeof window !== 'undefined'
-  ? window.matchMedia('(orientation: portrait)')
-  : null;
-function subscribeToPortrait(cb: () => void) {
-  portraitQuery?.addEventListener('change', cb);
-  return () => portraitQuery?.removeEventListener('change', cb);
-}
-function getIsPortrait(): boolean {
-  return portraitQuery?.matches ?? false;
-}
+const BARS_PER_LINE_OPTIONS = [null, 2, 3, 4, 0]; // null = Auto, 0 = single scrolling line.
 
 interface SubdivisionDef {
   key: string;
@@ -110,6 +99,7 @@ interface NotationViewProps {
   noteValue: NoteValueKey;
   beatsPerBar?: number;
   stepValue: NoteValueKey;
+  startedAt?: number;
   onClose?: () => void;
 }
 
@@ -121,21 +111,45 @@ interface CountLabel {
   isBeatNum: boolean;
 }
 
-function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, noteValue, beatsPerBar = 4, stepValue, onClose }: NotationViewProps) {
+function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, noteValue, beatsPerBar = 4, stepValue, startedAt, onClose }: NotationViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const prevDataRef = useRef<string | null>(null);
-  const [layout, setLayout] = useState<RenderDrumStaffResult | null>(null);
-  const [layoutInfo, setLayoutInfo] = useState<{ stepPositions: StepPosition[]; svgWidth: number; svgHeight: number } | null>(null);
+  const [rendered, setRendered] = useState<{
+    options: RenderDrumStaffOptions;
+    attempt: number;
+    result?: RenderDrumStaffResult;
+    error?: string;
+  }>();
+  const [attempt, setAttempt] = useState(0);
+  const retry = () => {
+    restartPendingPetaluma();
+    setAttempt((n) => n + 1);
+  };
   const [useColor, setUseColor] = useState(true);
   const [countSize, setCountSize] = useState<SizeKey>('lg');
   const [subdivIdx, setSubdivIdx] = useState(0);
-  // null = follow orientation default (2 portrait / 4 landscape); a number = user override.
-  const [barsPerLineOverride, setBarsPerLineOverride] = useState<number | null>(null);
-  const isPortrait = useSyncExternalStore(subscribeToPortrait, getIsPortrait);
-  const responsiveDefaultBars = isPortrait ? 2 : 4;
-  const barsPerLine = barsPerLineOverride ?? responsiveDefaultBars;
-  const setBarsPerLine = (n: number) => setBarsPerLineOverride(n);
+  const [barsPerLine, setBarsPerLine] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const scoreRef = useRef<HTMLDivElement | null>(null);
+  const [scoreWidth, setScoreWidth] = useState(0);
+
+  useEffect(() => {
+    const score = scoreRef.current;
+    if (!score) return;
+    let timer: number | undefined;
+    let first = true;
+    const observer = new ResizeObserver(([entry]) => {
+      const width = Math.floor(entry!.contentRect.width);
+      window.clearTimeout(timer);
+      if (first) setScoreWidth(width);
+      else timer = window.setTimeout(() => setScoreWidth(width), 120);
+      first = false;
+    });
+    observer.observe(score);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   const allTrackIds = useMemo(
     () => (pages?.[0]?.tracks ?? []).map((t) => t.id),
@@ -183,74 +197,59 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
   const stepNv = NOTE_VALUES.find((n) => n.key === (stepValue || noteValue)) ?? beatNv;
   const stepsPerBeat = Math.round(beatNv.beatsPerStep / stepNv.beatsPerStep) || 1;
 
-  const { mergedTracks: allMergedTracks, totalSteps, sectionHeadings } = mergePages(pages, stepsPerPage);
+  const { mergedTracks: allMergedTracks, totalSteps, sectionHeadings } = useMemo(() => mergePages(pages, stepsPerPage), [pages, stepsPerPage]);
 
-  const mergedTracks = allMergedTracks.filter((t) => activePart.trackIds.has(t.id));
+  const mergedTracks = useMemo(() => allMergedTracks.filter((t) => activePart.trackIds.has(t.id)), [allMergedTracks, activePart]);
   const partTrackCount = mergedTracks.length;
   const numStaffLines = partTrackCount <= 1 ? 1 : partTrackCount === 2 ? 2 : 5;
 
   const stepsPerBar = beatsPerBar * stepsPerBeat;
   const totalBars = Math.ceil(totalSteps / stepsPerBar);
   const totalBeats = Math.ceil(totalSteps / stepsPerBeat);
-  const effectiveBarsPerLine = barsPerLine === 0 ? totalBars : barsPerLine;
+  const fit = fitStaffToWidth(scoreWidth, stepsPerBar, SCORE_SCALE[countSize]);
+  const effectiveBarsPerLine = barsPerLine === 0 ? totalBars : barsPerLine ?? fit.bars;
+  const scale = barsPerLine === null ? fit.scale : SCORE_SCALE[countSize];
 
   const availableSubdivs = SUBDIVISIONS.filter((s) => s.perBeat <= stepsPerBeat);
   const safeIdx = Math.min(subdivIdx, availableSubdivs.length - 1);
   const subdiv = availableSubdivs[safeIdx] ?? SUBDIVISIONS[0]!;
 
-  const stepsFingerprint = mergedTracks.map((t) => t.steps.join(',')).join('|');
-  const tracksFingerprint = mergedTracks.map((t) => `${t.id}:${t.color}:${t.group}:${t.kitSample}:${t.velMode}`).join('|');
-  const sectionsFingerprint = sectionHeadings.map((h) => `${h.step}:${h.label}`).join('|');
-  const dataKey = `${stepsFingerprint}|${tracksFingerprint}|${sectionsFingerprint}|${totalSteps}|${noteValue}|${stepValue}|${beatsPerBar}|${effectiveBarsPerLine}|${useColor}|${numStaffLines}|${countSize}`;
+  const options = useMemo<RenderDrumStaffOptions>(() => ({
+    mergedTracks, totalSteps, noteValueKey: stepValue, beatNoteValue: noteValue,
+    stepsPerBeat, beatsPerBar, barsPerLine: effectiveBarsPerLine, useColor, numStaffLines, scale, sectionHeadings,
+  }), [mergedTracks, totalSteps, stepValue, noteValue, stepsPerBeat, beatsPerBar, effectiveBarsPerLine, useColor, numStaffLines, scale, sectionHeadings]);
 
+  const hasScore = mergedTracks.length > 0 && totalSteps > 0;
+  const canRender = hasScore && (barsPerLine !== null || scoreWidth > 0);
   useEffect(() => {
-    if (prevDataRef.current === dataKey) return;
-    prevDataRef.current = dataKey;
-
     const el = containerRef.current;
     if (!el) return;
-    el.innerHTML = '';
+    if (!canRender) {
+      el.replaceChildren();
+      return;
+    }
 
-    if (mergedTracks.length === 0 || totalSteps === 0) return;
-
-    let cancelled = false;
-
-    renderDrumStaff(el, {
-        mergedTracks,
-        totalSteps,
-        noteValueKey: stepValue || noteValue || '1/4',
-        beatNoteValue: noteValue || '1/4',
-        stepsPerBeat,
-        beatsPerBar,
-        barsPerLine: effectiveBarsPerLine,
-        useColor,
-        numStaffLines,
-        scale: SCORE_SCALE[countSize],
-        sectionHeadings,
-      })
+    const controller = new AbortController();
+    renderDrumStaff(el, options, controller.signal)
       .then((result) => {
-        if (cancelled) return;
-        setLayout(result);
-        setLayoutInfo({
-          stepPositions: result.stepPositions,
-          svgWidth: result.svgWidth,
-          svgHeight: result.svgHeight,
-        });
+        if (!controller.signal.aborted) setRendered({ options, attempt, result });
       })
-      .catch((err) => {
-        if (cancelled) return;
-        setLayout(null);
-        setLayoutInfo(null);
-        console.error('Verovio render error:', err);
-        el.textContent = 'Notation rendering error';
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        el.replaceChildren();
+        setRendered({
+          options, attempt,
+          error: error instanceof Error ? error.message : 'Could not render the score.',
+        });
       });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [dataKey, mergedTracks, totalSteps, noteValue, stepValue, stepsPerBeat, beatsPerBar, effectiveBarsPerLine, useColor, numStaffLines, countSize, sectionHeadings]);
+    return () => controller.abort();
+  }, [options, attempt, canRender]);
 
-  const globalStep = (currentPageIndex || 0) * stepsPerPage + (currentStep >= 0 ? currentStep : -1);
+  const current = rendered?.options === options && rendered.attempt === attempt ? rendered : undefined;
+  const layout = hasScore ? current?.result : undefined;
+
+  const globalStep = currentStep < 0 ? -1 : currentPageIndex * stepsPerPage + currentStep;
   let playhead: { x: number; y: number; line: number } | null = null;
   if (layout && globalStep >= 0 && globalStep < layout.stepPositions.length) {
     const pos = layout.stepPositions[globalStep]!;
@@ -272,7 +271,7 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
 
   const countLabels: CountLabel[] = [];
   const fontSize = SIZE_FONT[countSize];
-  if (layoutInfo && layoutInfo.stepPositions.length > 0) {
+  if (layout && layout.stepPositions.length > 0) {
     const labelFn = BEAT_LABELS[subdiv.key];
     if (labelFn) {
       for (let beat = 0; beat < totalBeats; beat++) {
@@ -280,10 +279,10 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
         const beatStartStep = beat * stepsPerBeat;
         for (let j = 0; j < labels.length; j++) {
           const stepFloat = beatStartStep + (j / labels.length) * stepsPerBeat;
-          const stepIdx = Math.min(Math.floor(stepFloat), layoutInfo.stepPositions.length - 1);
+          const stepIdx = Math.min(Math.floor(stepFloat), layout.stepPositions.length - 1);
           if (stepIdx < 0) continue;
-          const pos = layoutInfo.stepPositions[stepIdx]!;
-          const x = interpolateX(layoutInfo.stepPositions, stepFloat) + fontSize * 0.4;
+          const pos = layout.stepPositions[stepIdx]!;
+          const x = interpolateX(layout.stepPositions, stepFloat) + fontSize * 0.4;
           countLabels.push({ text: labels[j]!, x, y: pos.y, line: pos.line, isBeatNum: j === 0 });
         }
       }
@@ -302,8 +301,6 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
 
   const playheadWidth = layout?.stepWidth ?? 28;
   const lineHeight = layout?.lineHeight ?? 100;
-  const lineGap = layout?.lineGap ?? 18;
-  const topPadding = layout?.topPadding ?? 48;
 
   const allTracks: Track[] = pages?.[0]?.tracks ?? [];
 
@@ -336,7 +333,7 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
           +
         </button>
 
-        <div className="notation-part-tracks flex items-center gap-2 ml-3 pl-3 border-l border-border">
+        <div className="notation-part-tracks flex flex-wrap min-w-0 items-center gap-2 ml-3 pl-3 border-l border-border">
           {allTracks.map((track) => (
             <label
               key={track.id}
@@ -407,15 +404,16 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
         )}
 
         <div className="notation-bpl flex items-center gap-0.5">
-          <span className="notation-bpl-label text-[10px] text-muted font-semibold mr-0.5">Bars/line</span>
+          <span className="notation-bpl-label text-sm md:text-xs text-muted font-semibold mr-0.5">Bars/line</span>
           {BARS_PER_LINE_OPTIONS.map((n) => (
             <button
               key={n}
-              className={`notation-bpl-btn px-1.5 py-0.5 rounded text-xs font-mono cursor-pointer transition-colors
+              className={`notation-bpl-btn px-1.5 py-0.5 rounded text-sm md:text-xs font-mono cursor-pointer transition-colors
                 ${barsPerLine === n ? 'bg-sky/10 text-sky font-bold' : 'text-muted hover:text-text'}`}
+              aria-pressed={barsPerLine === n}
               onClick={() => setBarsPerLine(n)}
             >
-              {n === 0 ? '∞' : n}
+              {n === null ? 'Auto' : n === 0 ? '∞' : n}
             </button>
           ))}
         </div>
@@ -438,17 +436,21 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
         </div>
       </div>
 
-      <div className="notation-score-wrap" style={{ position: 'relative', display: 'block', minHeight: 160, paddingTop: 8, paddingBottom: 12 }}>
-        <div ref={containerRef} className="verovio-container" style={{ display: 'block' }} />
+      <div ref={scoreRef} className="notation-score-wrap" style={{ position: 'relative', display: 'block', minHeight: 160, paddingTop: 8, paddingBottom: 12 }}>
+        <div ref={containerRef} className="verovio-container" />
+        {hasScore && !layout && (current?.error
+          ? <NotationLoading phase="error" message={current.error} onRetry={retry} />
+          : <NotationPending key={attempt} phase="render" startedAt={attempt === 0 && !rendered ? startedAt : undefined} onRetry={retry} />)}
+        {!hasScore && <p className="notation-empty text-sm text-text py-4">Select a track to show notation.</p>}
         {playhead && (
           <div
             className="notation-playhead"
             style={{
               position: 'absolute',
               left: playhead.x - playheadWidth / 2,
-              top: playhead.y + 4,
+              top: playhead.y + 8 - lineHeight * 0.2,
               width: playheadWidth,
-              height: lineHeight - 16,
+              height: lineHeight,
               background: 'color-mix(in srgb, var(--color-sky) 15%, transparent)',
               borderRadius: 4,
               pointerEvents: 'none',
@@ -457,22 +459,22 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
           />
         )}
 
-        {layoutInfo && countLabels.length > 0 && layout && (
+        {countLabels.length > 0 && layout && (
           <div
             className="notation-count-labels"
             style={{
               position: 'absolute',
               top: 0,
               left: 0,
-              width: layoutInfo.svgWidth,
-              height: layoutInfo.svgHeight,
+              width: layout.svgWidth,
+              height: layout.svgHeight,
               pointerEvents: 'none',
             }}
           >
             {Array.from({ length: layout.numLines }, (_, lineIdx) => {
               const lineLabels = countLabels.filter((cl) => cl.line === lineIdx);
               if (lineLabels.length === 0) return null;
-              const topOffset = topPadding + lineIdx * (lineHeight + lineGap) + lineHeight;
+              const topOffset = lineLabels[0]!.y + lineHeight * 0.8 + 8;
               return (
                 <svg
                   key={lineIdx}
@@ -480,10 +482,10 @@ function NotationView({ pages, stepsPerPage, currentStep, currentPageIndex, note
                     position: 'absolute',
                     top: topOffset,
                     left: 0,
-                    width: layoutInfo.svgWidth,
+                    width: layout.svgWidth,
                     height: fontSize + 10,
                   }}
-                  viewBox={`0 0 ${layoutInfo.svgWidth} ${fontSize + 10}`}
+                  viewBox={`0 0 ${layout.svgWidth} ${fontSize + 10}`}
                 >
                   {lineLabels.map((cl, i) => (
                     <text

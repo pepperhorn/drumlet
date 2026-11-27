@@ -9,10 +9,16 @@ import { VerovioToolkit } from 'verovio/esm';
 
 import { getNotation, toMeiPitch } from './drumMap.js';
 import { getVelocityOpacity } from '../audio/velocityConfig.js';
-import type { Track, Step } from '../state/sequencerReducer.js';
+import { loadPetaluma } from '../components/notationPrefetch.js';
+import { beatToEvents } from './beatToEvents.js';
+import type { Track, Step, NoteValueKey } from '../state/sequencerReducer.js';
 
 const TEXT_COLOR = '#1A1A2E';
 const FIRST_SYSTEM_LEFT_MARGIN = 125;
+const PAGE_TOP_MARGIN = 30;
+const STEP_WIDTH = 28;
+const PAGE_MARGIN_WIDTH = FIRST_SYSTEM_LEFT_MARGIN + 130;
+const MIN_PAGE_WIDTH = 900;
 const DRUM_KEY_STAVE_GAP = 20; // Verovio units; about 2 rendered px at the current scale.
 
 const DURATION_MAP: Record<string, string> = {
@@ -39,10 +45,6 @@ const DURATION_DENOMINATOR: Record<string, number> = {
   '4': 4,
   '2': 2,
 };
-
-function isDotted(noteValueKey: string): boolean {
-  return noteValueKey.startsWith('d');
-}
 
 function escapeXml(value: string): string {
   return value
@@ -72,7 +74,7 @@ export interface RenderDrumStaffOptions {
   mergedTracks: MergedTrack[];
   totalSteps: number;
   sectionHeadings?: SectionHeadingForRender[];
-  noteValueKey: string;
+  noteValueKey: NoteValueKey;
   beatNoteValue: string;
   stepsPerBeat: number;
   beatsPerBar?: number;
@@ -105,48 +107,15 @@ export interface RenderDrumStaffResult {
   topPadding: number;
 }
 
-interface ToolkitShape {
-  setOptions(options: Record<string, unknown>): void;
-  loadData(data: string): number | boolean;
-  renderToSVG(pageNo?: number, xmlDeclaration?: boolean): string;
-  getLog?(): string;
-}
+let toolkitPromise: Promise<VerovioToolkit> | null = null;
 
-let toolkitPromise: Promise<ToolkitShape> | null = null;
-let petalumaFontPromise: Promise<string> | null = null;
-
-async function getToolkit(): Promise<ToolkitShape> {
-  toolkitPromise ??= createVerovioModule().then((verovioModule: unknown) => new VerovioToolkit(verovioModule as never) as ToolkitShape);
-  return toolkitPromise;
-}
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  let binary = '';
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(binary);
-}
-
-async function getPetalumaFontZipBase64(): Promise<string> {
-  petalumaFontPromise ??= fetch('/fonts/Petaluma.zip')
-    .then((response) => {
-      if (!response.ok) throw new Error(`Failed to load Petaluma.zip (${response.status})`);
-      return response.arrayBuffer();
-    })
-    .then(arrayBufferToBase64);
-  return petalumaFontPromise;
-}
-
-function beamGroupSize(noteValueKey: string): number {
-  switch (noteValueKey) {
-    case '1/32': return 4;
-    case '1/16': return 4;
-    case '1/8': return 2;
-    default: return 0;
-  }
+function getToolkit(): Promise<VerovioToolkit> {
+  return toolkitPromise ??= createVerovioModule()
+    .then((module: unknown) => new VerovioToolkit(module))
+    .catch((error) => {
+      toolkitPromise = null;
+      throw error;
+    });
 }
 
 function getStepValues(raw: number | number[] | Step | undefined): number[] {
@@ -210,62 +179,61 @@ function restEvent(step: number, duration: string, dotted = false): string {
   return `<rest xml:id="step-${step}" dur="${duration}"${dotAttr}/>`;
 }
 
-function mergedRestDuration(noteValueKey: string, groupSize: number): string | null {
-  if (noteValueKey === '1/8' && groupSize === 2) return '4';
-  if (noteValueKey === '1/16' && groupSize === 4) return '4';
-  if (noteValueKey === '1/32' && groupSize === 4) return '8';
-  return null;
+function hasOnset(tracks: MergedTrack[], step: number): boolean {
+  return tracks.some((track) => getStepValues(track.steps[step]).some((value) => value > 0));
 }
 
-interface NotationEvent {
-  step: number;
-  beamStep: number;
-  markup: string;
-}
+function buildMeasure(
+  tracks: MergedTrack[], measureNo: number, startStep: number, stepsThisMeasure: number,
+  stepsPerNotationBeat: number, stepValue: NoteValueKey, useColor: boolean,
+): string {
+  const markup: string[] = [];
+  for (let offset = 0; offset < stepsThisMeasure; offset += stepsPerNotationBeat) {
+    const start = startStep + offset;
+    const count = Math.min(stepsPerNotationBeat, stepsThisMeasure - offset);
+    const onsets = Array.from({ length: count }, (_, i) => hasOnset(tracks, start + i));
+    let beam: string[] = [];
 
-function wrapSplitEvents(events: string[], splitCount: number, step: number): string {
-  const body = events.join('');
-  if (splitCount === 3) return `<tuplet num="3" numbase="2"><beam xml:id="beam-${step}">${body}</beam></tuplet>`;
-  return `<beam xml:id="beam-${step}">${body}</beam>`;
-}
+    function flushBeam() {
+      markup.push(beam.length > 1 ? `<beam>${beam.join('')}</beam>` : beam.join(''));
+      beam = [];
+    }
 
-function buildMeasure(mergedTracks: MergedTrack[], measureNo: number, startStep: number, stepsThisMeasure: number, duration: string, dotted: boolean, useColor: boolean, noteValueKey: string): string {
-  const events: NotationEvent[] = [];
-  const groupSize = beamGroupSize(noteValueKey);
-  for (let i = 0; i < stepsThisMeasure; i++) {
-    const step = startStep + i;
-    const splitCount = getSplitCountAtStep(mergedTracks, step);
-    if (splitCount > 1) {
-      const splitEvents = Array.from({ length: splitCount }, (_, subIdx) => (
-        buildStepEvent(mergedTracks, step, duration, dotted, useColor, subIdx, splitCount)
-      ));
-      const hasVisibleNote = splitEvents.some((event) => event.includes('<note') || event.includes('<chord'));
-      events.push({
-        step,
-        beamStep: step,
-        markup: hasVisibleNote ? wrapSplitEvents(splitEvents, splitCount, step) : splitEvents.join(''),
-      });
-    } else {
-      events.push({
-        step,
-        beamStep: step,
-        markup: buildStepEvent(mergedTracks, step, duration, dotted, useColor),
-      });
+    // An active split uses its existing subdivision for that cell. Resume
+    // beat-relative duration calculation after the split, without tying over it.
+    let segmentStart = 0;
+    for (let i = 0; i <= count; i++) {
+      const step = start + i;
+      const split = i < count && onsets[i] ? getSplitCountAtStep(tracks, step) : 1;
+      if (i < count && split === 1) continue;
+
+      const events = beatToEvents(onsets.slice(segmentStart, i), i - segmentStart, stepValue);
+      for (const event of events) {
+        const eventStep = start + segmentStart + event.startStep;
+        const dotted = event.dots === 1;
+        if (event.kind === 'note' && Number(event.dur) >= 8) {
+          beam.push(buildStepEvent(tracks, eventStep, event.dur, dotted, useColor));
+        } else {
+          flushBeam();
+          markup.push(event.kind === 'rest'
+            ? restEvent(eventStep, event.dur, dotted)
+            : buildStepEvent(tracks, eventStep, event.dur, dotted, useColor));
+        }
+      }
+      flushBeam();
+
+      if (split > 1) {
+        const duration = DURATION_MAP[stepValue] ?? '4';
+        const body = Array.from({ length: split }, (_, sub) => (
+          buildStepEvent(tracks, step, duration, false, useColor, sub, split)
+        )).join('');
+        const splitBeam = `<beam>${body}</beam>`;
+        markup.push(split === 3 ? `<tuplet num="3" numbase="2">${splitBeam}</tuplet>` : splitBeam);
+      }
+      segmentStart = i + 1;
     }
   }
-  const beamedEvents = groupSize > 0 ? events.flatMap((_, idx) => {
-    if (idx % groupSize !== 0) return [];
-    const group = events.slice(idx, idx + groupSize);
-    const hasVisibleNote = group.some((event) => event.markup.includes('<note') || event.markup.includes('<chord'));
-    if (!hasVisibleNote) {
-      const mergedDuration = mergedRestDuration(noteValueKey, group.length);
-      return mergedDuration ? [restEvent(group[0]?.step ?? startStep + idx, mergedDuration)] : group.map((event) => event.markup);
-    }
-    const containsNestedBeam = group.some((event) => event.markup.includes('<beam>') || event.markup.includes('<beam '));
-    const body = group.map((event) => event.markup).join('');
-    return containsNestedBeam ? [body] : [`<beam xml:id="beam-${group[0]?.beamStep ?? startStep + idx}">${body}</beam>`];
-  }) : events.map((event) => event.markup);
-  return `<measure n="${measureNo}"><staff n="1"><layer n="1">${beamedEvents.join('')}</layer></staff></measure>`;
+  return `<measure xml:id="bar-${measureNo}" n="${measureNo}"><staff n="1"><layer n="1">${markup.join('')}</layer></staff></measure>`;
 }
 
 function buildMei({
@@ -279,19 +247,19 @@ function buildMei({
   useColor = true,
   numStaffLines = 5,
 }: RenderDrumStaffOptions): string {
-  const duration = DURATION_MAP[noteValueKey] ?? '4';
-  const dotted = isDotted(noteValueKey);
   const beatDuration = DURATION_MAP[beatNoteValue] ?? DURATION_MAP[noteValueKey] ?? '4';
   const timeSigDenom = BEAT_VALUE_MAP[beatDuration] ?? 4;
   const stepsPerBar = beatsPerBar * stepsPerBeat;
   const totalBars = Math.ceil(totalSteps / stepsPerBar);
+  const compound = beatNoteValue === '1/8' && (beatsPerBar === 6 || beatsPerBar === 12);
+  const stepsPerNotationBeat = stepsPerBeat * (compound ? 3 : 1);
   const measures: string[] = [];
 
   for (let bar = 0; bar < totalBars; bar++) {
     if (bar > 0 && barsPerLine > 0 && bar % barsPerLine === 0) measures.push('<sb/>');
     const startStep = bar * stepsPerBar;
     const stepsThisMeasure = Math.min(stepsPerBar, totalSteps - startStep);
-    measures.push(buildMeasure(mergedTracks, bar + 1, startStep, stepsThisMeasure, duration, dotted, useColor, noteValueKey));
+    measures.push(buildMeasure(mergedTracks, bar + 1, startStep, stepsThisMeasure, stepsPerNotationBeat, noteValueKey, useColor));
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -325,28 +293,16 @@ function numberFromSvgLength(value: string | null, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function getPrimaryStepColor(mergedTracks: MergedTrack[], step: number): string | null {
+function getPrimaryStepColor(mergedTracks: MergedTrack[], step: number, sub: number): string | null {
   const active: { track: MergedTrack; vel: number; pos: number }[] = [];
   for (const track of mergedTracks) {
-    const raw = track.steps[step];
-    const vel = Array.isArray(raw) ? Math.max(...raw) : (typeof raw === 'number' ? raw : 0);
+    const vel = getStepValues(track.steps[step])[sub] ?? 0;
     if (vel > 0) active.push({ track, vel, pos: getNotation(track).pos });
   }
   if (active.length === 0) return null;
   active.sort((a, b) => a.pos - b.pos);
   const top = active[active.length - 1]!;
   return hexToRGBA(top.track.color, getVelocityOpacity(top.vel, top.track.velMode || 3));
-}
-
-function getDominantBeamColor(mergedTracks: MergedTrack[], startStep: number, groupSize: number, totalSteps: number): string | null {
-  const colorCounts = new Map<string, number>();
-  for (let step = startStep; step < Math.min(startStep + groupSize, totalSteps); step++) {
-    const color = getPrimaryStepColor(mergedTracks, step);
-    if (!color) continue;
-    colorCounts.set(color, (colorCounts.get(color) ?? 0) + 1);
-  }
-  const [dominant] = Array.from(colorCounts.entries()).sort((a, b) => b[1] - a[1])[0] ?? [];
-  return dominant ?? null;
 }
 
 function applyScoreTitleFont(svg: SVGSVGElement): void {
@@ -446,32 +402,42 @@ function getSystemStaffTopByLine(svg: SVGSVGElement): number[] {
   });
 }
 
-function fillMissingStepPositions(stepPositions: StepPosition[], totalSteps: number): void {
-  for (let step = 0; step < totalSteps; step++) {
-    if (stepPositions[step]) continue;
+function getStepPositions(svg: SVGSVGElement, totalSteps: number, stepsPerBar: number): StepPosition[] {
+  const positions: StepPosition[] = [];
+  const systems = Array.from(svg.querySelectorAll<SVGGElement>('g.system'));
+  const staffTops = getSystemStaffTopByLine(svg);
+  const measures = svg.querySelectorAll<SVGGElement>('g.measure[id^="bar-"]');
 
-    let prevIdx = step - 1;
-    while (prevIdx >= 0 && !stepPositions[prevIdx]) prevIdx--;
+  measures.forEach((measure, index) => {
+    const start = (Number(measure.id.slice(4)) - 1) * stepsPerBar;
+    const end = Math.min(start + stepsPerBar, totalSteps);
+    const system = measure.closest<SVGGElement>('g.system');
+    const line = system ? systems.indexOf(system) : 0;
+    const y = staffTops[line] ?? 0;
+    const staffLine = measure.querySelector<SVGPathElement>('g.staff > path')?.getBBox();
+    const bounds = staffLine ?? measure.getBBox();
+    const next = measures[index + 1];
+    const nextEvent = next?.closest('g.system') === system
+      ? next?.querySelector<SVGGraphicsElement>(`#step-${end}`)
+      : null;
 
-    let nextIdx = step + 1;
-    while (nextIdx < totalSteps && !stepPositions[nextIdx]) nextIdx++;
-
-    const prev = prevIdx >= 0 ? stepPositions[prevIdx] : null;
-    const next = nextIdx < totalSteps ? stepPositions[nextIdx] : null;
-
-    if (prev && next && prev.line === next.line) {
-      const ratio = (step - prevIdx) / (nextIdx - prevIdx);
-      stepPositions[step] = {
-        x: prev.x + (next.x - prev.x) * ratio,
-        y: prev.y,
-        line: prev.line,
-      };
-    } else if (prev) {
-      stepPositions[step] = { ...prev };
-    } else if (next) {
-      stepPositions[step] = { ...next };
+    let lastStep = start;
+    let lastX = bounds.x;
+    for (let step = start; step <= end; step++) {
+      const event = step === end ? nextEvent : measure.querySelector<SVGGraphicsElement>(`#step-${step}`);
+      if (!event && step !== end) continue;
+      const box = event?.getBBox();
+      const x = box ? box.x + box.width / 2 : bounds.x + bounds.width;
+      for (let gapStep = lastStep + 1; gapStep < step; gapStep++) {
+        positions[gapStep] = { x: lastX + (x - lastX) * (gapStep - lastStep) / (step - lastStep), y, line };
+      }
+      if (step < end) positions[step] = { x, y, line };
+      lastStep = step;
+      lastX = x;
     }
-  }
+  });
+
+  return positions;
 }
 
 function applySectionHeadings(svg: SVGSVGElement, sectionHeadings: SectionHeadingForRender[], stepPositions: StepPosition[]): void {
@@ -479,7 +445,7 @@ function applySectionHeadings(svg: SVGSVGElement, sectionHeadings: SectionHeadin
   const staffTops = getSystemStaffTopByLine(svg);
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   group.setAttribute('class', 'drumlet-section-headings');
-  svg.appendChild(group);
+  svg.querySelector('g.page-margin')?.appendChild(group);
 
   for (const heading of sectionHeadings) {
     const pos = stepPositions[heading.step];
@@ -497,55 +463,10 @@ function applySectionHeadings(svg: SVGSVGElement, sectionHeadings: SectionHeadin
   }
 }
 
-function applyRestStemlets(svg: SVGSVGElement): void {
-  svg.querySelectorAll<SVGGElement>('g.beam').forEach((beam) => {
-    const beamShape = beam.querySelector<SVGGraphicsElement>(':scope > polygon, :scope > path');
-    if (!beamShape) return;
-    const beamBox = beamShape.getBBox();
-    if (!beamBox) return;
-    const beamColor = beamShape.getAttribute('fill') || beamShape.getAttribute('stroke') || TEXT_COLOR;
-
-    beam.querySelectorAll<SVGGraphicsElement>('g.rest').forEach((rest) => {
-      const restBox = rest.getBBox();
-      const x = restBox.x + restBox.width / 2;
-      const y1 = beamBox.y + beamBox.height;
-      const y2 = restBox.y + restBox.height * 0.25;
-      if (y2 <= y1 + 8) return;
-      const stemlet = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      stemlet.setAttribute('x1', String(x));
-      stemlet.setAttribute('x2', String(x));
-      stemlet.setAttribute('y1', String(y1));
-      stemlet.setAttribute('y2', String(y2));
-      stemlet.setAttribute('stroke', beamColor);
-      stemlet.setAttribute('stroke-width', '18');
-      stemlet.setAttribute('stroke-linecap', 'butt');
-      stemlet.setAttribute('class', 'drumlet-rest-stemlet');
-      beam.insertBefore(stemlet, rest);
-    });
-  });
-}
-
-function patchSvgForApp(svg: SVGSVGElement, mergedTracks: MergedTrack[], totalSteps: number, useColor: boolean, sectionHeadings: SectionHeadingForRender[]): StepPosition[] {
-  const stepPositions: StepPosition[] = [];
+function patchSvgForApp(svg: SVGSVGElement, mergedTracks: MergedTrack[], totalSteps: number, stepsPerBar: number, useColor: boolean, sectionHeadings: SectionHeadingForRender[]): StepPosition[] {
   applyScoreTitleFont(svg);
   applyFirstSystemDrumKey(svg, mergedTracks, useColor);
-  const systemTops = Array.from(svg.querySelectorAll<SVGGElement>('g.system')).map((system) => {
-    return parseTranslateY(system.getAttribute('transform'));
-  }).filter((value) => Number.isFinite(value));
-
-  for (let step = 0; step < totalSteps; step++) {
-    const el = svg.querySelector<SVGGraphicsElement>(`#step-${step}`);
-    if (!el) continue;
-    const bbox = el.getBBox();
-    const centerX = bbox.x + bbox.width / 2;
-    const top = bbox.y;
-    let line = 0;
-    for (let i = 0; i < systemTops.length; i++) {
-      if (top >= systemTops[i]! - 20) line = i;
-    }
-    stepPositions[step] = { x: centerX, y: systemTops[line] ?? Math.max(0, top - 40), line };
-  }
-  fillMissingStepPositions(stepPositions, totalSteps);
+  const stepPositions = getStepPositions(svg, totalSteps, stepsPerBar);
   applySectionHeadings(svg, sectionHeadings, stepPositions);
 
   if (!useColor) return stepPositions;
@@ -572,43 +493,64 @@ function patchSvgForApp(svg: SVGSVGElement, mergedTracks: MergedTrack[], totalSt
     }
   }
 
-  const groupSize = beamGroupSize(svg.dataset.drumletNoteValue ?? '');
-  if (groupSize > 0) {
-    for (let startStep = 0; startStep < totalSteps; startStep += groupSize) {
-      const color = getDominantBeamColor(mergedTracks, startStep, groupSize, totalSteps);
-      const beam = svg.querySelector<SVGElement>(`#beam-${startStep}`);
-      if (!color || !beam) continue;
-      beam.querySelectorAll<SVGElement>(':scope > polygon, :scope > path, :scope > line, g.stem path, g.stem line').forEach((child) => {
-        child.setAttribute('fill', color);
-        child.setAttribute('stroke', color);
-      });
-    }
-  }
-  applyRestStemlets(svg);
+  svg.querySelectorAll<SVGGElement>('g.beam').forEach((beam) => {
+    const counts = new Map<string, number>();
+    beam.querySelectorAll<SVGGElement>('g.note, g.chord').forEach((event) => {
+      const match = /^step-(\d+)(?:-sub-(\d+))?$/.exec(event.id);
+      if (!match) return;
+      const color = getPrimaryStepColor(mergedTracks, Number(match[1]), Number(match[2] ?? 0));
+      if (color) counts.set(color, (counts.get(color) ?? 0) + 1);
+    });
+    const dominant = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (!dominant) return;
+    beam.querySelectorAll<SVGElement>(':scope > polygon, :scope > path, :scope > line, g.stem path, g.stem line').forEach((child) => {
+      child.setAttribute('fill', dominant);
+      child.setAttribute('stroke', dominant);
+    });
+  });
 
   return stepPositions;
 }
 
-export async function renderDrumStaff(container: HTMLElement, options: RenderDrumStaffOptions): Promise<RenderDrumStaffResult> {
+export function pickBarsPerLine(containerWidth: number, barWidthPx: number, leftMarginPx: number): { bars: 1 | 2 | 3 | 4; scale: number } {
+  for (const bars of [4, 3, 2, 1] as const) {
+    if (leftMarginPx + bars * barWidthPx <= containerWidth) return { bars, scale: 1 };
+  }
+  return { bars: 1, scale: Math.max(0.6, containerWidth / (leftMarginPx + barWidthPx)) };
+}
+
+export function fitStaffToWidth(containerWidth: number, stepsPerBar: number, scale: number) {
+  const px = scale / 100;
+  const minWidth = MIN_PAGE_WIDTH * px;
+  const fit = pickBarsPerLine(containerWidth, stepsPerBar * STEP_WIDTH * px, PAGE_MARGIN_WIDTH * px);
+  return {
+    bars: containerWidth < minWidth ? 1 : fit.bars,
+    scale: Math.max(Math.ceil(scale * 0.6), Math.floor(scale * Math.min(fit.scale, containerWidth / minWidth))),
+  };
+}
+
+export async function renderDrumStaff(container: HTMLElement, options: RenderDrumStaffOptions, signal?: AbortSignal): Promise<RenderDrumStaffResult> {
   const stepsPerBar = (options.beatsPerBar ?? 4) * options.stepsPerBeat;
   const totalBars = Math.ceil(options.totalSteps / stepsPerBar);
   const barsPerLine = options.barsPerLine ?? 4;
   const maxStepsPerLine = Math.min((barsPerLine || totalBars) * stepsPerBar, options.totalSteps);
-  const stepWidth = 28;
-  const pageWidth = Math.max(900, FIRST_SYSTEM_LEFT_MARGIN + 130 + maxStepsPerLine * stepWidth);
+  const pageWidth = Math.max(MIN_PAGE_WIDTH, PAGE_MARGIN_WIDTH + maxStepsPerLine * STEP_WIDTH);
   const estimatedLines = Math.ceil(totalBars / (barsPerLine || totalBars));
-  const pageHeight = Math.max(280, 170 + estimatedLines * 145);
+  const singleLine = estimatedLines === 1;
+  const pageHeight = Math.min(60000, 280 + estimatedLines * 190);
   const mei = buildMei(options);
-  const [toolkit, petalumaFont] = await Promise.all([getToolkit(), getPetalumaFontZipBase64()]);
+  const [toolkit, petalumaFont] = await Promise.all([getToolkit(), loadPetaluma()]);
+
+  signal?.throwIfAborted();
 
   toolkit.setOptions({
     inputFrom: 'mei',
-    breaks: 'encoded',
+    breaks: singleLine ? 'none' : 'encoded',
     adjustPageHeight: true,
-    adjustPageWidth: false,
+    adjustPageWidth: singleLine,
     pageWidth,
     pageHeight,
-    pageMarginTop: 30,
+    pageMarginTop: PAGE_TOP_MARGIN,
     pageMarginBottom: 30,
     pageMarginLeft: FIRST_SYSTEM_LEFT_MARGIN,
     pageMarginRight: 30,
@@ -621,7 +563,7 @@ export async function renderDrumStaff(container: HTMLElement, options: RenderDru
 
   const loaded = toolkit.loadData(mei);
   if (!loaded) {
-    throw new Error(`Verovio failed to load MEI data: ${toolkit.getLog?.() ?? 'no log available'}`);
+    throw new Error(`Verovio failed to load MEI data: ${toolkit.getLog()}`);
   }
 
   const svgMarkup = toolkit.renderToSVG(1, false);
@@ -631,17 +573,24 @@ export async function renderDrumStaff(container: HTMLElement, options: RenderDru
 
   svg.style.display = 'block';
   svg.style.color = TEXT_COLOR;
-  svg.dataset.drumletNoteValue = options.noteValueKey;
   const svgWidth = numberFromSvgLength(svg.getAttribute('width'), pageWidth);
   const svgHeight = numberFromSvgLength(svg.getAttribute('height'), pageHeight);
-  const stepPositions = patchSvgForApp(svg, options.mergedTracks, options.totalSteps, options.useColor ?? true, options.sectionHeadings ?? []);
-  const systemTops = Array.from(svg.querySelectorAll<SVGGElement>('g.system')).map((system) => {
-    return parseTranslateY(system.getAttribute('transform'));
-  }).filter((value) => Number.isFinite(value));
-  const numLines = Math.max(1, systemTops.length);
-  const lineGap = numLines > 1 ? Math.max(18, systemTops[1]! - systemTops[0]! - 100) : 18;
-  const lineHeight = numLines > 1 ? Math.max(90, systemTops[1]! - systemTops[0]! - lineGap) : Math.max(90, svgHeight - 70);
-  const topPadding = systemTops[0] ?? 48;
+  const rawPositions = patchSvgForApp(svg, options.mergedTracks, options.totalSteps, stepsPerBar, options.useColor ?? true, options.sectionHeadings ?? []);
+  // Verovio puts the staff inside a nested viewBox. App overlays use CSS pixels.
+  const viewBox = svg.querySelector('svg.definition-scale')?.getAttribute('viewBox')?.split(/\s+/);
+  const unit = svgWidth / Number(viewBox?.[2] ?? pageWidth * 10);
+  const stepPositions = rawPositions.map(({ x, y, line }) => ({
+    x: (x + FIRST_SYSTEM_LEFT_MARGIN * 10) * unit,
+    y: (y + PAGE_TOP_MARGIN * 10) * unit,
+    line,
+  }));
+  const staffTops = getSystemStaffTopByLine(svg);
+  const lineHeight = ((options.numStaffLines ?? 5) * 180 + 180) * unit;
+  const lineGap = staffTops.length > 1 ? (staffTops[1]! - staffTops[0]!) * unit - lineHeight : 0;
+  const topPadding = ((staffTops[0] ?? 0) + PAGE_TOP_MARGIN * 10) * unit;
 
-  return { stepPositions, svgWidth, svgHeight, stepWidth, numLines, lineHeight, lineGap, topPadding };
+  return {
+    stepPositions, svgWidth, svgHeight, stepWidth: STEP_WIDTH * unit * 10,
+    numLines: staffTops.length, lineHeight, lineGap, topPadding,
+  };
 }
