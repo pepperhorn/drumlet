@@ -570,6 +570,7 @@ function Grid({
                   currentStep={currentStep}
                   stepsPerPage={stepsPerPage}
                   stepsPerBeat={stepsPerBeat}
+                  musicalStepsPerBeat={realStepsPerBeat}
                   stepsPerBar={stepsPerBar}
                   expanded={expandedTracks.has(ti)}
                   onToggleExpand={() => toggleTrackExpand(ti)}

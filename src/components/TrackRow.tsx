@@ -18,6 +18,7 @@ interface TrackRowProps {
   currentStep: number;
   stepsPerPage: number;
   stepsPerBeat: number;
+  musicalStepsPerBeat: number;
   stepsPerBar: number;
   expanded: boolean;
   onToggleExpand: () => void;
@@ -48,6 +49,7 @@ function TrackRow({
   currentStep,
   stepsPerPage,
   stepsPerBeat,
+  musicalStepsPerBeat,
   stepsPerBar,
   expanded,
   onToggleExpand,
@@ -157,6 +159,10 @@ function TrackRow({
           return (
             <Cell
               key={globalStepIdx}
+              trackName={track.name}
+              bar={Math.floor(globalStepIdx / stepsPerBar) + 1}
+              beat={Math.floor((globalStepIdx % stepsPerBar) / musicalStepsPerBeat) + 1}
+              stepNumber={globalStepIdx + 1}
               velocity={vel}
               velMode={track.velMode || 3}
               color={track.color}
