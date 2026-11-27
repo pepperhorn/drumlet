@@ -11,7 +11,7 @@ Next ID: 0006
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0005 | [quick] Notation Retry without page reload | dispatched | child 0005-impl-r1 | codex/gpt-6.2-sol | orch/0005-notation-retry-in-place | — | — | — | — | — | docs/handoffs/2026-11-27-0005-notation-retry-in-place--lead-to-codex.md | 2026-11-27 |
+| 0005 | [quick] Notation Retry without page reload | in-review | review 0005-review-r1 | codex/gpt-6.2-sol | orch/0005-notation-retry-in-place | https://github.com/pepperhorn/drumlet/pull/35 | /home/shaun/.t3/worktrees/drumlet/t3-6bb80683-a6b24001507b175a | — | — | — | docs/handoffs/2026-11-27-0005-notation-retry-in-place--lead-to-codex.md | 2026-11-27 |
 | 0001 | Drumlet Player (embeddable component) + endless view | dispatched | child 0001-t6-impl-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
@@ -52,6 +52,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0005 dispatched→in-review — PR #35 head 2f066fe (191 tests); review r1 claudeAgent claude-opus-5-5
 2026-11-27 0001-t6 + 0005 delegated in parallel → codex gpt-6.2-sol (high), base 9e28762; threads thread:delegated-task:command%3Amcp%3A4fbff63f-c2e0-4e51-b5f0-bfe4e576facd%3Adelegate-task%3A0001-t6-impl-r1 / …%3A0005-impl-r1
 2026-11-27 0003 merged (#33, e480679; owner OK; main verify ✓ 188 tests). 0001-t6 + quick 0005 (S12+S13) handoffs written for parallel dispatch (disjoint files)
 2026-11-27 0004 merged (#34, 7f31818; owner OK; main verify ✓ 157 tests). Owner: auto-merge line count excludes docs/** (AGENTS.md addendum). 0003 review r1 (opus) approved @ 2ed0f53 — merge needs owner OK
