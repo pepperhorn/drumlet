@@ -15,14 +15,14 @@ function setup(targetX = 50, isPlaying = true) {
 }
 
 describe('useAutoFollow', () => {
-  it('scrolls past the right margin, pauses on wheel, and resumes at the latest target', () => {
+  it('scrolls past the right margin, pauses on horizontal wheel, and resumes at the latest target', () => {
     const { scrollEl, result, rerender } = setup();
     rerender({ targetX: 180, isPlaying: true });
     expect(scrollEl.scrollLeft).toBe(30);
     fireEvent.scroll(scrollEl);
     expect(result.current.following).toBe(true);
 
-    fireEvent.wheel(scrollEl, { deltaX: 20 });
+    fireEvent.wheel(scrollEl, { deltaX: -20, deltaY: 10 });
     expect(result.current.following).toBe(false);
     rerender({ targetX: 220, isPlaying: true });
     expect(scrollEl.scrollLeft).toBe(30);
@@ -30,6 +30,26 @@ describe('useAutoFollow', () => {
     act(() => result.current.resume());
     expect(result.current.following).toBe(true);
     expect(scrollEl.scrollLeft).toBe(70);
+  });
+
+  it.each([
+    { deltaX: 0, deltaY: 20, shiftKey: false },
+    { deltaX: 10, deltaY: -20, shiftKey: false },
+    { deltaX: 20, deltaY: -20, shiftKey: false },
+    { deltaX: 0, deltaY: 0, shiftKey: true },
+  ])('keeps following after wheel input %j', (wheel) => {
+    const { scrollEl, result, rerender } = setup();
+    fireEvent.wheel(scrollEl, wheel);
+    expect(result.current.following).toBe(true);
+
+    rerender({ targetX: 180, isPlaying: true });
+    expect(scrollEl.scrollLeft).toBe(30);
+  });
+
+  it('pauses on Shift plus vertical wheel', () => {
+    const { scrollEl, result } = setup();
+    fireEvent.wheel(scrollEl, { deltaY: -20, shiftKey: true });
+    expect(result.current.following).toBe(false);
   });
 
   it('keeps following through a tap, pauses on a drag, and re-arms on the next play', () => {

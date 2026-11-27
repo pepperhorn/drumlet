@@ -50,6 +50,9 @@ export function useMeasuredAutoFollow(
       followingRef.current = false;
       setFollowing(false);
     };
+    const onWheel = ({ deltaX, deltaY, shiftKey }: WheelEvent) => {
+      if (Math.abs(deltaX) > Math.abs(deltaY) || (shiftKey && deltaY !== 0)) pause();
+    };
     const pointerDown = (event: PointerEvent) => {
       dragged.current = false;
       pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, wasFollowing: followingRef.current };
@@ -71,7 +74,7 @@ export function useMeasuredAutoFollow(
       pause();
     };
 
-    scrollEl.addEventListener('wheel', pause, { passive: true });
+    scrollEl.addEventListener('wheel', onWheel, { passive: true });
     scrollEl.addEventListener('pointerdown', pointerDown, { passive: true });
     scrollEl.addEventListener('scroll', onScroll, { passive: true });
     doc.addEventListener('pointermove', pointerMove, { passive: true });
@@ -83,7 +86,7 @@ export function useMeasuredAutoFollow(
     if (scrollEl.firstElementChild) observer?.observe(scrollEl.firstElementChild);
 
     return () => {
-      scrollEl.removeEventListener('wheel', pause);
+      scrollEl.removeEventListener('wheel', onWheel);
       scrollEl.removeEventListener('pointerdown', pointerDown);
       scrollEl.removeEventListener('scroll', onScroll);
       doc.removeEventListener('pointermove', pointerMove);
