@@ -28,5 +28,7 @@ npm ci && npm run typecheck && npm run lint && npm run build && npm test
 ---
 ## Receiver ack
 
+I will retry the notation loader in place from both fallback states, preserve sequencer and undo state, and clear failed prefetch promises without breaking concurrent deduplication. I will limit edits to the owned files and leave NotationView.tsx and src/notation/ to the parallel task. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
