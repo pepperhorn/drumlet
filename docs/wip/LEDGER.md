@@ -11,9 +11,9 @@ Next ID: 0009
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0007 | [quick] Stop renderStaff test timing out | dispatched | child 0007-impl-r2 | codex/gpt-6.2-sol | orch/0007-flaky-renderstaff-test | — | /home/shaun/.t3/worktrees/drumlet/t3-42a01f58-9c0aacdc8552f57c | — | — | — | docs/handoffs/2026-11-27-0007-flaky-renderstaff-test--lead-to-codex.md | 2026-11-27 |
+| 0007 | [quick] Stop renderStaff test timing out | in-review | review 0007-review-r1 | codex/gpt-6.2-sol | orch/0007-flaky-renderstaff-test | https://github.com/pepperhorn/drumlet/pull/41 | /home/shaun/.t3/worktrees/drumlet/t3-42a01f58-9c0aacdc8552f57c | — | — | — | docs/handoffs/2026-11-27-0007-flaky-renderstaff-test--lead-to-codex.md | 2026-11-27 |
 | 0008 | [quick] Screen-reader names for step pads | ready | human: approve merge of #40 (163 code lines) | codex/gpt-6.2-sol | orch/0008-pad-screen-reader-names | https://github.com/pepperhorn/drumlet/pull/40 | /home/shaun/.t3/worktrees/drumlet/t3-3a765015-e6e6ca0b90898655 | — | — | — | docs/handoffs/2026-11-27-0008-pad-screen-reader-names--lead-to-codex.md | 2026-11-27 |
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t7-review-r2 (t7 #37), review 0001-t8-review-r2 (t8 #38) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/37, https://github.com/pepperhorn/drumlet/pull/38 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | ready | human: approve merges of #37 (t7) and #38 (t8) (>50 code lines) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/37, https://github.com/pepperhorn/drumlet/pull/38 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -64,6 +64,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 session restart. 0001 t7 r2 (opus) approved @ d00ffcf; t8 r2 (opus) approved @ dc7ba43 — both await owner OK. 0007 PR #41 head 4b26baa (10/10 runs at load ~55); review r1 claudeAgent claude-opus-5-5
 2026-11-27 0008 review r1 (opus) approved @ de77cdd; 163 code lines → owner OK needed; S20–S22 added
 2026-11-27 0001 t7 fix r2 pushed @ d00ffcf (desktop bar 54/50 px = main; endless bar tabs scroll + select; 199 tests); review r2 claudeAgent claude-opus-5-5
 2026-11-27 0006 merged (#39, 1fd5e11; auto-merge ≤50 code lines). 0007 blocked: other suites (NotationBoundary, EndlessGrid) time out under host load ~55/12 CPUs; lead widened Owns to vitest.config.ts (global testTimeout 15000) + NotationBoundary.test.tsx, resumed. 0001-t8 fix r2 pushed @ dc7ba43 (220 tests); review r2 claudeAgent claude-opus-5-5
