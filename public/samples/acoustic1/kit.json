@@ -2,6 +2,7 @@
   "name": "Acoustic Kit 1",
   "id": "acoustic1",
   "description": "Natural acoustic drum kit",
+  "formats": ["ogg","m4a"],
   "samples": {
     "kick":       { "file": "acoustic-Kick.ogg",      "label": "Kick" },
     "snare-on1":  { "file": "acoustic-SnareOn1.ogg",  "label": "Snare On 1" },

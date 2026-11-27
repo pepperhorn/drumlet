@@ -3,7 +3,7 @@ import { useRef, useCallback, useMemo, type MutableRefObject } from 'react';
 import { DrumMachine, Soundfont, Sampler, Reverb } from 'smplr';
 import { resolveGroup } from './drumGroups.js';
 import { getMidiVelocity } from './velocityConfig.js';
-import { loadKitManifest, loadKitSample } from './customKits.js';
+import { loadKitManifest, loadKitSample, resolveKitSampleKey } from './customKits.js';
 import type { Track, VelMode } from '../state/sequencerReducer.js';
 
 // Audio internals stay loosely typed — smplr has no bundled types and the
@@ -103,11 +103,12 @@ export function useAudioEngine(): AudioEngineApi {
         await instrument.load;
         console.log('[audio] Soundfont loaded:', track.soundfontName);
       } else if (track.sourceType === 'kit' && track.kitId && track.kitSample) {
-        await loadKitManifest(track.kitId);
-        const buffer = await loadKitSample(ctx, track.kitId, track.kitSample);
+        const manifest = await loadKitManifest(track.kitId);
+        const sampleKey = resolveKitSampleKey(manifest, track.kitSample);
+        const buffer = await loadKitSample(ctx, track.kitId, sampleKey);
         instrument = new Sampler(ctx, { buffers: { hit: buffer }, detune: 0 });
         await instrument.load;
-        console.log('[audio] Kit sample loaded:', track.kitId, track.kitSample);
+        console.log('[audio] Kit sample loaded:', track.kitId, sampleKey);
       } else if (track.sourceType === 'custom' && track._audioBuffer) {
         instrument = new Sampler(ctx, { buffers: { hit: track._audioBuffer }, detune: 0 });
         await instrument.load;
