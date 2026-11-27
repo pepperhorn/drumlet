@@ -11,7 +11,7 @@ Next ID: 0003
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | child 0001-t2-impl-r1, child 0001-t4-impl-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t1-kit-loader | https://github.com/pepperhorn/drumlet/pull/28 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t2-review-r1 (t2 #29), child 0001-t4-impl-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t1-kit-loader | https://github.com/pepperhorn/drumlet/pull/28 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -35,6 +35,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0001 t2 PR #29 head 4756f09 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-34002d3d-f46d07781c04ab9f); review r1 claudeAgent claude-opus-5-5. t4 still implementing
 2026-11-27 0001 t2 + t4 delegated in parallel → codex gpt-6.2-sol (high), base a947869; threads thread:delegated-task:command%3Amcp%3A066d5e40-7895-4940-a3bb-f3084117f784%3Adelegate-task%3A0001-t2-impl-r1 / …%3A0001-t4-impl-r1
 2026-11-27 0001 t1 merged (#28, f8c05d6; owner OK; main verify ✓ 92 tests) — t2 + t4 handoffs written for parallel dispatch
 2026-11-27 0001 in-review→ready — t1 review r2 (opus) approved @ 5e09ee8; merge needs owner OK (dev deps, size)
