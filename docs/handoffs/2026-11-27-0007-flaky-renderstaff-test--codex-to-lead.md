@@ -5,53 +5,64 @@
 - Ledger: 0007 (quick)
 - Branch: `orch/0007-flaky-renderstaff-test`
 - Worktree: `/home/shaun/.t3/worktrees/drumlet/t3-42a01f58-9c0aacdc8552f57c`
-- Base: `3939539` (dispatch handoff, based on `080505d`)
-- Acknowledgement: `4b6dd14`
-- Status: blocked on full-suite verification
-- PR: none
+- Base: `7e2626c` (amended dispatch)
+- Implementation: `c047ad6`
+- Outcome: Done. Ready for review.
+- PR: Draft to open after the branch is pushed.
 
-## Goal and scope
+## What changed
 
-[Dispatch handoff](2026-11-27-0007-flaky-renderstaff-test--lead-to-codex.md)
+[Amended dispatch handoff](2026-11-27-0007-flaky-renderstaff-test--lead-to-codex.md)
 
-Keep the Verovio cold start out of the onset test's deadline. The patch in `src/notation/renderStaff.test.ts` renders one empty bar in a 30-second `beforeAll`. The renderer already caches the toolkit and Petaluma font. The onset test has a 15-second timeout and the endless rendering cases have a 30-second timeout. The 225-bar case took 17.65 seconds in the first stress series, so it needed more than the original local 15-second budget.
+- `src/notation/renderStaff.test.ts` renders one empty bar in a 30-second `beforeAll`. It reuses the cached Verovio toolkit and Petaluma font. The onset test keeps a 15-second timeout. The endless cases get 30 seconds because the 225-bar case took 17.65 seconds during the blocked round.
+- `src/components/NotationBoundary.test.tsx` advances the Retry deadline with fake timers, then waits for React to commit the resolved view with a real-timer DOM query. Its import-error test clears sequencer storage after unmount so the reopen assertion checks the notation cache without racing the one-second autosave.
+- `vitest.config.ts` gives tests a 15-second default under parallel load. Tests keep their original expectations.
 
-The patch stays in the worktree. `orch-deslop` shortened the warmup comment and called for a full rerun before committing. No production code, other tests, or Vitest config changed. An assertion-line comparison against the base found no changes.
+Only those three files and the two handoffs changed. The diff contains 39 changed lines outside `docs/`. No product code or `EndlessGrid.test.tsx` changed.
 
 ## Verification
 
 ```bash
-npm ci && npm run typecheck && npm run lint && npm run build && npm test
 npx vitest run --pool=threads --maxWorkers=4
+npm ci && npm run typecheck && npm run lint && npm run build && npm test
 ```
 
-| Run | Result |
-| --- | --- |
-| Initial full verification, default worker count | Typecheck, lint, and build passed. 193/194 tests passed. `NotationBoundary` hit its 5-second timeout. |
-| Full verification before cleanup, `VITEST_MAX_WORKERS=4` | 12/12 files and 194/194 tests passed. |
-| Full verification after cleanup, `VITEST_MAX_WORKERS=4` | Typecheck, lint, and build passed. 192/194 tests passed. `NotationBoundary` and `EndlessGrid` timed out. |
-| First four-thread series | Run 1 passed (194/194). Run 2 failed (191/194) on the 225-bar renderer test and the two unchanged cases. The onset test passed both times. |
-| Final full verification, `VITEST_MAX_WORKERS=2` | Typecheck, lint, and build passed. All four renderer tests passed. 193/194 tests passed overall. `NotationBoundary` timed out at 5 seconds. |
-| Final four-thread series | Run 1 failed (191/194), so the series stopped at 0 consecutive passes. All four renderer tests passed. `EndlessGrid` timed out, and `NotationBoundary` had a timeout and a Retry assertion failure. |
-
-Final full verification output:
+The four-worker command passed 10 times in a row on 12 logical CPUs.
 
 ```text
-added 271 packages, and audited 272 packages in 2m
+ 21:54:22 up 16:12,  0 user,  load average: 55.23, 57.77, 56.13
+Run 01 PASS | Test Files  13 passed (13) | Tests  197 passed (197) | Duration  50.30s
+Run 02 PASS | Test Files  13 passed (13) | Tests  197 passed (197) | Duration  53.84s
+Run 03 PASS | Test Files  13 passed (13) | Tests  197 passed (197) | Duration  44.96s
+Run 04 PASS | Test Files  13 passed (13) | Tests  197 passed (197) | Duration  41.48s
+Run 05 PASS | Test Files  13 passed (13) | Tests  197 passed (197) | Duration  47.63s
+Run 06 PASS | Test Files  13 passed (13) | Tests  197 passed (197) | Duration  53.81s
+Run 07 PASS | Test Files  13 passed (13) | Tests  197 passed (197) | Duration  54.64s
+Run 08 PASS | Test Files  13 passed (13) | Tests  197 passed (197) | Duration  40.05s
+Run 09 PASS | Test Files  13 passed (13) | Tests  197 passed (197) | Duration  18.62s
+Run 10 PASS | Test Files  13 passed (13) | Tests  197 passed (197) | Duration  21.38s
+10/10 consecutive runs passed
+ 22:02:04 up 16:20,  0 user,  load average: 47.82, 60.88, 58.60
+```
+
+Full verification passed before and after `orch-deslop`. The final pass kept the tested code unchanged and trimmed the handoff prose.
+
+```text
+added 271 packages, and audited 272 packages in 19s
 > tsc --noEmit
 > eslint .
 ✖ 2 problems (0 errors, 2 warnings)
 > vite build
-✓ built in 14.77s
+✓ built in 3.82s
 > vitest run
- Test Files  1 failed | 11 passed (12)
-      Tests  1 failed | 193 passed (194)
+ Test Files  13 passed (13)
+      Tests  197 passed (197)
 ```
 
-Lint warnings are the existing hook warnings in `AuthModal.tsx`. The host's load average exceeded 50 on 12 logical CPUs during verification. The unchanged failures reproduce with standard test deadlines, so changing those deadlines is outside this patch.
+Lint reported two existing React hook warnings in `AuthModal.tsx`. The first attempt on the amended scope failed when autosave persisted page 2 before remount. The final series started from run 1 after the storage fix.
 
-## Follow-up
+## Follow-ups
 
-Rerun the full verification and the ten-run four-thread series on a quieter runner before committing the test patch and opening a PR. If the unchanged failures recur there, assign follow-up work for `NotationBoundary.test.tsx` and `EndlessGrid.test.tsx` separately. The current task does not own those files.
+None. The amended scope and verification supersede the earlier blocked return.
 
-GBrain project context: `projects/drumlet`. The dispatch handoff and suite output supply the task-specific evidence.
+GBrain project context: `projects/drumlet`. The dispatch handoff and test output supply the task-specific evidence.
