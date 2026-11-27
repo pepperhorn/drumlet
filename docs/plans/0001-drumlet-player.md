@@ -32,6 +32,28 @@
 4. **Old v1–v3 share codes / existing `?embed=1` links** → still decode and play as single-page grooves. → Task 2 + Task 11.
 5. **Voice missing from acoustic1** (groove uses an 808 group or a soundfont tom the kit lacks) with no network to smplr CDN → falls back to nearest acoustic voice, never silence, never throws. → Task 1 test.
 
+## Dispatch table
+
+Keys `0001-t1`…`0001-t12`, branches `orch/0001-tN-<slug>`. **Verify** for every task: `npm run typecheck && npm run lint && npm run build && npm test` plus the task's own named checks. **Acceptance** = every test/check named in the task passes and the task's Interfaces exist exactly as written.
+
+| Task | Slug | Owns | Depends on |
+|---|---|---|---|
+| t1 | kit-loader | `vitest.config.ts`, `src/test/**`, `scripts/encode-acoustic-kit.sh`, `public/samples/acoustic1/**`, `src/audio/customKits*`, `src/audio/useAudioEngine.ts`, `package.json`, `package-lock.json` | hardware-pads (#27) merged |
+| t2 | share-v4 | `src/state/shareCodec*` | t1 (test harness) |
+| t3 | groove-resolver | `src/player/resolveGroove*`, `src/state/stockRhythms.ts` | t2 |
+| t4 | play-through | `src/audio/playPosition*`, `src/audio/useTransport*`, `src/state/sequencerReducer.ts` | t1 |
+| t5 | endless-grid | `src/components/EndlessGrid*`, `src/components/useAutoFollow*`, `src/styles/hardware.css` | t4 |
+| t6 | endless-notation | `src/components/NotationView.tsx`, `src/notation/**` | t5 (`useAutoFollow`) |
+| t7 | app-view-toggle | `src/App.tsx`, `src/components/PageTabs.tsx`, `src/components/Transport.tsx` | t5, t6 |
+| t8 | player-component | `src/player/**` (except resolveGroove) | t3, t5, t6 |
+| t9 | package-build | `packages/drumlet-player/**`, `src/player/styles/**`, root `package.json` scripts, `LICENSE`, SPDX headers in bundled `src/**` files | t8 |
+| t10 | embed-checks | `player-demo.html`, `src/player/demo.tsx`, `scripts/player-embed.check.mjs`, `scripts/pack-smoke.mjs`, `vite.config.js` | t9 |
+| t11 | iframe-replace | `src/main.tsx`, `src/player/EmbedPage.tsx`, `src/components/ShareModal.tsx`, `buildEmbedSnippet` in `src/state/shareCodec.ts` | t9, t2 |
+| t12 | release | `.github/workflows/release-player.yml`, `packages/drumlet-player/README.md`, `DESIGN.md`, `CHANGELOG.md` | t10, t11 |
+
+Parallel-safe pairs (no Owns overlap): t2‖t4 after t1; t6 waits on t5. t1 also owns `package.json` — later tasks that add deps (t9) run after it, never alongside.
+Merge order = task order.
+
 ---
 
 ### Task 1: Test harness, re-encoded kit, format-aware kit loader

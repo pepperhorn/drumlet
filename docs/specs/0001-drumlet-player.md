@@ -1,6 +1,6 @@
 # 0001 — Drumlet Player (embeddable component) + Endless view
 
-Status: draft — owner review · 2026-11-27
+Status: approved · 2026-11-27 (owner)
 
 ## Intent
 
