@@ -30,6 +30,32 @@ it('starts the chunk and font once across concurrent and repeated prefetch calls
   expect(fetch).toHaveBeenCalledExactlyOnceWith('/fonts/Petaluma.zip', { signal: expect.any(AbortSignal) });
 });
 
+it('evicts a rejected import and shares the next attempt', async () => {
+  vi.resetModules();
+  const { loadNotation } = await import('./notationPrefetch.js');
+  const failure = new Error('Chunk unavailable');
+  const failedImport = vi.fn().mockRejectedValue(failure);
+  vi.doMock('./NotationView.js', failedImport);
+  try {
+    const first = loadNotation();
+    expect(loadNotation()).toBe(first);
+    await expect(first).rejects.toHaveProperty('cause', failure);
+    expect(failedImport).toHaveBeenCalledTimes(1);
+
+    // Replace the rejected module in Vitest's own mock registry.
+    const NotationView = () => null;
+    const nextImport = vi.fn(() => ({ default: NotationView }));
+    vi.doMock('./NotationView.js', nextImport);
+    const second = loadNotation();
+    expect(second).not.toBe(first);
+    expect(loadNotation()).toBe(second);
+    expect((await second).default).toBe(NotationView);
+    expect(nextImport).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.doUnmock('./NotationView.js');
+  }
+});
+
 it('restarts a stalled font request and does not evict the replacement', async () => {
   vi.resetModules();
   const { loadPetaluma, restartPendingPetaluma } = await import('./notationPrefetch.js');
