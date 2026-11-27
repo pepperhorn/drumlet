@@ -19,6 +19,9 @@ const PAGE_TOP_MARGIN = 30;
 const STEP_WIDTH = 28;
 const PAGE_MARGIN_WIDTH = FIRST_SYSTEM_LEFT_MARGIN + 130;
 const MIN_PAGE_WIDTH = 900;
+const MAX_PAGE_WIDTH = 100000; // Verovio's pageWidth option limit.
+const MAX_ENDLESS_CHUNK_BARS = 64;
+const SVG_NS = 'http://www.w3.org/2000/svg';
 const DRUM_KEY_STAVE_GAP = 20; // Verovio units; about 2 rendered px at the current scale.
 
 const DURATION_MAP: Record<string, string> = {
@@ -71,6 +74,7 @@ export interface MergedTrack extends Omit<Track, 'steps'> {
 }
 
 export interface RenderDrumStaffOptions {
+  layout?: 'wrapped' | 'endless';
   mergedTracks: MergedTrack[];
   totalSteps: number;
   sectionHeadings?: SectionHeadingForRender[];
@@ -88,6 +92,7 @@ interface SectionHeadingForRender {
   id: string;
   step: number;
   label: string;
+  pageStart?: boolean;
 }
 
 export interface StepPosition {
@@ -246,17 +251,16 @@ function buildMei({
   barsPerLine = 4,
   useColor = true,
   numStaffLines = 5,
-}: RenderDrumStaffOptions): string {
+}: RenderDrumStaffOptions, firstBar: number, endBar: number): string {
   const beatDuration = DURATION_MAP[beatNoteValue] ?? DURATION_MAP[noteValueKey] ?? '4';
   const timeSigDenom = BEAT_VALUE_MAP[beatDuration] ?? 4;
   const stepsPerBar = beatsPerBar * stepsPerBeat;
-  const totalBars = Math.ceil(totalSteps / stepsPerBar);
   const compound = beatNoteValue === '1/8' && (beatsPerBar === 6 || beatsPerBar === 12);
   const stepsPerNotationBeat = stepsPerBeat * (compound ? 3 : 1);
   const measures: string[] = [];
 
-  for (let bar = 0; bar < totalBars; bar++) {
-    if (bar > 0 && barsPerLine > 0 && bar % barsPerLine === 0) measures.push('<sb/>');
+  for (let bar = firstBar; bar < endBar; bar++) {
+    if (bar > firstBar && barsPerLine > 0 && (bar - firstBar) % barsPerLine === 0) measures.push('<sb/>');
     const startStep = bar * stepsPerBar;
     const stepsThisMeasure = Math.min(stepsPerBar, totalSteps - startStep);
     measures.push(buildMeasure(mergedTracks, bar + 1, startStep, stepsThisMeasure, stepsPerNotationBeat, noteValueKey, useColor));
@@ -402,7 +406,7 @@ function getSystemStaffTopByLine(svg: SVGSVGElement): number[] {
   });
 }
 
-function getStepPositions(svg: SVGSVGElement, totalSteps: number, stepsPerBar: number): StepPosition[] {
+function getStepPositions(svg: SVGSVGElement, startStep: number, endStep: number, stepsPerBar: number): StepPosition[] {
   const positions: StepPosition[] = [];
   const systems = Array.from(svg.querySelectorAll<SVGGElement>('g.system'));
   const staffTops = getSystemStaffTopByLine(svg);
@@ -410,7 +414,7 @@ function getStepPositions(svg: SVGSVGElement, totalSteps: number, stepsPerBar: n
 
   measures.forEach((measure, index) => {
     const start = (Number(measure.id.slice(4)) - 1) * stepsPerBar;
-    const end = Math.min(start + stepsPerBar, totalSteps);
+    const end = Math.min(start + stepsPerBar, endStep);
     const system = measure.closest<SVGGElement>('g.system');
     const line = system ? systems.indexOf(system) : 0;
     const y = staffTops[line] ?? 0;
@@ -429,9 +433,9 @@ function getStepPositions(svg: SVGSVGElement, totalSteps: number, stepsPerBar: n
       const box = event?.getBBox();
       const x = box ? box.x + box.width / 2 : bounds.x + bounds.width;
       for (let gapStep = lastStep + 1; gapStep < step; gapStep++) {
-        positions[gapStep] = { x: lastX + (x - lastX) * (gapStep - lastStep) / (step - lastStep), y, line };
+        positions[gapStep - startStep] = { x: lastX + (x - lastX) * (gapStep - lastStep) / (step - lastStep), y, line };
       }
-      if (step < end) positions[step] = { x, y, line };
+      if (step < end) positions[step - startStep] = { x, y, line };
       lastStep = step;
       lastX = x;
     }
@@ -463,15 +467,15 @@ function applySectionHeadings(svg: SVGSVGElement, sectionHeadings: SectionHeadin
   }
 }
 
-function patchSvgForApp(svg: SVGSVGElement, mergedTracks: MergedTrack[], totalSteps: number, stepsPerBar: number, useColor: boolean, sectionHeadings: SectionHeadingForRender[]): StepPosition[] {
+function patchSvgForApp(svg: SVGSVGElement, mergedTracks: MergedTrack[], startStep: number, endStep: number, stepsPerBar: number, useColor: boolean, sectionHeadings: SectionHeadingForRender[]): StepPosition[] {
   applyScoreTitleFont(svg);
   applyFirstSystemDrumKey(svg, mergedTracks, useColor);
-  const stepPositions = getStepPositions(svg, totalSteps, stepsPerBar);
+  const stepPositions = getStepPositions(svg, startStep, endStep, stepsPerBar);
   applySectionHeadings(svg, sectionHeadings, stepPositions);
 
   if (!useColor) return stepPositions;
 
-  for (let step = 0; step < totalSteps; step++) {
+  for (let step = startStep; step < endStep; step++) {
     for (let trackIdx = 0; trackIdx < mergedTracks.length; trackIdx++) {
       const track = mergedTracks[trackIdx]!;
       const raw = track.steps[step];
@@ -529,19 +533,20 @@ export function fitStaffToWidth(containerWidth: number, stepsPerBar: number, sca
   };
 }
 
-export async function renderDrumStaff(container: HTMLElement, options: RenderDrumStaffOptions, signal?: AbortSignal): Promise<RenderDrumStaffResult> {
-  const stepsPerBar = (options.beatsPerBar ?? 4) * options.stepsPerBeat;
-  const totalBars = Math.ceil(options.totalSteps / stepsPerBar);
-  const barsPerLine = options.barsPerLine ?? 4;
-  const maxStepsPerLine = Math.min((barsPerLine || totalBars) * stepsPerBar, options.totalSteps);
-  const pageWidth = Math.max(MIN_PAGE_WIDTH, PAGE_MARGIN_WIDTH + maxStepsPerLine * STEP_WIDTH);
-  const estimatedLines = Math.ceil(totalBars / (barsPerLine || totalBars));
-  const singleLine = estimatedLines === 1;
+function engrave(
+  toolkit: VerovioToolkit, petalumaFont: string, host: HTMLElement | SVGSVGElement,
+  options: RenderDrumStaffOptions, stepsPerBar: number, firstBar: number, endBar: number,
+  barsPerLine: number,
+) {
+  const startStep = firstBar * stepsPerBar;
+  const endStep = Math.min(endBar * stepsPerBar, options.totalSteps);
+  const maxStepsPerLine = Math.min(barsPerLine * stepsPerBar, endStep - startStep);
+  const width = PAGE_MARGIN_WIDTH + maxStepsPerLine * STEP_WIDTH;
+  const pageWidth = options.layout === 'endless' ? Math.min(MAX_PAGE_WIDTH, width) : Math.max(MIN_PAGE_WIDTH, width);
+  const estimatedLines = Math.ceil((endBar - firstBar) / barsPerLine);
+  const singleLine = options.layout === 'endless' || estimatedLines === 1;
   const pageHeight = Math.min(60000, 280 + estimatedLines * 190);
-  const mei = buildMei(options);
-  const [toolkit, petalumaFont] = await Promise.all([getToolkit(), loadPetaluma()]);
-
-  signal?.throwIfAborted();
+  const mei = buildMei(options, firstBar, endBar);
 
   toolkit.setOptions({
     inputFrom: 'mei',
@@ -567,15 +572,16 @@ export async function renderDrumStaff(container: HTMLElement, options: RenderDru
   }
 
   const svgMarkup = toolkit.renderToSVG(1, false);
-  container.innerHTML = svgMarkup;
-  const svg = container.querySelector<SVGSVGElement>('svg');
-  if (!svg) throw new Error('Verovio did not produce an SVG');
+  host.insertAdjacentHTML('beforeend', svgMarkup);
+  const svg = host.lastElementChild;
+  if (!(svg instanceof SVGSVGElement)) throw new Error('Verovio did not produce an SVG');
 
   svg.style.display = 'block';
   svg.style.color = TEXT_COLOR;
   const svgWidth = numberFromSvgLength(svg.getAttribute('width'), pageWidth);
   const svgHeight = numberFromSvgLength(svg.getAttribute('height'), pageHeight);
-  const rawPositions = patchSvgForApp(svg, options.mergedTracks, options.totalSteps, stepsPerBar, options.useColor ?? true, options.sectionHeadings ?? []);
+  const headings = options.layout === 'endless' ? [] : options.sectionHeadings ?? [];
+  const rawPositions = patchSvgForApp(svg, options.mergedTracks, startStep, endStep, stepsPerBar, options.useColor ?? true, headings);
   // Verovio puts the staff inside a nested viewBox. App overlays use CSS pixels.
   const viewBox = svg.querySelector('svg.definition-scale')?.getAttribute('viewBox')?.split(/\s+/);
   const unit = svgWidth / Number(viewBox?.[2] ?? pageWidth * 10);
@@ -590,7 +596,117 @@ export async function renderDrumStaff(container: HTMLElement, options: RenderDru
   const topPadding = ((staffTops[0] ?? 0) + PAGE_TOP_MARGIN * 10) * unit;
 
   return {
-    stepPositions, svgWidth, svgHeight, stepWidth: STEP_WIDTH * unit * 10,
-    numLines: staffTops.length, lineHeight, lineGap, topPadding,
+    svg, unit, result: {
+      stepPositions, svgWidth, svgHeight, stepWidth: STEP_WIDTH * unit * 10,
+      numLines: staffTops.length, lineHeight, lineGap, topPadding,
+    },
   };
+}
+
+function addEndlessHeadings(
+  strip: SVGSVGElement, headings: SectionHeadingForRender[], positions: StepPosition[],
+  barStarts: Map<number, number>, svgWidth: number, staffHeight: number,
+) {
+  const labels = headings.flatMap((heading) => {
+    const pos = positions[heading.step];
+    if (!pos) return [];
+    const prev = positions[heading.step - 1];
+    const join = heading.pageStart && prev
+      ? barStarts.get(heading.step) ?? (prev.x + pos.x) / 2
+      : null;
+    return [{ heading, pos, join, x: join ?? pos.x }];
+  }).sort((a, b) => a.x - b.x);
+
+  labels.forEach(({ heading, pos, join, x }, index) => {
+    if (join !== null) {
+      const line = document.createElementNS(SVG_NS, 'line');
+      line.setAttribute('class', 'drumlet-notation-page-join');
+      line.setAttribute('x1', String(join));
+      line.setAttribute('x2', String(join));
+      line.setAttribute('y1', '2');
+      const bottom = barStarts.has(heading.step) ? pos.y : pos.y + staffHeight;
+      line.setAttribute('y2', String(bottom));
+      line.setAttribute('stroke', 'var(--color-muted, #737384)');
+      line.setAttribute('stroke-width', '1.5');
+      strip.append(line);
+    }
+
+    const box = document.createElementNS(SVG_NS, 'svg');
+    box.setAttribute('x', String(x + 4));
+    box.setAttribute('width', String(Math.max(0, (labels[index + 1]?.x ?? svgWidth) - x - 5)));
+    box.setAttribute('height', '23');
+    const title = document.createElementNS(SVG_NS, 'title');
+    title.textContent = heading.label;
+    const label = document.createElementNS(SVG_NS, 'text');
+    label.setAttribute('class', 'drumlet-notation-page-name');
+    label.setAttribute('y', '17');
+    label.setAttribute('font-family', 'var(--font-legend, sans-serif)');
+    label.setAttribute('font-size', '13');
+    label.setAttribute('font-weight', '600');
+    label.setAttribute('fill', TEXT_COLOR);
+    label.textContent = heading.label;
+    box.append(title, label);
+    strip.append(box);
+  });
+}
+
+export async function renderDrumStaff(container: HTMLElement, options: RenderDrumStaffOptions, signal?: AbortSignal): Promise<RenderDrumStaffResult> {
+  const stepsPerBar = (options.beatsPerBar ?? 4) * options.stepsPerBeat;
+  const totalBars = Math.ceil(options.totalSteps / stepsPerBar);
+  const [toolkit, petalumaFont] = await Promise.all([getToolkit(), loadPetaluma()]);
+
+  signal?.throwIfAborted();
+  container.replaceChildren();
+
+  if (options.layout !== 'endless') {
+    const barsPerLine = (options.barsPerLine ?? 4) || totalBars;
+    return engrave(toolkit, petalumaFont, container, options, stepsPerBar, 0, totalBars, barsPerLine).result;
+  }
+
+  const strip = document.createElementNS(SVG_NS, 'svg');
+  strip.setAttribute('class', 'drumlet-notation-strip');
+  strip.style.display = 'block';
+  container.append(strip);
+
+  const maxSteps = Math.floor((MAX_PAGE_WIDTH - PAGE_MARGIN_WIDTH) / STEP_WIDTH);
+  const chunkBars = options.totalSteps <= maxSteps
+    ? totalBars
+    : Math.max(1, Math.min(MAX_ENDLESS_CHUNK_BARS, Math.floor(maxSteps / stepsPerBar)));
+  const chunks = Array.from({ length: Math.ceil(totalBars / chunkBars) }, (_, index) => {
+    const start = index * chunkBars;
+    const end = Math.min(totalBars, start + chunkBars);
+    return engrave(toolkit, petalumaFont, strip, options, stepsPerBar, start, end, end - start);
+  });
+
+  const headings = options.sectionHeadings ?? [];
+  const barStarts = new Map<number, number>();
+  const topPadding = Math.max(...chunks.map(({ result }) => result.topPadding)) + (headings.length ? 23 : 0);
+  const stepPositions: StepPosition[] = [];
+  let svgWidth = 0;
+  let svgHeight = 0;
+  let startStep = 0;
+
+  for (const { svg, unit, result } of chunks) {
+    const y = topPadding - result.topPadding;
+    svg.setAttribute('x', String(svgWidth));
+    svg.setAttribute('y', String(y));
+    for (const pos of result.stepPositions) stepPositions.push({ x: pos.x + svgWidth, y: topPadding, line: 0 });
+
+    const endStep = startStep + result.stepPositions.length;
+    for (const { step, pageStart } of headings) {
+      if (!pageStart || step < startStep || step >= endStep || step % stepsPerBar !== 0) continue;
+      const staff = svg.querySelector<SVGPathElement>(`#bar-${step / stepsPerBar + 1} g.staff > path`);
+      if (staff) barStarts.set(step, svgWidth + (staff.getBBox().x + FIRST_SYSTEM_LEFT_MARGIN * 10) * unit);
+    }
+    startStep = endStep;
+    svgWidth += result.svgWidth;
+    svgHeight = Math.max(svgHeight, y + result.svgHeight);
+  }
+
+  strip.setAttribute('width', String(svgWidth));
+  strip.setAttribute('height', String(Math.ceil(svgHeight)));
+
+  const { result, unit } = chunks[0]!;
+  addEndlessHeadings(strip, headings, stepPositions, barStarts, svgWidth, ((options.numStaffLines ?? 5) - 1) * 180 * unit);
+  return { ...result, stepPositions, svgWidth, svgHeight: Math.ceil(svgHeight), topPadding };
 }
