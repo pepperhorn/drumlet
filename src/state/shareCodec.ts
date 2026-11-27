@@ -178,11 +178,11 @@ export function decodePayload(encoded: string): DecodedPayload | null {
 }
 
 function hasValidPageFields(page: EncodedPage): boolean {
-  return typeof page?.n === 'string' && Array.isArray(page.t) && (
-    page.h === undefined || (Array.isArray(page.h) && page.h.every((heading) =>
-      Array.isArray(heading) && heading.length === 2 &&
-      Number.isInteger(heading[0]) && heading[0] >= 0 && typeof heading[1] === 'string'
-    ))
+  if (typeof page?.n !== 'string' || !Array.isArray(page.t)) return false;
+  if (page.h === undefined) return true;
+  return Array.isArray(page.h) && page.h.every((heading) =>
+    Array.isArray(heading) && heading.length === 2 &&
+    Number.isInteger(heading[0]) && heading[0] >= 0 && typeof heading[1] === 'string'
   );
 }
 
