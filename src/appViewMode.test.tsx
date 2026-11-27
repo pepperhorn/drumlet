@@ -49,6 +49,7 @@ beforeEach(() => {
   transport.position = { isPlaying: false, currentStep: -1, currentPlayPage: -1, currentGlobalStep: -1 };
   const state = createInitialState();
   state.pages[0]!.tracks = state.pages[0]!.tracks.slice(0, 1);
+  state.pages[0]!.tracks[0]!.steps[0] = 1;
   state.pages.push({ ...structuredClone(state.pages[0]!), id: 'second-bar' });
   localStorage.setItem('drumlet-state-v2', JSON.stringify(state));
 });
@@ -86,7 +87,7 @@ describe('App view mode', { timeout: 30_000 }, () => {
     app.unmount();
 
     render(<App />);
-    expect(screen.getByText('Endless', { selector: 'button' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByLabelText('Endless').getAttribute('aria-pressed')).toBe('true');
     expect(transport.state?.playMode).toBe('groove');
     press('Paged');
     expect(transport.state?.playMode).toBe('page');
@@ -110,6 +111,37 @@ describe('App view mode', { timeout: 30_000 }, () => {
     expect(transport.state?.pages[1]?.tracks[0]?.steps[0]).toEqual(before[1]);
     expect(transport.state?.playMode).toBe('groove');
     expect(container.querySelector<HTMLButtonElement>('button[aria-label="Undo"]')?.disabled).toBe(true);
+  });
+
+  it('moves the Endless grid and selects the editing page from tabs and number keys', () => {
+    const { container } = render(<App />);
+    press('Endless');
+    const grid = container.querySelector<HTMLElement>('.endless-grid')!;
+    const heading = grid.querySelectorAll('.endless-page-heading')[1]!;
+    vi.spyOn(heading, 'getBoundingClientRect').mockReturnValue(new DOMRect(640, 0, 0, 0));
+    const manualScroll = vi.fn();
+    grid.addEventListener('wheel', manualScroll);
+
+    const tabs = container.querySelectorAll<HTMLButtonElement>('.page-tab');
+    fireEvent.click(tabs[1]!);
+    expect(tabs[1]!.getAttribute('aria-pressed')).toBe('true');
+    expect(grid.scrollLeft).toBe(640);
+    expect(manualScroll).toHaveBeenCalledOnce();
+
+    const first = transport.state?.pages[0]?.tracks[0]?.steps;
+    press('Clear');
+    expect(transport.state?.pages[1]?.tracks[0]?.steps.every(step => step === 0)).toBe(true);
+    expect(transport.state?.pages[0]?.tracks[0]?.steps).toEqual(first);
+
+    fireEvent.change(screen.getByLabelText('Split cells'), { target: { value: '2' } });
+    fireEvent.click(grid.querySelectorAll('.endless-track-page')[1]!.querySelector('.step-cell')!);
+    expect(transport.state?.pages[1]?.tracks[0]?.steps[0]).toMatchObject({ active: 2 });
+    expect(transport.state?.pages[0]?.tracks[0]?.steps).toEqual(first);
+
+    fireEvent.keyDown(window, { key: '1' });
+    expect(tabs[0]!.getAttribute('aria-pressed')).toBe('true');
+    expect(grid.scrollLeft).toBe(0);
+    expect(manualScroll).toHaveBeenCalledTimes(2);
   });
 
   it('switches both notation layouts and hides playheads while stopped or on a different grid page', () => {

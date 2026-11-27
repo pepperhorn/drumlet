@@ -39,6 +39,25 @@ import { readViewMode, writeViewMode, type ViewMode } from './state/viewMode.js'
 
 const PAD_KEYS = ['A', 'S', 'D', 'F', 'J', 'K', 'L', ';'];
 
+function scrollToEndlessPage(view: HTMLElement, page: number): boolean {
+  const scroller = view.querySelector<HTMLElement>('.endless-grid, .notation-endless-scroll');
+  if (!scroller) return false;
+  const grid = scroller.classList.contains('endless-grid');
+  const anchor = grid
+    ? scroller.querySelectorAll('.endless-page-heading')[page]
+    : page === 0
+      ? scroller.querySelector('.drumlet-notation-page-name')
+      : scroller.querySelectorAll('.drumlet-notation-page-join')[page - 1];
+  if (!anchor) return false;
+
+  const stickyWidth = scroller.querySelector('.endless-label-spacer')?.getBoundingClientRect().width ?? 0;
+  const offset = anchor.getBoundingClientRect().left - scroller.getBoundingClientRect().left - stickyWidth;
+  // Use the strip's manual-scroll signal even when the requested offset is already visible.
+  scroller.dispatchEvent(new WheelEvent('wheel', { deltaX: 1 }));
+  scroller.scrollLeft = page === 0 ? 0 : scroller.scrollLeft + offset;
+  return true;
+}
+
 function Drumlet() {
   const { state, dispatch, canUndo, canRedo, undo, redo } = useSequencer();
   const userLibrary = useUserLibrary();
@@ -109,6 +128,8 @@ function Drumlet() {
   const [embed] = useState(() => isEmbedMode());
   const [viewMode, setViewMode] = useState(() => embed ? 'paged' : readViewMode());
   const endless = viewMode === 'endless';
+  const endlessViewRef = useRef<HTMLDivElement>(null);
+  const [pageJump, setPageJump] = useState<number | null>(null);
   const [authOpen, setAuthOpen] = useState(() => {
     try { return !!localStorage.getItem('drumlet-auth-flow'); } catch { return false; }
   });
@@ -136,12 +157,38 @@ function Drumlet() {
   const pagedGridStep = isPlaying && currentPlayPage === state.currentPageIndex ? currentStep : -1;
   const loopGroove = state.loopGroove ?? true;
 
+  const handleSetPage = useCallback((pageIndex: number) => {
+    setSelectedStep(null);
+    dispatch({ type: 'SET_ACTIVE_CELL', cell: null });
+    dispatch({ type: 'SET_CURRENT_PAGE', pageIndex });
+    if (endless) setPageJump(pageIndex);
+  }, [dispatch, endless]);
+
+  useEffect(() => {
+    const view = endlessViewRef.current;
+    if (!endless || pageJump === null || !view) return;
+    const jump = () => scrollToEndlessPage(view, pageJump);
+    if (jump()) {
+      setPageJump(null);
+      return;
+    }
+    // The notation engine may not have drawn the target yet.
+    const observer = new MutationObserver(() => {
+      if (!jump()) return;
+      observer.disconnect();
+      setPageJump(null);
+    });
+    observer.observe(view, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [endless, notationView, pageJump]);
+
   const handleViewModeChange = (mode: ViewMode) => {
     if (mode === viewMode) return;
     if (mode === 'paged' && isPlaying && currentPlayPage >= 0 && currentPlayPage < state.pages.length) {
       dispatch({ type: 'SET_CURRENT_PAGE', pageIndex: currentPlayPage });
     }
     setSelectedStep(null);
+    setPageJump(null);
     dispatch({ type: 'SET_ACTIVE_CELL', cell: null });
     setViewMode(mode);
     writeViewMode(mode);
@@ -155,6 +202,12 @@ function Drumlet() {
       setSelectedStep(null);
       dispatch({ type: 'SET_ACTIVE_CELL', cell: null });
       dispatch({ type: 'SET_CURRENT_PAGE', pageIndex });
+    }
+    const armed = stateRef.current.pendingSplit;
+    const step = stateRef.current.pages[pageIndex]?.tracks[trackIndex]?.steps[stepIndex];
+    if (armed != null && !isMulti(step)) {
+      dispatch({ type: 'APPLY_SPLIT', count: armed, cell: { trackIndex, stepIndex } });
+      return;
     }
     dispatch({ type: 'TOGGLE_CELL', trackIndex, stepIndex });
   }, [dispatch]);
@@ -682,9 +735,8 @@ function Drumlet() {
       if (e.code === 'ArrowRight' && e.shiftKey) {
         dispatch({ type: 'SET_BPM', bpm: state.bpm + 1 });
       }
-      const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= state.pages.length) {
-        dispatch({ type: 'SET_CURRENT_PAGE', pageIndex: num - 1 });
+      if (!mod && !e.altKey && /^[1-9]$/.test(e.key) && Number(e.key) <= state.pages.length) {
+        handleSetPage(Number(e.key) - 1);
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -719,6 +771,7 @@ function Drumlet() {
     handleCopyCell,
     handleCutCell,
     handlePasteCell,
+    handleSetPage,
   ]);
 
   useEffect(() => () => {
@@ -1215,7 +1268,7 @@ function Drumlet() {
           splitMode={toolbarSplit}
           selectedStep={selectedStep}
           sectionHeadings={currentPage?.sectionHeadings}
-          onSetPage={(i) => { setSelectedStep(null); dispatch({ type: 'SET_CURRENT_PAGE', pageIndex: i }); }}
+          onSetPage={handleSetPage}
           onAddPage={() => dispatch({ type: 'ADD_PAGE' })}
           onRemovePage={(i) => dispatch({ type: 'REMOVE_PAGE', pageIndex: i })}
           onSetStepsPerPage={(n) => dispatch({ type: 'SET_STEPS_PER_PAGE', stepsPerPage: n })}
@@ -1280,7 +1333,7 @@ function Drumlet() {
       )}
 
       {notationView && currentPage && (
-        <div className="notation-view-wrap mb-4">
+        <div ref={endlessViewRef} className="notation-view-wrap mb-4">
           <NotationBoundary
             pages={state.pages}
             stepsPerPage={state.stepsPerPage}
@@ -1298,7 +1351,7 @@ function Drumlet() {
       )}
 
       {!notationView && endless && currentPage && (
-        <div className={`grid-wrap ${playMode ? 'pb-28' : ''}`}>
+        <div ref={endlessViewRef} className={`grid-wrap ${playMode ? 'pb-28' : ''}`}>
           <EndlessGrid
             pages={state.pages}
             stepsPerPage={state.stepsPerPage}
