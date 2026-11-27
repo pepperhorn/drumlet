@@ -146,3 +146,29 @@ The standalone dev app also rendered and played the stock groove at 360
 and 1280 px in both themes. Seven of eight grid and notation screenshot
 pairs were pixel identical to the app baseline. The 360 px light grid
 differed in 42 pixels, by at most 4/255 per channel.
+
+## Review round 3
+
+[Round 2 review](https://github.com/pepperhorn/drumlet/pull/44#pullrequestreview-6093967509).
+The root half of the reset now uses `:where(.drumlet-player)`. A host can
+set root layout with `className` in unlayered CSS. The descendant reset keeps
+class specificity. The distribution verifier rejects a class-specific
+`all` reset on the root.
+
+The packed round 2 build discarded `.my-player` margin, red ring and width:
+the root had zero margin, no visible ring and a 680 px width in the clean
+host. The round 3 matrix used both full and minimal chrome across two themes
+and five host styles: clean, button reset plus universal type, realistic
+buttons, both button styles together, and generic div rules. Details and
+screenshots are in `/tmp/drumlet-t9-r3/`.
+
+Each packaged case preserved the host's 24 px margin, 3 px solid red outline,
+and 600 px root width. Lit and unlit pads stayed 36×36 px and Play stayed
+44×44 px in both chrome presets. The host sentinels kept their styles when
+the package CSS was removed. The verifier rejected the actual round 2 CSS
+and passed with the fixed CSS restored.
+
+After orch-deslop, all 250 tests, the SSR check, library verification, and
+the 73-entry pack dry run passed. The standalone build matched all 42
+file hashes from a fresh build of the previous PR head. The tarball is
+1,175,229 bytes and the stylesheet is 38,824 bytes.

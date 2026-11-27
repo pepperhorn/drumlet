@@ -64,10 +64,13 @@ css.walkAtRules(at => {
 const guard = selectorParser().astSync(SCOPE_GUARD).first.first.toString();
 css.walkRules(rule => {
   if (rule.parent.name === 'keyframes') return;
+  const resetsAll = rule.nodes.some(node => node.type === 'decl' && node.prop === 'all');
   selectorParser(selectors => selectors.each(selector => {
     const subject = selector.nodes.slice(selector.nodes.findLastIndex(node => node.type === 'combinator') + 1);
-    assert(subject.some(node => isRootScope(node) || (node.type === 'pseudo' && node.toString().trim() === guard)),
+    const targetsRoot = subject.some(isRootScope);
+    assert(targetsRoot || subject.some(node => node.type === 'pseudo' && node.toString().trim() === guard),
       `Selector can escape the player: ${selector}`);
+    assert(!resetsAll || !targetsRoot, `Root reset can override host className styles: ${selector}`);
     const pseudoElement = subject.findIndex(isPseudoElement);
     if (pseudoElement !== -1) assert(pseudoElement === subject.length - 1, `Invalid pseudo-element: ${selector}`);
   })).processSync(rule.selector);

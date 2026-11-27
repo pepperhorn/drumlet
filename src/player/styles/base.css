@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MIT */
-.drumlet-player,
+:where(.drumlet-player),
 .drumlet-player :where(:not(svg, svg *)) {
   all: revert;
   box-sizing: border-box;
