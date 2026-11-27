@@ -361,3 +361,10 @@
 .hw-btn-accent[aria-pressed="true"] {
   box-shadow: inset 0 0 0 1.5px var(--hw-accent, var(--color-accent)), var(--btn-shadow-active);
 }
+
+/* ---- endless grid page joins -------------------------------------------- */
+
+.endless-page-join,
+.endless-track-page-join {
+  border-inline-start: 2px solid color-mix(in srgb, var(--color-text) 35%, var(--face-border));
+}
