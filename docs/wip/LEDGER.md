@@ -11,7 +11,7 @@ Next ID: 0003
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t2-review-r2 (t2 #29), review 0001-t4-review-r2 (t4 #30) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/29, https://github.com/pepperhorn/drumlet/pull/30 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | in-review | human: approve merge of #29 (t2, share format); review 0001-t4-review-r2 (t4 #30) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/29, https://github.com/pepperhorn/drumlet/pull/30 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -31,11 +31,14 @@ Next ID: 0003
 | S3 | next step | Restyle mobile transport + header buttons as keycaps | App.tsx mobile-transport, drumlet-header buttons still flat Tailwind | M | consistent hardware look | PR #27 body | new |
 | S4 | improvement | Cache a failed audio format per session so a broken format isn't re-downloaded for every sample | PR #28 review r2 suggestion; src/audio/customKits.ts retry path | S | fewer wasted fetches on broken decoders | 0001-t1 review r2 | new |
 | S5 | efficiency | Share one in-flight fetch when the same kit sample is requested twice concurrently | PR #28 review r2 suggestion | S | avoids duplicate downloads on load | 0001-t1 review r2 | new |
+| S6 | efficiency | Add Page reuses existing track ids so the v4 encoder can drop position+metadata matching | PR #29 review r2 suggestion; src/state/sequencerReducer.ts ADD_PAGE | S | simpler codec, fewer edge cases | 0001-t2 review r2 | new |
+| S7 | improvement | Carry per-track colour in share codes (lost today, pre-existing) | PR #29 review r2; shareCodec decode assigns palette colours by index | S | shared grooves keep their look | 0001-t2 review r2 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0001 t2 review r2 (opus) approved @ 071f014; merge needs owner OK (share format is public, >50 lines)
 2026-11-27 0001 t4 fix r2 pushed @ 5c2eb60 (mode-switch sync, cursor clamp/stop, unified audio-clock playhead; 115 tests); review r2 claudeAgent claude-opus-5-5
 2026-11-27 0001 t2 fix r2 pushed @ 071f014 (shared track table; 4-bar URL median 900 / max 1,515; 8-bar max 2,262); review r2 claudeAgent claude-opus-5-5
 2026-11-27 0001 t4 in-review→changes-requested — opus r1 @ 8bbe9d6: groove→paged switch plays wrong page; removed page under cursor stalls playback. Lead: view follows audio on mode switch; clamp cursor, stop+onEnded at zero pages. Fix r2 sent
