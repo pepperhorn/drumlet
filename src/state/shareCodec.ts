@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Share codec — encodes/decodes sequencer state to/from a compact URL-safe string.
  *
@@ -11,7 +12,7 @@
  * reconstruct the pattern. No UUIDs, no stashed steps, no mute/solo state.
  */
 
-import type { SequencerState, Step, NoteValueKey } from './sequencerReducer.js';
+import type { SequencerState, Step, NoteValueKey, Page, Track } from './sequencerReducer.js';
 
 interface EncodedTrack {
   n: string;
@@ -27,8 +28,13 @@ interface EncodedTrack {
   ks?: string | null;
 }
 
-interface EncodedPayload {
-  v: number;
+interface EncodedPage {
+  n: string;
+  h?: [step: number, label: string][];
+  t: EncodedTrack[];
+}
+
+interface PayloadFields {
   b: number;
   sw: number;
   st: string;
@@ -38,8 +44,12 @@ interface EncodedPayload {
   bb: number;
   sv: string;
   pm: Record<string, unknown> | null;
-  t: EncodedTrack[];
 }
+
+type EncodedPayload = PayloadFields & (
+  | { v: 1 | 2 | 3; t: EncodedTrack[] }
+  | { v: 4; pg: EncodedPage[] }
+);
 
 export interface DecodedPayload {
   state: SequencerState;
@@ -60,11 +70,10 @@ function encodeSteps(steps: Step[], count: number): string {
 }
 
 export function encodeState(state: SequencerState, pluginMeta: Record<string, unknown> | null = null): string | null {
-  const page = state.pages[state.currentPageIndex];
-  if (!page) return null;
+  if (!state.pages.length) return null;
 
   const payload: EncodedPayload = {
-    v: 3,
+    v: 4,
     b: state.bpm,
     sw: state.swing || 0,
     st: state.swingTarget || '8th',
@@ -74,32 +83,43 @@ export function encodeState(state: SequencerState, pluginMeta: Record<string, un
     bb: state.beatsPerBar || 4,
     sv: state.stepValue || '1/16',
     pm: pluginMeta,
-    t: page.tracks.map((t): EncodedTrack => {
-      const tr: EncodedTrack = {
-        n: t.name,
-        s: encodeSteps(t.steps, state.stepsPerPage),
-        vm: t.velMode || 3,
-        vo: t.volume,
-        rv: t.reverb,
-      };
-      if (t.sourceType === 'drumMachine') {
-        tr.st = 'dm';
-        tr.i = t.instrument;
-        tr.g = t.group;
-      } else if (t.sourceType === 'soundfont') {
-        tr.st = 'sf';
-        tr.sf = t.soundfontName;
-      } else if (t.sourceType === 'kit') {
-        tr.st = 'k';
-        tr.ki = t.kitId ?? null;
-        tr.ks = t.kitSample ?? null;
-      }
-      return tr;
-    }),
+    pg: state.pages.map((page): EncodedPage => ({
+      n: page.name,
+      h: page.sectionHeadings?.length
+        ? page.sectionHeadings.map(({ step, label }) => [step, label])
+        : undefined,
+      t: page.tracks.map((track) => encodeTrack(track, state.stepsPerPage)),
+    })),
   };
 
-  const json = JSON.stringify(payload);
+  // Escape Unicode in the JSON so btoa can encode it without changing legacy decoding.
+  const json = JSON.stringify(payload).replace(/[\u0080-\uffff]/g, (char) =>
+    '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'),
+  );
   return btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function encodeTrack(t: Track, stepsPerPage: number): EncodedTrack {
+  const tr: EncodedTrack = {
+    n: t.name,
+    s: encodeSteps(t.steps, stepsPerPage),
+    vm: t.velMode || 3,
+    vo: t.volume,
+    rv: t.reverb,
+  };
+  if (t.sourceType === 'drumMachine') {
+    tr.st = 'dm';
+    tr.i = t.instrument;
+    tr.g = t.group;
+  } else if (t.sourceType === 'soundfont') {
+    tr.st = 'sf';
+    tr.sf = t.soundfontName;
+  } else if (t.sourceType === 'kit') {
+    tr.st = 'k';
+    tr.ki = t.kitId ?? null;
+    tr.ks = t.kitSample ?? null;
+  }
+  return tr;
 }
 
 export function decodeState(encoded: string): SequencerState | null {
@@ -127,60 +147,15 @@ export function decodePayload(encoded: string): DecodedPayload | null {
     const json = atob(b64);
     const p = JSON.parse(json) as EncodedPayload;
 
-    if (p.v !== 1 && p.v !== 2 && p.v !== 3) return null;
+    if (p.v !== 1 && p.v !== 2 && p.v !== 3 && p.v !== 4) return null;
+    if (p.v === 4 && (!Array.isArray(p.pg) || p.pg.some((page) => !hasValidPageFields(page)))) return null;
 
-    const tracks = p.t.map((tr, i) => {
-      const baseSteps: Step[] = p.v >= 3
-        ? decodeStepsString(tr.s)
-        : tr.s.split('').map(Number);
-
-      const base = {
-        id: crypto.randomUUID(),
-        name: tr.n,
-        color: COLORS[i % COLORS.length]!,
-        volume: tr.vo ?? 80,
-        reverb: tr.rv ?? 20,
-        velMode: (tr.vm || 3) as 1 | 3 | 7,
-        _stashedSteps: {},
-        mute: false,
-        solo: false,
-        steps: baseSteps,
-        soundfontName: null as string | null,
-        customSampleName: null as string | null,
-        kitId: null as string | null,
-        kitSample: null as string | null,
-        instrument: null as string | null,
-        group: null as string | null,
-        sourceType: 'drumMachine' as string,
-      };
-
-      if (tr.st === 'dm') {
-        base.sourceType = 'drumMachine';
-        base.instrument = tr.i || 'TR-808';
-        base.group = tr.g || 'kick';
-      } else if (tr.st === 'sf') {
-        base.sourceType = 'soundfont';
-        base.soundfontName = tr.sf ?? null;
-      } else if (tr.st === 'k') {
-        base.sourceType = 'kit';
-        base.kitId = tr.ki ?? null;
-        base.kitSample = tr.ks ?? null;
-      } else {
-        base.sourceType = 'drumMachine';
-        base.instrument = 'TR-808';
-        base.group = 'kick';
-      }
-
-      return base;
-    });
+    const pages: EncodedPage[] = p.v === 4
+      ? p.pg
+      : [{ n: 'Page 1', t: p.t }];
 
     const state: SequencerState = {
-      pages: [{
-        id: crypto.randomUUID(),
-        name: 'Page 1',
-        tracks,
-        sectionHeadings: [],
-      }],
+      pages: pages.map((page) => decodePage(page, p.v)),
       currentPageIndex: 0,
       stepsPerPage: p.sp || 16,
       bpm: p.b || 120,
@@ -200,6 +175,69 @@ export function decodePayload(encoded: string): DecodedPayload | null {
     console.error('Failed to decode share URL:', e);
     return null;
   }
+}
+
+function hasValidPageFields(page: EncodedPage): boolean {
+  return typeof page?.n === 'string' && Array.isArray(page.t) && (
+    page.h === undefined || (Array.isArray(page.h) && page.h.every((heading) =>
+      Array.isArray(heading) && heading.length === 2 &&
+      Number.isInteger(heading[0]) && heading[0] >= 0 && typeof heading[1] === 'string'
+    ))
+  );
+}
+
+function decodePage(page: EncodedPage, version: number): Page {
+  return {
+    id: crypto.randomUUID(),
+    name: page.n,
+    tracks: page.t.map((track, index) => decodeTrack(track, index, version)),
+    sectionHeadings: page.h?.map(([step, label]) => ({ id: crypto.randomUUID(), step, label })) ?? [],
+  };
+}
+
+function decodeTrack(tr: EncodedTrack, i: number, version: number): Track {
+  const baseSteps: Step[] = version >= 3
+    ? decodeStepsString(tr.s)
+    : tr.s.split('').map(Number);
+
+  const base: Track = {
+    id: crypto.randomUUID(),
+    name: tr.n,
+    color: COLORS[i % COLORS.length]!,
+    volume: tr.vo ?? 80,
+    reverb: tr.rv ?? 20,
+    velMode: (tr.vm || 3) as 1 | 3 | 7,
+    _stashedSteps: {},
+    mute: false,
+    solo: false,
+    steps: baseSteps,
+    soundfontName: null,
+    customSampleName: null,
+    kitId: null,
+    kitSample: null,
+    instrument: null,
+    group: null,
+    sourceType: 'drumMachine',
+  };
+
+  if (tr.st === 'dm') {
+    base.sourceType = 'drumMachine';
+    base.instrument = tr.i || 'TR-808';
+    base.group = tr.g || 'kick';
+  } else if (tr.st === 'sf') {
+    base.sourceType = 'soundfont';
+    base.soundfontName = tr.sf ?? null;
+  } else if (tr.st === 'k') {
+    base.sourceType = 'kit';
+    base.kitId = tr.ki ?? null;
+    base.kitSample = tr.ks ?? null;
+  } else {
+    base.sourceType = 'drumMachine';
+    base.instrument = 'TR-808';
+    base.group = 'kick';
+  }
+
+  return base;
 }
 
 export function buildShareUrl(state: SequencerState, baseUrl = 'https://drumlet.app', pluginMeta: Record<string, unknown> | null = null): string | null {
