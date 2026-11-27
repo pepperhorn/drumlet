@@ -11,13 +11,13 @@ Next ID: 0003
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0002 | [pr] Hardware look + glowing silicone step pads | in-review | review pr27-review-r4 | claudeAgent/claude-sonnet-5-5 (fix r1) | feat/hardware-pads (local feat/hardware-pads-r1) | https://github.com/pepperhorn/drumlet/pull/27 | /home/shaun/.t3/worktrees/drumlet/t3-71b68fc0-ad07b5ab60a0ee36 | impl r1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0002-impl-r1 | — | — | docs/handoffs/2026-11-27-0002-review-fixes--claude-to-lead.md @ 570581f | 2026-11-27 |
-| 0001 | Drumlet Player (embeddable component) + endless view | planned | review pr27-review-r4 (prereq #27 must merge before t1) | — | — | — | — | — | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | — | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | lead: delegate t1 | codex/gpt-6.2-sol (t1) | orch/0001-t1-kit-loader | — | — | — | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--lead-to-codex.md | 2026-11-27 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0002 | [pr] Hardware look + glowing silicone step pads | https://github.com/pepperhorn/drumlet/pull/27 | 2026-11-27 (3384c8f) | 4 review rounds (codex gpt-6.2-sol); fixes by claude-sonnet-5-5 |
 
 ## Suggestions
 
@@ -25,11 +25,16 @@ Next ID: 0003
 
 | S | Kind | Suggestion | Evidence | Effort (S/M/L) | Value | Source | Status |
 |---|---|---|---|---|---|---|---|
+| S1 | improvement | Raise Steps/Split selector labels to ≥12px desktop | PageTabs.tsx Steps/Split options 10px at md (pre-existing) | S | DESIGN.md min sizes | 0002 return handoff | new |
+| S2 | improvement | Raise mobile MPC pad label to ≥14px | MpcPads.tsx `mpc-pad-label` text-[10px] | S | readability on phones | 0002 return handoff | new |
+| S3 | next step | Restyle mobile transport + header buttons as keycaps | App.tsx mobile-transport, drumlet-header buttons still flat Tailwind | M | consistent hardware look | PR #27 body | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0001 planned→dispatched — t1 handoff written (base 3384c8f)
+2026-11-27 0002 in-review→merged→closed — codex r4 approved @ 570581f1; squash-merged 3384c8f; main verify typecheck/lint/build ✓
 2026-11-27 0002 changes-requested→in-review — fix r2 pushed at 570581f1 (::after markers, label sizes); review r4 codex gpt-6.2-sol
 2026-11-27 0002 in-review→changes-requested — codex r3 @ 0080528: r2 findings verified fixed; new 1×P2 (split-master focus hidden by marker outline) + 1×P3 (Notation/TAP/CLEAR/Page tab sizes); fix r2 sent to same implementer thread
 2026-11-27 0002 changes-requested→in-review — fix r1 pushed at 00805286 (all 5 findings + body rule); review r3 codex gpt-6.2-sol
