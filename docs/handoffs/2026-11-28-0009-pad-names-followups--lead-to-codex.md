@@ -28,5 +28,7 @@ npm ci && npm run typecheck && npm run lint && npm run build && npm test
 ---
 ## Receiver ack
 
+I will pass a primitive bar offset through the paged grid so pad names match the bar tabs. The split master will expose its expanded state, and normal pads, sub-steps, and EndlessGrid will keep their existing behavior. I will verify page 3 of a four-bar stock groove with tests and Chromium role queries. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
