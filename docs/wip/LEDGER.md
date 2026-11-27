@@ -11,7 +11,7 @@ Next ID: 0010
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t9-review-r2 (t9 #44) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/44 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | changes-requested | child 0001-t9-impl-r3 (t9 #44) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/44 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -67,11 +67,14 @@ Next ID: 0010
 | S24 | efficiency | Share the "first bar of page" formula between Grid and EndlessGrid in one helper | PR #42 review r1 | S | no drift | 0009 review r1 | new |
 | S25 | risk | useAudioEngine: a call after release silently re-acquires the shared context and never releases it — guard or throw after dispose (all callers guarded today) | PR #43 review r1 | S | hardening | 0001-t8b review r1 | new |
 | S26 | improvement | Dark theme: notation title, clef and time signature render black on the dark card (pre-existing on main) | PR #44 review r1 | S | readable notation in Dark Studio | 0001-t9 review r1 | new |
+| S27 | improvement | Let hosts recolour the player via documented CSS variables — today the player's token blocks and [data-theme] rules beat host overrides | PR #44 review r2 | M | host theming beyond light/dark | 0001-t9 review r2 | new |
+| S28 | efficiency | `!important` px widths in src/player/styles/base.css duplicate constants in EndlessGrid.tsx — derive one from the other | PR #44 review r2 | S | no drift | 0001-t9 review r2 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0001 t9 review r2 (opus) @ a60dffc: r1 blocker fixed, no leak onto host; new blocker — root `all:revert` wipes host className styles. Lead: take tested `:where(.drumlet-player)` root fix (round 3)
 2026-11-28 0001 t9 fix r2 pushed @ a60dffc (unlayered scoped CSS; 36×36 pads / 44×44 play under 3 hostile hosts; app build byte-identical); review r2 claudeAgent claude-opus-5-5
 2026-11-28 0001 t9 in-review→changes-requested — opus r1 @ 0ef5cec: layered package CSS loses to unlayered host CSS (pads shrink/vanish). Lead: emit unlayered scoped CSS (spec anti-goal), verify-dist bans @layer, hostile-host repro required; take verify:lib→SSR test and @source coverage check. Fix r2 sent
 2026-11-28 0001 t9 PR #44 head 0ef5cec (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-a9583e5d-098e33c18423e92f; 250 tests; tarball 1,175,293 B; fresh Vite host verified); review r1 claudeAgent claude-opus-5-5
