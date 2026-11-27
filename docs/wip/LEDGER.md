@@ -11,13 +11,14 @@ Next ID: 0006
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0005 | [quick] Notation Retry without page reload | in-review | review 0005-review-r2 | codex/gpt-6.2-sol | orch/0005-notation-retry-in-place | https://github.com/pepperhorn/drumlet/pull/35 | /home/shaun/.t3/worktrees/drumlet/t3-6bb80683-a6b24001507b175a | — | — | — | docs/handoffs/2026-11-27-0005-notation-retry-in-place--lead-to-codex.md | 2026-11-27 |
-| 0001 | Drumlet Player (embeddable component) + endless view | ready | human: approve merge of #36 (t6, >50 code lines) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/36 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | lead: delegate t7 + t8 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0005 | [quick] Notation Retry without page reload | https://github.com/pepperhorn/drumlet/pull/35 | 2026-11-27 (d9291cc) | 2 review rounds (opus); owner OK |
+| 0001-t6 | Endless notation | https://github.com/pepperhorn/drumlet/pull/36 | 2026-11-27 (23c53b9) | 1 review round (opus); owner OK |
 | 0003 | Mobile notation: load feedback, fit to width, onset durations, toggle icon | https://github.com/pepperhorn/drumlet/pull/33 | 2026-11-27 (e480679) | 1 review round (opus; 98 grooves × 1,536 renders); owner OK |
 | 0004 | [quick] Auto-follow: ignore vertical wheel | https://github.com/pepperhorn/drumlet/pull/34 | 2026-11-27 (7f31818) | 1 review round (opus); owner OK |
 | 0001-t5 | Endless grid + auto-follow | https://github.com/pepperhorn/drumlet/pull/32 | 2026-11-27 (6a6cac0) | 2 review rounds (opus); worst 1.2 ms/step on 1024 pads |
@@ -56,6 +57,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-27 0001 t6 merged (#36, 23c53b9) + 0005 merged (#35, d9291cc); owner OK; main verify ✓ 194 tests. t7 + t8 handoffs written for parallel dispatch (disjoint Owns)
 2026-11-27 0001 t6 review r1 (opus) approved @ 29fd580 (wrapped identical on all 98 grooves; spikes are host noise, not t6); merge needs owner OK. Plan Task 7 note: pass currentGlobalStep -1 when stopped
 2026-11-27 0005 fix r2 pushed @ 3fda96a (single module-level lazy loader; 192 tests); review r2 claudeAgent claude-opus-5-5
 2026-11-27 0005 review r1 (opus) approved @ 2f066fe with a minor regression (engine-phase flash on reopen); lead sent fix r2 before merge
