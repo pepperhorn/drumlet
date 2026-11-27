@@ -47,5 +47,7 @@ None.
 ---
 ## Receiver ack
 
+I will render all pages in one strip with sticky track labels, page joins, and the existing silicone cells. The audio-clock global step drives the playhead. Manual input pauses auto-follow until resume or the next play. I will test editing and read-only seek, stay within the Task 5 files, and leave app and player wiring to later tasks. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
