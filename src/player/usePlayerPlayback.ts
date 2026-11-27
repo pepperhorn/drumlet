@@ -17,7 +17,7 @@ async function settled(jobs: Promise<unknown>[]): Promise<void> {
   }
 }
 
-function prepareInstruments(audio: AudioEngineApi, state: SequencerState, assetBaseUrl?: string) {
+function prepareInstruments(audio: AudioEngineApi, state: SequencerState, canLoad: () => boolean, assetBaseUrl?: string) {
   const tracks = new Map<string, Track>();
   for (const page of state.pages) {
     for (const track of page.tracks) {
@@ -35,6 +35,7 @@ function prepareInstruments(audio: AudioEngineApi, state: SequencerState, assetB
   if (kitTracks.length > 0) {
     // The shared loader reads its module-wide base in both the manifest and sample calls.
     const kits = kitQueue.then(async () => {
+      if (!canLoad()) return;
       const previousBase = getKitBaseUrl();
       if (assetBaseUrl !== undefined) setKitBaseUrl(`${assetBaseUrl.replace(/\/+$/, '')}/kits/`);
       try {
@@ -58,10 +59,9 @@ export function usePlayerPlayback(state: SequencerState, options: PlaybackOption
   const request = useRef<symbol | null>(null);
   const release = useRef<(() => void) | undefined>(undefined);
   const prepared = useRef<Promise<void> | null>(null);
-  const context = useRef<AudioContext | null>(null);
   const started = useRef(false);
   const [isStarting, setIsStarting] = useState(false);
-  const instruments = audio.instrumentsRef;
+  const { stopAudio } = audio;
 
   useLayoutEffect(() => {
     stateRef.current = state;
@@ -69,9 +69,7 @@ export function usePlayerPlayback(state: SequencerState, options: PlaybackOption
   });
 
   const finish = useCallback(() => {
-    // Smplr's default stop can ramp a kit voice with no release time to NaN.
-    for (const { instrument } of instruments.current.values()) instrument.stop({ time: 0 });
-    void context.current?.suspend().catch(() => {});
+    stopAudio();
     request.current = null;
     release.current?.();
     release.current = undefined;
@@ -80,7 +78,7 @@ export function usePlayerPlayback(state: SequencerState, options: PlaybackOption
       started.current = false;
       optionsRef.current.onStop?.();
     }
-  }, [instruments]);
+  }, [stopAudio]);
 
   const transport = useTransport(stateRef, audio, { onEnded: finish });
   const { stop: stopTransport, play: startTransport, seek, isPlaying, currentGlobalStep, currentPlayPage } = transport;
@@ -103,10 +101,11 @@ export function usePlayerPlayback(state: SequencerState, options: PlaybackOption
       setIsStarting(true);
 
       // Queue resume in the user gesture even if a preceding suspend hasn't settled.
-      context.current = audio.getContext();
-      await context.current.resume();
+      await audio.ensureRunning();
       if (request.current !== token) return;
-      prepared.current ??= prepareInstruments(audio, stateRef.current, optionsRef.current.assetBaseUrl).catch(error => {
+      prepared.current ??= prepareInstruments(
+        audio, stateRef.current, () => prepared.current !== null, optionsRef.current.assetBaseUrl,
+      ).catch(error => {
         prepared.current = null;
         throw error;
       });
@@ -131,24 +130,8 @@ export function usePlayerPlayback(state: SequencerState, options: PlaybackOption
     request.current = null;
     release.current?.();
     release.current = undefined;
-    const ctx = context.current;
-    context.current = null;
-    const disconnect = () => {
-      for (const { instrument } of instruments.current.values()) {
-        instrument.stop({ time: 0 });
-        instrument.disconnect();
-      }
-      instruments.current.clear();
-    };
-    disconnect();
-    const close = () => {
-      disconnect();
-      if (ctx && ctx.state !== 'closed') void ctx.close().catch(() => {});
-    };
-    if (prepared.current) void prepared.current.then(close, close);
-    else close();
     prepared.current = null;
-  }, [instruments]);
+  }, []);
 
   const step = isPlaying ? currentGlobalStep : -1;
   useEffect(() => {

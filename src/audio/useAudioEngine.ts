@@ -1,9 +1,11 @@
+// SPDX-License-Identifier: MIT
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useRef, useCallback, useMemo, type MutableRefObject } from 'react';
+import { useRef, useCallback, useLayoutEffect, useMemo, type MutableRefObject } from 'react';
 import { DrumMachine, Soundfont, Sampler, Reverb } from 'smplr';
 import { resolveGroup } from './drumGroups.js';
 import { getMidiVelocity } from './velocityConfig.js';
 import { loadKitManifest, loadKitSample, resolveKitSampleKey } from './customKits.js';
+import { acquireAudioContext, releaseAudioContext, setAudioActive, waitForAudioContext } from './sharedAudioContext.js';
 import type { Track, VelMode } from '../state/sequencerReducer.js';
 
 // Audio internals stay loosely typed — smplr has no bundled types and the
@@ -34,38 +36,66 @@ export interface AudioEngineApi {
   instrumentsRef: MutableRefObject<Map<string, InstrumentEntry>>;
 }
 
-export function useAudioEngine(): AudioEngineApi {
-  const ctxRef = useRef<AudioContext | null>(null);
-  const reverbRef = useRef<AudioInstrument | null>(null);
-  const instrumentsRef = useRef<Map<string, InstrumentEntry>>(new Map());
-  const loadingRef = useRef<Set<string>>(new Set());
+interface EngineGraph {
+  id: string;
+  ctx: AudioContext;
+  master: GainNode;
+  reverb?: { input: AudioNode; connect(output: AudioNode): void; ready(): Promise<unknown> };
+  loading: Set<string>;
+}
 
-  const getContext = useCallback((): AudioContext => {
-    if (!ctxRef.current) {
-      ctxRef.current = new AudioContext();
-      console.log('[audio] Created AudioContext, state:', ctxRef.current.state);
+let nextEngineId = 0;
+
+export function useAudioEngine() {
+  const graphRef = useRef<EngineGraph | null>(null);
+  const instrumentsRef = useRef<Map<string, InstrumentEntry>>(new Map());
+
+  const getGraph = useCallback((): EngineGraph => {
+    if (!graphRef.current) {
+      const ctx = acquireAudioContext();
+      const master = ctx.createGain();
+      master.connect(ctx.destination);
+      graphRef.current = { id: `drumlet-engine-${++nextEngineId}`, ctx, master, loading: new Set() };
     }
-    return ctxRef.current;
+    return graphRef.current;
   }, []);
 
-  const ensureRunning = useCallback(async (): Promise<AudioContext> => {
-    const ctx = getContext();
-    if (ctx.state === 'suspended') {
-      console.log('[audio] Resuming suspended AudioContext...');
-      await ctx.resume();
-      console.log('[audio] AudioContext resumed, state:', ctx.state, 'currentTime:', ctx.currentTime);
-    }
-    return ctx;
-  }, [getContext]);
+  const getContext = useCallback(() => getGraph().ctx, [getGraph]);
 
-  const getReverb = useCallback(async (): Promise<AudioInstrument> => {
-    if (reverbRef.current) return reverbRef.current;
-    const ctx = getContext();
-    const reverb = new Reverb(ctx);
-    reverbRef.current = reverb;
-    await reverb.ready();
-    return reverb;
-  }, [getContext]);
+  const ensureRunning = useCallback(async (): Promise<AudioContext> => {
+    const { ctx, master, id } = getGraph();
+    master.gain.value = 1;
+    setAudioActive(id, true);
+    await waitForAudioContext();
+    return ctx;
+  }, [getGraph]);
+
+  const stopAudio = useCallback(() => {
+    const graph = graphRef.current;
+    if (!graph) return;
+    graph.master.gain.value = 0;
+    // Explicit time also handles kit voices without a release envelope.
+    for (const { instrument } of instrumentsRef.current.values()) instrument.stop({ time: 0 });
+    setAudioActive(graph.id, false);
+  }, []);
+
+  useLayoutEffect(() => {
+    const instruments = instrumentsRef.current;
+    return () => {
+      const graph = graphRef.current;
+      if (!graph) return;
+      graphRef.current = null;
+      graph.master.disconnect();
+      for (const { instrument } of instruments.values()) {
+        instrument.stop({ time: 0 });
+        instrument.disconnect();
+      }
+      instruments.clear();
+      graph.reverb?.input.disconnect();
+      setAudioActive(graph.id, false);
+      releaseAudioContext();
+    };
+  }, []);
 
   const trackSoundKey = useCallback((track: AudioTrack): string => {
     if (track.sourceType === 'drumMachine') return `dm:${track.instrument}:${track.group}`;
@@ -76,54 +106,63 @@ export function useAudioEngine(): AudioEngineApi {
   }, []);
 
   const loadTrackInstrument = useCallback(async (track: AudioTrack, { force = false }: { force?: boolean } = {}): Promise<AudioInstrument | null> => {
-    const ctx = getContext();
+    const graph = getGraph();
+    const { ctx, master, loading } = graph;
     const key = trackSoundKey(track);
 
     const existing = instrumentsRef.current.get(track.id);
     if (!force && existing && existing.key === key) return existing.instrument;
 
-    if (loadingRef.current.has(track.id)) return null;
-    loadingRef.current.add(track.id);
+    if (loading.has(track.id)) return null;
+    loading.add(track.id);
 
     console.log('[audio] Loading instrument:', track.sourceType, track.instrument || track.soundfontName || track.kitSample || 'custom', 'for track:', track.name);
 
+    let instrument: AudioInstrument;
     try {
       if (existing?.instrument) {
         try { existing.instrument.disconnect(); } catch { /* ok */ }
+        instrumentsRef.current.delete(track.id);
       }
 
-      let instrument: AudioInstrument;
-
       if (track.sourceType === 'drumMachine') {
-        instrument = new DrumMachine(ctx, { instrument: track.instrument });
+        instrument = new DrumMachine(ctx, { instrument: track.instrument, destination: master });
         await instrument.load;
         console.log('[audio] DrumMachine loaded:', track.instrument, 'groups:', instrument.getGroupNames());
       } else if (track.sourceType === 'soundfont') {
-        instrument = new Soundfont(ctx, { instrument: track.soundfontName });
+        instrument = new Soundfont(ctx, { instrument: track.soundfontName, destination: master });
         await instrument.load;
         console.log('[audio] Soundfont loaded:', track.soundfontName);
       } else if (track.sourceType === 'kit' && track.kitId && track.kitSample) {
         const manifest = await loadKitManifest(track.kitId);
         const sampleKey = resolveKitSampleKey(manifest, track.kitSample);
         const buffer = await loadKitSample(ctx, track.kitId, sampleKey);
-        instrument = new Sampler(ctx, { buffers: { hit: buffer }, detune: 0 });
+        if (graphRef.current !== graph) return null;
+        instrument = new Sampler(ctx, { buffers: { hit: buffer }, detune: 0, destination: master });
         await instrument.load;
         console.log('[audio] Kit sample loaded:', track.kitId, sampleKey);
       } else if (track.sourceType === 'custom' && track._audioBuffer) {
-        instrument = new Sampler(ctx, { buffers: { hit: track._audioBuffer }, detune: 0 });
+        instrument = new Sampler(ctx, { buffers: { hit: track._audioBuffer }, detune: 0, destination: master });
         await instrument.load;
         console.log('[audio] Custom sample loaded');
       } else {
         console.warn('[audio] Unknown source type or missing data:', track.sourceType, { kitId: track.kitId, kitSample: track.kitSample, hasBuffer: !!track._audioBuffer });
-        loadingRef.current.delete(track.id);
         return null;
       }
 
+      if (graphRef.current !== graph) return null;
       const vol = Math.round((track.volume ?? 80) * 1.27);
       instrument.output.setVolume(isFinite(vol) ? vol : 100);
 
       const reverbSend = (track.reverb ?? 20) / 100;
-      const reverb = await getReverb();
+      if (!graph.reverb) {
+        const effect: NonNullable<EngineGraph['reverb']> = new Reverb(ctx);
+        effect.connect(master);
+        graph.reverb = effect;
+      }
+      const reverb = graph.reverb;
+      await reverb.ready();
+      if (graphRef.current !== graph) return null;
       instrument.output.addEffect('reverb', reverb, isFinite(reverbSend) ? reverbSend : 0.2);
 
       instrumentsRef.current.set(track.id, { instrument, type: track.sourceType, key });
@@ -133,9 +172,10 @@ export function useAudioEngine(): AudioEngineApi {
       console.error('[audio] Failed to load instrument for track:', track.name, err);
       throw err;
     } finally {
-      loadingRef.current.delete(track.id);
+      if (instrument && instrumentsRef.current.get(track.id)?.instrument !== instrument) instrument.disconnect();
+      loading.delete(track.id);
     }
-  }, [getContext, getReverb, trackSoundKey]);
+  }, [getGraph, trackSoundKey]);
 
   const triggerNote = useCallback((track: AudioTrack, velocityLevel: number, time: number, velMode: VelMode = 3): void => {
     const entry = instrumentsRef.current.get(track.id);
@@ -182,14 +222,17 @@ export function useAudioEngine(): AudioEngineApi {
   }, []);
 
   const previewSound = useCallback(async (track: AudioTrack): Promise<void> => {
+    const graph = getGraph();
     const ctx = await ensureRunning();
     if (ctx.currentTime === 0) {
       await new Promise((r) => setTimeout(r, 50));
     }
 
+    if (graphRef.current !== graph) return;
     let entry = instrumentsRef.current.get(track.id);
     if (!entry) {
       await loadTrackInstrument(track);
+      if (graphRef.current !== graph) return;
       entry = instrumentsRef.current.get(track.id);
       if (!entry) return;
     }
@@ -206,6 +249,7 @@ export function useAudioEngine(): AudioEngineApi {
       }
     } catch {
       await loadTrackInstrument(track, { force: true });
+      if (graphRef.current !== graph) return;
       entry = instrumentsRef.current.get(track.id);
       if (!entry) return;
       try {
@@ -219,7 +263,7 @@ export function useAudioEngine(): AudioEngineApi {
         }
       } catch { /* give up silently */ }
     }
-  }, [ensureRunning, loadTrackInstrument]);
+  }, [ensureRunning, getGraph, loadTrackInstrument]);
 
   const loadCustomSample = useCallback(async (file: File): Promise<AudioBuffer> => {
     const ctx = getContext();
@@ -230,21 +274,18 @@ export function useAudioEngine(): AudioEngineApi {
   const testAudio = useCallback(async (): Promise<void> => {
     console.log('[audio-test] Starting standalone audio test...');
     try {
-      const ctx = getContext();
-      console.log('[audio-test] AudioContext state:', ctx.state, 'currentTime:', ctx.currentTime);
-
-      if (ctx.state === 'suspended') {
-        await ctx.resume();
-        console.log('[audio-test] Resumed. state:', ctx.state, 'currentTime:', ctx.currentTime);
-      }
+      const graph = getGraph();
+      const ctx = await ensureRunning();
+      const { master } = graph;
 
       if (ctx.currentTime === 0) {
         await new Promise((r) => setTimeout(r, 100));
         console.log('[audio-test] After 100ms wait, currentTime:', ctx.currentTime);
       }
 
+      if (graphRef.current !== graph) return;
       console.log('[audio-test] Creating DrumMachine TR-808...');
-      const dm = new DrumMachine(ctx, { instrument: 'TR-808' });
+      const dm = new DrumMachine(ctx, { instrument: 'TR-808', destination: master });
       await dm.load;
       console.log('[audio-test] DrumMachine loaded! Groups:', dm.getGroupNames());
 
@@ -269,11 +310,12 @@ export function useAudioEngine(): AudioEngineApi {
     } catch (err) {
       console.error('[audio-test] FAILED:', err);
     }
-  }, [getContext]);
+  }, [ensureRunning, getGraph]);
 
-  return useMemo<AudioEngineApi>(() => ({
+  return useMemo<AudioEngineApi & { stopAudio: () => void }>(() => ({
     getContext,
     ensureRunning,
+    stopAudio,
     loadTrackInstrument,
     triggerNote,
     updateTrackVolume,
@@ -282,5 +324,5 @@ export function useAudioEngine(): AudioEngineApi {
     loadCustomSample,
     testAudio,
     instrumentsRef,
-  }), [getContext, ensureRunning, loadTrackInstrument, triggerNote, updateTrackVolume, updateTrackReverb, previewSound, loadCustomSample, testAudio]);
+  }), [getContext, ensureRunning, stopAudio, loadTrackInstrument, triggerNote, updateTrackVolume, updateTrackReverb, previewSound, loadCustomSample, testAudio]);
 }
