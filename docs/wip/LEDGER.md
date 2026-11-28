@@ -11,12 +11,13 @@ Next ID: 0010
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | ready | human: approve merge of #44 (t9 package; deps + licence) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/44 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | lead: delegate t10 + t11 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0001-t9 | @pepperhorn/drumlet-player package build (MIT) | https://github.com/pepperhorn/drumlet/pull/44 | 2026-11-28 (f2cfd53) | 3 review rounds (opus): unlayered scoped CSS, :where root reset; owner OK |
 | 0001-t8b | One shared AudioContext per page | https://github.com/pepperhorn/drumlet/pull/43 | 2026-11-28 (6408ec8) | 1 review round (opus); owner OK |
 | 0009 | [quick] Pad-name follow-ups | https://github.com/pepperhorn/drumlet/pull/42 | 2026-11-28 (fed6ddd) | 1 review round (opus); owner OK |
 | 0001-t8 | DrumletPlayer component | https://github.com/pepperhorn/drumlet/pull/38 | 2026-11-28 (3af5989) | 2 review rounds (opus); owner OK |
@@ -74,6 +75,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0001 t9 merged (#44, f2cfd53; owner OK; main verify ✓ 250 tests + build:lib/verify:lib). t10 + t11 handoffs written for parallel dispatch (amended: unlayered hostile sheets, checks on packed tarball, legacy-route check moved to t11, t8b 1-context gate in t10, EmbedPage omits assetBaseUrl)
 2026-11-28 0001 t9 review r3 (opus) approved @ 2d65806 — merge needs owner OK (dependencies, licence headers, size)
 2026-11-28 0001 t9 fix r3 pushed @ 2d65806 (:where root reset; className styles apply; hostile cases unchanged); review r3 claudeAgent claude-opus-5-5
 2026-11-28 0001 t9 review r2 (opus) @ a60dffc: r1 blocker fixed, no leak onto host; new blocker — root `all:revert` wipes host className styles. Lead: take tested `:where(.drumlet-player)` root fix (round 3)
