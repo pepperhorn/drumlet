@@ -9,6 +9,16 @@
  */
 
 const MUSIC_FONT_FAMILIES = ['Petaluma', 'Petaluma Script', 'Bravura'];
+const pageHeaderContents = new WeakMap<SVGElement, Node[][]>();
+
+// Keep the engraved geometry, but show the header text only in downloads.
+export function hidePageHeaders(svg: SVGElement): void {
+  pageHeaderContents.set(svg, Array.from(svg.querySelectorAll('.pgHead'), header => {
+    const content = Array.from(header.childNodes);
+    header.replaceChildren();
+    return content;
+  }));
+}
 
 function collectFontFaceCSS(): string {
   const wanted = new Set(MUSIC_FONT_FAMILIES.map((f) => f.toLowerCase()));
@@ -47,6 +57,12 @@ function ensureFontStyle(svg: SVGElement): void {
 
 function serializeWithFonts(svgElement: SVGElement): string {
   const clone = svgElement.cloneNode(true) as SVGElement;
+  const headers = pageHeaderContents.get(svgElement);
+  if (headers) {
+    clone.querySelectorAll('.pgHead').forEach((header, index) => {
+      header.append(...headers[index]!.map(node => node.cloneNode(true)));
+    });
+  }
   clone.style.color = '#1A1A2E';
   clone.style.backgroundColor = '#FFFFFF';
   ensureFontStyle(clone);
