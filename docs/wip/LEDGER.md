@@ -11,7 +11,7 @@ Next ID: 0010
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | child 0001-t10-impl-r1, child 0001-t11-impl-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | in-review | child 0001-t10-impl-r1, review 0001-t11-review-r1 (t11 #45) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/45 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -75,6 +75,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0001 t11 PR #45 head 8adc044 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-3f7aa9be-0fbe799fa197d659; 255 tests + 6 Chromium route checks); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0001 t10 + t11 delegated in parallel → codex gpt-6.2-sol (high), base 1c1a370; threads thread:delegated-task:command%3Amcp%3Ace969c85-e60d-4b98-b6a5-94bd64b9bac7%3Adelegate-task%3A0001-t10-impl-r1 / …%3A0001-t11-impl-r1
 2026-11-28 0001 t9 merged (#44, f2cfd53; owner OK; main verify ✓ 250 tests + build:lib/verify:lib). t10 + t11 handoffs written for parallel dispatch (amended: unlayered hostile sheets, checks on packed tarball, legacy-route check moved to t11, t8b 1-context gate in t10, EmbedPage omits assetBaseUrl)
 2026-11-28 0001 t9 review r3 (opus) approved @ 2d65806 — merge needs owner OK (dependencies, licence headers, size)
