@@ -73,7 +73,7 @@ it('engraves onsets, keeps split tuplets, and interpolates skipped grid steps', 
   }
 }, 15_000);
 
-it.each(['wrapped', 'endless'] as const)('uses theme ink without overriding track colours in %s notation', async (layout) => {
+it.each(['endless', 'wrapped'] as const)('uses theme ink without overriding track colours in %s notation', async (layout) => {
   stubVerovioGeometry();
   const score = document.createElement('div');
   const track = {
@@ -90,7 +90,12 @@ it.each(['wrapped', 'endless'] as const)('uses theme ink without overriding trac
       const scaledScore = score.querySelector('svg.definition-scale')!;
       expect(scaledScore.parentElement?.getAttribute('fill')).toBe('currentColor');
       expect(scaledScore.parentElement?.style.color).toBe('');
-      for (const selector of ['.pgHead tspan[font-size]', '.clef use', '.meterSig use']) {
+      const title = scaledScore.querySelector('.pgHead text');
+      if (layout === 'endless') expect(title).toBeNull();
+      else expect(title?.textContent).toContain('Drumlet notation');
+      const selectors = ['.clef use', '.meterSig use'];
+      if (layout === 'wrapped') selectors.push('.pgHead tspan[font-size]');
+      for (const selector of selectors) {
         const glyphs = scaledScore.querySelectorAll(selector);
         expect(glyphs).not.toHaveLength(0);
         for (const glyph of glyphs) expect(glyph.closest(fixedInk)).toBeNull();
@@ -122,6 +127,7 @@ it.each([
     });
     const svg = score.firstElementChild!;
     const groups = Array.from(svg.querySelectorAll('g.system'));
+    expect(svg.querySelector('.pgHead text')).toBeNull();
     expect(groups).toHaveLength(systems);
     expect(svg.querySelectorAll('g.measure')).toHaveLength(bars);
     expect(groups.every(group => group.querySelectorAll('g.measure').length <= 64)).toBe(true);
