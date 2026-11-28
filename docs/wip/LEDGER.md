@@ -11,7 +11,7 @@ Next ID: 0010
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | changes-requested | review 0001-t10-review-r1 (t10 #46), child 0001-t11-impl-r2 (t11 #45) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/45, https://github.com/pepperhorn/drumlet/pull/46 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t10-review-r1 (t10 #46), review 0001-t11-review-r2 (t11 #45) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/45, https://github.com/pepperhorn/drumlet/pull/46 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -70,11 +70,13 @@ Next ID: 0010
 | S26 | improvement | Dark theme: notation title, clef and time signature render black on the dark card (pre-existing on main) | PR #44 review r1 | S | readable notation in Dark Studio | 0001-t9 review r1 | new |
 | S27 | improvement | Let hosts recolour the player via documented CSS variables — today the player's token blocks and [data-theme] rules beat host overrides | PR #44 review r2 | M | host theming beyond light/dark | 0001-t9 review r2 | new |
 | S28 | efficiency | `!important` px widths in src/player/styles/base.css duplicate constants in EndlessGrid.tsx — derive one from the other | PR #44 review r2 | S | no drift | 0001-t9 review r2 | new |
+| S29 | efficiency | App is now a lazy chunk (t11) → one extra request hop on normal loads (~8 ms FCP on simulated 40 ms RTT); add a modulepreload for the App chunk in the Vite build once t10 (vite.config.js) merges | PR #45 fix r2 return handoff | S | restore startup parity | 0001-t11 | accepted (lead) → quick after t10 |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0001 t11 fix r2 pushed @ bc74c6d (bad codes → player error; shared parser; README-exact snippet; 256 tests + 7 route checks). Startup +~8 ms accepted as follow-up S29. Review r2 claudeAgent claude-opus-5-5
 2026-11-28 0001 t11 in-review→changes-requested — opus r1 @ 8adc044: undecodable/unknown-version embed codes open the full app. Fix r2 sent: route fix + 6th route check; snippet matches README exactly; reuse shareCodec regex; no extra round-trip on normal app load (measure vs main)
 2026-11-28 0001 t10 PR #46 head 1d9c1fd (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-b8282c4d-05b6df5822805713; smoke + embed checks pass, deliberate regression fails as expected); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0001 t11 PR #45 head 8adc044 (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-3f7aa9be-0fbe799fa197d659; 255 tests + 6 Chromium route checks); review r1 claudeAgent claude-opus-5-5
