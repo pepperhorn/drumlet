@@ -11,7 +11,7 @@ Next ID: 0015
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0014 | [quick] Paged→Endless notation leaves the old score on screen | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0014-notation-layout-switch | — | — | — | — | — | docs/handoffs/2026-11-28-0014-notation-layout-switch--lead-to-codex.md | 2026-11-28 |
+| 0014 | [quick] Paged→Endless notation leaves the old score on screen | dispatched | child 0014-impl-r1 | codex/gpt-6.2-sol | orch/0014-notation-layout-switch | — | — | — | — | — | docs/handoffs/2026-11-28-0014-notation-layout-switch--lead-to-codex.md | 2026-11-28 |
 | 0011 | [quick] Defer the notation prefetch on drumlet.app | in-review | review 0011-review-r1 | codex/gpt-6.2-sol | orch/0011-defer-notation-prefetch | https://github.com/pepperhorn/drumlet/pull/51 | /home/shaun/.t3/worktrees/drumlet/t3-9832d393-f85f724165292ec5 | — | — | — | docs/handoffs/2026-11-28-0011-defer-notation-prefetch--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
@@ -92,6 +92,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0014 delegated → codex gpt-6.2-sol (high), base 9d88c9c; thread thread:delegated-task:command%3Amcp%3Ae3d8cfda-6b63-42ac-b7ca-0b3225c8a8f6%3Adelegate-task%3A0014-impl-r1
 2026-11-28 0013 merged (#50; auto-merge, 47 code lines). Pre-existing bug from its review (Paged→Endless notation leaves stale score) → quick 0014. S36 S37 logged
 2026-11-28 0011 dispatched→in-review — PR #51 head 635e655 (264 tests; order/delay OK; startup +92 ms median but A/A noise up to 540 ms → reviewer to measure with A/A control); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0013 dispatched→in-review — PR #50 head 2d3dcee (258 tests; exports dark-on-white); review r1 claudeAgent claude-opus-5-5
