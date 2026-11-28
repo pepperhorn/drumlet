@@ -29,5 +29,7 @@ npm ci && npm run typecheck && npm run lint && npm run build && npm test
 ---
 ## Receiver ack
 
+I’ll pin every action reference in the two owned workflows to a verified release commit and keep checkout credentials disabled in the release job. I’ll run the handoff checks and actionlint, then open a draft PR for the lead. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
