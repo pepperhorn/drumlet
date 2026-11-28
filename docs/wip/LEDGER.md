@@ -11,7 +11,7 @@ Next ID: 0010
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | child 0001-t12-impl-r1 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t12-review-r1 (t12 #47) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/47 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -80,6 +80,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0001 t12 PR #47 head af46a1b (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-420fb1e2-9927d595c24fc71b; full gate passes; 73-file dry-run tarball); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0001 t12 delegated → codex gpt-6.2-sol (high), base 1c69350; thread thread:delegated-task:command%3Amcp%3A3c805740-8753-423f-9fcb-16e06213eda6%3Adelegate-task%3A0001-t12-impl-r1
 2026-11-28 0001 t11 merged (#45, c0a37de; owner OK; main verify ✓ 256 tests + lib checks). t12 handoff written (release + CI workflows with full gate, S31, docs)
 2026-11-28 0001 t11 review r3 (opus) approved @ 1ee4f31 (Fast-3G `/` −50 ms vs main; embed 2.5 s vs 6.6 s; empty/garbage embeds → player error); merge needs owner OK
