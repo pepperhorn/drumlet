@@ -552,8 +552,9 @@ function NotationView({
     <div ref={scrollRef} className="notation-view bg-card rounded-2xl shadow-sm border border-border px-6 py-4 lg:px-8 lg:py-5 overflow-x-auto grid-scroll">
       {controls}
 
+      {/* Keep React from reusing the wrapped SVG host as an endless wrapper. */}
       {endless ? (
-        <div ref={setEndlessScroll} className="notation-endless-scroll grid-scroll overflow-x-auto" tabIndex={0} aria-label="Endless drum notation">
+        <div key="endless" ref={setEndlessScroll} className="notation-endless-scroll grid-scroll overflow-x-auto" tabIndex={0} aria-label="Endless drum notation">
           {score}
         </div>
       ) : score}
