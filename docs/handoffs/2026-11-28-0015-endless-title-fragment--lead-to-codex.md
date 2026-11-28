@@ -27,5 +27,7 @@ Chromium: executablePath ~/.cache/ms-playwright/chromium_headless_shell-1254/chr
 ---
 ## Receiver ack
 
+I will remove the page title from Endless notation, including chunked scores, and preserve the title in Paged notation and exports. I will check the layout, step positions, and playhead in Chromium and keep changes within the owned files. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
