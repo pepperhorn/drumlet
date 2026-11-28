@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createNewPatternState } from './sequencerReducer.js';
 import type { Step, Track } from './sequencerReducer.js';
 import { findStockRhythm, stockRhythmToState } from './stockRhythms.js';
-import { buildEmbedSnippet, buildNpmEmbedSnippet, buildShareUrl, decodePayload, encodeState } from './shareCodec.js';
+import { buildEmbedSnippet, buildNpmEmbedSnippet, buildShareUrl, decodePayload, encodeState, readShareCode } from './shareCodec.js';
 
 // Produced by encodeState at f8c05d6, including a split step and a Latin-1 name.
 const V3_CODE = 'eyJ2IjozLCJiIjo5OCwic3ciOjAsInN0IjoiOHRoIiwiaHUiOjAsInNwIjo0LCJudiI6IjEvNCIsImJiIjo0LCJzdiI6IjEvMTYiLCJwbSI6eyJpZCI6ImNoYWxsZW5nZS1maXh0dXJlIn0sInQiOlt7Im4iOiJDYWbpIEtpY2siLCJzIjoiNzAoMSwzKTAiLCJ2bSI6Nywidm8iOjgwLCJydiI6MjAsInN0IjoiayIsImtpIjoiYWNvdXN0aWMxIiwia3MiOiJraWNrIn1dfQ';
@@ -166,6 +166,12 @@ describe('share codec', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(decodePayload('not a share code!')).toBeNull();
   });
+
+  it('reads a share code alone or after another hash parameter without decoding it', () => {
+    expect(readShareCode('#s=garbage___')).toBe('garbage___');
+    expect(readShareCode('#other=1&s=a-B_9&next=1')).toBe('a-B_9');
+    expect(readShareCode('#other=1')).toBeUndefined();
+  });
 });
 
 describe('embed snippets', () => {
@@ -188,12 +194,15 @@ describe('embed snippets', () => {
   it('includes install, imports and a React component with the full share code', () => {
     const state = createNewPatternState();
     state.pages.push({ ...state.pages[0]!, name: 'Finale' });
-    const snippet = buildNpmEmbedSnippet(state);
-    expect(snippet).toContain('npm i @pepperhorn/drumlet-player');
-    expect(snippet).toContain("import { DrumletPlayer } from '@pepperhorn/drumlet-player'");
-    expect(snippet).toContain("import '@pepperhorn/drumlet-player/style.css'");
-    const code = snippet?.match(/<DrumletPlayer groove=\{\{ share: '([A-Za-z0-9_-]+)' \}\} \/>/)?.[1];
-    expect(decodePayload(code!)?.state.pages.map(({ name }) => name)).toEqual(['Page 1', 'Finale']);
+    const code = encodeState(state)!;
+    expect(buildNpmEmbedSnippet(state)).toBe(`// npm install @pepperhorn/drumlet-player
+import { DrumletPlayer } from '@pepperhorn/drumlet-player'
+import '@pepperhorn/drumlet-player/style.css'
+
+export function Lesson() {
+  return <DrumletPlayer groove={{ share: '${code}' }} />
+}`);
+    expect(decodePayload(code)?.state.pages.map(({ name }) => name)).toEqual(['Page 1', 'Finale']);
   });
 
   it('does not generate snippets without pages', () => {

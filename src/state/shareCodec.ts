@@ -320,12 +320,12 @@ export function buildEmbedSnippet(state: SequencerState, baseUrl = 'https://drum
 export function buildNpmEmbedSnippet(state: SequencerState): string | null {
   const code = encodeState(state);
   if (!code) return null;
-  return `// npm i @pepperhorn/drumlet-player
-import { DrumletPlayer } from '@pepperhorn/drumlet-player';
-import '@pepperhorn/drumlet-player/style.css';
+  return `// npm install @pepperhorn/drumlet-player
+import { DrumletPlayer } from '@pepperhorn/drumlet-player'
+import '@pepperhorn/drumlet-player/style.css'
 
-export function Groove() {
-  return <DrumletPlayer groove={{ share: '${code}' }} />;
+export function Lesson() {
+  return <DrumletPlayer groove={{ share: '${code}' }} />
 }`;
 }
 
@@ -334,13 +334,13 @@ export function loadFromUrl(): SequencerState | null {
   return payload?.state ?? null;
 }
 
+export function readShareCode(hash: string): string | undefined {
+  return hash.match(/[#&]s=([A-Za-z0-9_-]+)/)?.[1];
+}
+
 export function loadSharedPayload(): DecodedPayload | null {
-  const hash = window.location.hash;
-  const match = hash.match(/[#&]s=([A-Za-z0-9_-]+)/);
-  if (match && match[1]) {
-    return decodePayload(match[1]);
-  }
-  return null;
+  const code = readShareCode(window.location.hash);
+  return code ? decodePayload(code) : null;
 }
 
 export function isEmbedMode(): boolean {

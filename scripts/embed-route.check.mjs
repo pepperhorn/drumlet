@@ -63,19 +63,27 @@ async function checkRoutes(browser) {
 
   const page = await context.newPage();
   page.setDefaultTimeout(15_000);
+  const appChunkRequests = [];
+  const pageErrors = [];
+  page.on('request', (request) => {
+    if (/\/assets\/App-[^/]+\.js$/.test(new URL(request.url()).pathname)) {
+      appChunkRequests.push(request.url());
+    }
+  });
+  page.on('pageerror', (error) => pageErrors.push(error.message));
   const iframe = page.locator('iframe');
   const frame = iframe.contentFrame();
   const player = frame.locator('.drumlet-player');
   const app = frame.locator('.drumlet-app');
 
   // Reload the host each time so a hash-only iframe URL change cannot reuse the old document.
-  async function openEmbed(payload, params = '') {
+  async function openEmbed(code, params = '') {
     await page.goto(hostUrl);
-    const src = `${origin}/?embed=1${params}#s=${encode(payload)}`;
+    const src = `${origin}/?embed=1${params}#s=${code}`;
     await iframe.evaluate((element, src) => { element.src = src; }, src);
   }
 
-  await openEmbed(v3);
+  await openEmbed(encode(v3));
   const play = player.getByRole('button', { name: 'Play', exact: true });
   await play.waitFor();
   assert.equal(await app.count(), 0);
@@ -92,7 +100,7 @@ async function checkRoutes(browser) {
   await play.waitFor();
   console.log('PASS v3 mounts the player, loads the local kick and advances playback');
 
-  await openEmbed(v4);
+  await openEmbed(encode(v4));
   await player.getByRole('button', { name: 'Endless', pressed: true }).waitFor();
   assert.deepEqual(await player.locator('.endless-page-name').allTextContents(), ['Intro', 'Verse', 'Finale']);
   assert.equal(await player.locator('.endless-step').count(), 48);
@@ -119,16 +127,30 @@ async function checkRoutes(browser) {
 
   assert.equal(await player.getAttribute('data-theme'), 'light');
   assert.equal(await player.evaluate((element) => getComputedStyle(element).colorScheme), 'light');
-  await openEmbed(v4, '&theme=dark');
+  await openEmbed(encode(v4), '&theme=dark');
   await player.getByRole('button', { name: 'Play', exact: true }).waitFor();
   assert.equal(await player.getAttribute('data-theme'), 'dark');
   assert.equal(await player.evaluate((element) => getComputedStyle(element).colorScheme), 'dark');
   console.log('PASS embed defaults to light on a dark system and accepts ?theme=dark');
 
-  await openEmbed(challenge);
+  await openEmbed(encode(challenge));
   await app.locator('.plugin-start-btn').waitFor();
   assert.equal(await player.count(), 0);
+  assert.ok(appChunkRequests.length > 0, 'The request matcher must detect the challenge App chunk');
   console.log('PASS challenge metadata opens the full app’s challenge setup');
+
+  for (const code of ['garbage___', encode({ v: 9 })]) {
+    appChunkRequests.length = 0;
+    pageErrors.length = 0;
+    await openEmbed(code);
+    const error = player.getByRole('alert');
+    await error.waitFor();
+    assert.equal(await error.textContent(), 'Invalid groove share code.');
+    assert.equal(await app.count(), 0);
+    assert.deepEqual(appChunkRequests, [], `App chunk requested for invalid code ${code}`);
+    assert.deepEqual(pageErrors, [], `Uncaught error for invalid code ${code}`);
+  }
+  console.log('PASS garbage and unknown-version codes show the player error without requesting App');
 
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
   await page.setViewportSize({ width, height: 500 });
