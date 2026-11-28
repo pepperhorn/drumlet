@@ -11,7 +11,7 @@ Next ID: 0016
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0015 | [quick] Endless notation shows a clipped "Dru…" title fragment | dispatched | child 0015-impl-r1 | codex/gpt-6.2-sol | orch/0015-endless-title-fragment | — | — | — | — | — | docs/handoffs/2026-11-28-0015-endless-title-fragment--lead-to-codex.md | 2026-11-28 |
+| 0015 | [quick] Endless notation shows a clipped "Dru…" title fragment | in-review | review 0015-review-r1 | codex/gpt-6.2-sol | orch/0015-endless-title-fragment | https://github.com/pepperhorn/drumlet/pull/53 | /home/shaun/.t3/worktrees/drumlet/t3-f6b943d1-40eb5741bfb4a37e | — | — | — | docs/handoffs/2026-11-28-0015-endless-title-fragment--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
 
@@ -93,6 +93,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0015 dispatched→in-review — PR #53 head 71beea6 (267 tests, packed checks pass); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0015 delegated → codex gpt-6.2-sol (high), base f496c0d; thread thread:delegated-task:command%3Amcp%3A5c89244e-eee6-45e4-938a-c591ea37cb03%3Adelegate-task%3A0015-impl-r1
 2026-11-28 0014 merged (#52; auto-merge, 38 code lines; main ✓ 267 tests). Pre-existing bug from its review (endless "Dru…" title fragment) → quick 0015
 2026-11-28 0011 merged (#51; owner OK). 0014 PR #52 head 841284d (259 tests, 24 Chromium snapshots); review r1 claudeAgent claude-opus-5-5
