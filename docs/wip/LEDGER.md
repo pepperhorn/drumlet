@@ -12,13 +12,13 @@ Next ID: 0014
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 0011 | [quick] Defer the notation prefetch on drumlet.app | dispatched | child 0011-impl-r1 | codex/gpt-6.2-sol | orch/0011-defer-notation-prefetch | — | — | — | — | — | docs/handoffs/2026-11-28-0011-defer-notation-prefetch--lead-to-codex.md | 2026-11-28 |
-| 0012 | [quick] Pin workflow actions to commit SHAs | ready | human: approve merge of #49 (CI files) | codex/gpt-6.2-sol | orch/0012-pin-actions | https://github.com/pepperhorn/drumlet/pull/49 | /home/shaun/.t3/worktrees/drumlet/t3-99ddf924-be19fd26e9e086ca | — | — | — | docs/handoffs/2026-11-28-0012-pin-actions--lead-to-codex.md | 2026-11-28 |
 | 0013 | [quick] Dark theme: notation title, clef and time signature | dispatched | child 0013-impl-r1 | codex/gpt-6.2-sol | orch/0013-dark-notation-glyphs | — | — | — | — | — | docs/handoffs/2026-11-28-0013-dark-notation-glyphs--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0012 | [quick] Pin workflow actions to commit SHAs | https://github.com/pepperhorn/drumlet/pull/49 | 2026-11-28 | 1 review round (opus); owner OK |
 | 0010 | [quick] prepublishOnly guard | https://github.com/pepperhorn/drumlet/pull/48 | 2026-11-28 | auto-merged (3 code lines, approve, CI green) |
 | 0001-t12 | Release workflow, CI and docs | https://github.com/pepperhorn/drumlet/pull/47 | 2026-11-28 (ee8fe16) | 1 review round (opus); owner OK; first CI on main green |
 | 0001 | Drumlet Player (embeddable component) + endless view — ALL 12 TASKS (+t8b) MERGED | #28–#47 | 2026-11-28 | first npm publish pending (owner, after 0010) |
@@ -89,6 +89,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0012 merged (#49; owner OK) — S34 complete (tag ruleset + pinned actions)
 2026-11-28 0012 review r1 (opus) approved @ 8256e28 (SHAs verified = same versions as @v7; persist-credentials already false); CI files → owner OK. S35 logged
 2026-11-28 0012 dispatched→in-review — PR #49 head 8256e28 (4 uses pinned, actionlint clean); review r1 claudeAgent claude-opus-5-5
 2026-11-28 owner reports npm trusted publishing enabled for @pepperhorn/drumlet-player (pepperhorn/drumlet, release-player.yml); not independently verified (npm trust list needs OTP) — first tag-driven release will confirm
