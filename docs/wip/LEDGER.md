@@ -12,7 +12,7 @@ Next ID: 0014
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 0011 | [quick] Defer the notation prefetch on drumlet.app | dispatched | child 0011-impl-r1 | codex/gpt-6.2-sol | orch/0011-defer-notation-prefetch | — | — | — | — | — | docs/handoffs/2026-11-28-0011-defer-notation-prefetch--lead-to-codex.md | 2026-11-28 |
-| 0012 | [quick] Pin workflow actions to commit SHAs | dispatched | child 0012-impl-r1 | codex/gpt-6.2-sol | orch/0012-pin-actions | — | — | — | — | — | docs/handoffs/2026-11-28-0012-pin-actions--lead-to-codex.md | 2026-11-28 |
+| 0012 | [quick] Pin workflow actions to commit SHAs | in-review | review 0012-review-r1 | codex/gpt-6.2-sol | orch/0012-pin-actions | https://github.com/pepperhorn/drumlet/pull/49 | /home/shaun/.t3/worktrees/drumlet/t3-99ddf924-be19fd26e9e086ca | — | — | — | docs/handoffs/2026-11-28-0012-pin-actions--lead-to-codex.md | 2026-11-28 |
 | 0013 | [quick] Dark theme: notation title, clef and time signature | dispatched | child 0013-impl-r1 | codex/gpt-6.2-sol | orch/0013-dark-notation-glyphs | — | — | — | — | — | docs/handoffs/2026-11-28-0013-dark-notation-glyphs--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
@@ -88,6 +88,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0012 dispatched→in-review — PR #49 head 8256e28 (4 uses pinned, actionlint clean); review r1 claudeAgent claude-opus-5-5
 2026-11-28 owner reports npm trusted publishing enabled for @pepperhorn/drumlet-player (pepperhorn/drumlet, release-player.yml); not independently verified (npm trust list needs OTP) — first tag-driven release will confirm
 2026-11-28 0011/0012/0013 delegated in parallel → codex gpt-6.2-sol (high), base b4780a1; threads thread:delegated-task:command%3Amcp%3A687e6560-ecc2-4e70-99ed-ac8603b1642f%3Adelegate-task%3A001{1,2,3}-impl-r1
 2026-11-28 owner accepted S30, S34, S26 → quick 0011, 0012, 0013 (parallel, disjoint). S34 tag half done by lead: ruleset "Protect release tags" (refs/tags/player-v*: creation/update/deletion/non-ff; admin bypass)
