@@ -5,7 +5,7 @@
 - Ledger: 0001 · [Spec](../specs/0001-drumlet-player.md) · [Task 12 plan](../plans/0001-drumlet-player.md#task-12-release-workflow--docs)
 - Branch: `orch/0001-t12-release`
 - Worktree: `/home/shaun/.t3/worktrees/drumlet/t3-420fb1e2-9927d595c24fc71b`
-- PR: Draft to open from this branch
+- PR: [#47](https://github.com/pepperhorn/drumlet/pull/47)
 - Base: `c0a37de` (t11 merge) · `1c69350` (dispatch)
 - Port: 5211 (iframe check only, stopped)
 - Status: open for review
