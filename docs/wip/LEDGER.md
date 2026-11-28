@@ -5,12 +5,15 @@
 > Waiting on: `child <taskId>` · `review <taskId>` · `ci` · `human: <why>` · `lead: <next action>`. Set it on every status change. A row needs the lead when it starts with `lead`, or when it's empty and Status is dispatched, in-review, changes-requested, ready, or merged. The lead's Stop hook won't let the lead end its turn while any row needs it.
 > Type: normal items have a spec and plan. Quick items have the title prefix `[quick]` (no spec or plan, a short handoff). PRs adopted by `orch-sweep` have the prefix `[pr]`.
 
-Next ID: 0011
+Next ID: 0014
 
 ## Active
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0011 | [quick] Defer the notation prefetch on drumlet.app | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0011-defer-notation-prefetch | — | — | — | — | — | docs/handoffs/2026-11-28-0011-defer-notation-prefetch--lead-to-codex.md | 2026-11-28 |
+| 0012 | [quick] Pin workflow actions to commit SHAs | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0012-pin-actions | — | — | — | — | — | docs/handoffs/2026-11-28-0012-pin-actions--lead-to-codex.md | 2026-11-28 |
+| 0013 | [quick] Dark theme: notation title, clef and time signature | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0013-dark-notation-glyphs | — | — | — | — | — | docs/handoffs/2026-11-28-0013-dark-notation-glyphs--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
 
@@ -71,20 +74,21 @@ Next ID: 0011
 | S23 | improvement | When Steps changes (e.g. 32), stock page-tab names ("Bar 2") no longer match the bars they hold — derive tab labels from bar range or rename on step change | PR #42 review r1 | S | tabs and pad names agree | 0009 review r1 | new |
 | S24 | efficiency | Share the "first bar of page" formula between Grid and EndlessGrid in one helper | PR #42 review r1 | S | no drift | 0009 review r1 | new |
 | S25 | risk | useAudioEngine: a call after release silently re-acquires the shared context and never releases it — guard or throw after dispose (all callers guarded today) | PR #43 review r1 | S | hardening | 0001-t8b review r1 | new |
-| S26 | improvement | Dark theme: notation title, clef and time signature render black on the dark card (pre-existing on main) | PR #44 review r1 | S | readable notation in Dark Studio | 0001-t9 review r1 | new |
+| S26 | improvement | Dark theme: notation title, clef and time signature render black on the dark card (pre-existing on main) | PR #44 review r1 | S | readable notation in Dark Studio | 0001-t9 review r1 | accepted → 0013 |
 | S27 | improvement | Let hosts recolour the player via documented CSS variables — today the player's token blocks and [data-theme] rules beat host overrides | PR #44 review r2 | M | host theming beyond light/dark | 0001-t9 review r2 | new |
 | S28 | efficiency | `!important` px widths in src/player/styles/base.css duplicate constants in EndlessGrid.tsx — derive one from the other | PR #44 review r2 | S | no drift | 0001-t9 review r2 | new |
 | S29 | efficiency | App is now a lazy chunk (t11) → one extra request hop on normal loads (~8 ms FCP on simulated 40 ms RTT); add a modulepreload for the App chunk in the Vite build once t10 (vite.config.js) merges | PR #45 fix r2 return handoff | S | restore startup parity | 0001-t11 | accepted → folded into 0001-t11 fix r3 (after t10) |
-| S30 | efficiency | Defer the 7.9 MB notation prefetch on `/` until after the app is interactive (or until a user gesture) — on slow links it competes with the App chunk; Chromium "Fast 3G" emulation doesn't set navigator.connection, so the 3g skip rule doesn't catch it | PR #45 review r2 | S | faster mobile startup | 0001-t11 review r2 | new |
+| S30 | efficiency | Defer the 7.9 MB notation prefetch on `/` until after the app is interactive (or until a user gesture) — on slow links it competes with the App chunk; Chromium "Fast 3G" emulation doesn't set navigator.connection, so the 3g skip rule doesn't catch it | PR #45 review r2 | S | faster mobile startup | 0001-t11 review r2 | accepted → 0011 |
 | S31 | risk | pack-smoke stale-dist check scans only src/player|audio|components (.ts/.tsx/.css); the player also bundles src/state, notation, plugins, util and .json — scan all of src/ minus tests/App/main/demo | PR #46 review r2; scripts/pack-smoke.mjs:108 | S | release gate can't pass on a stale build | 0001-t10 review r2 | accepted → fold into 0001-t12 |
 | S32 | risk | Add `prepublishOnly` (build:lib + verify:lib) to packages/drumlet-player so a manual publish can't ship a missing/stale dist | PR #47 review r1 | S | safe first publish | 0001-t12 review r1 | accepted → 0010 |
 | S33 | efficiency | Share the Chromium setup step between ci.yml and release-player.yml (composite action) | PR #47 review r1 | S | less duplication | 0001-t12 review r1 | new |
-| S34 | risk | Pin actions to commit SHAs in the publish job; protect `player-v*` tags (ruleset) | PR #47 review r1 | S | supply-chain hardening | 0001-t12 review r1 | new |
+| S34 | risk | Pin actions to commit SHAs in the publish job; protect `player-v*` tags (ruleset) | PR #47 review r1 | S | supply-chain hardening | 0001-t12 review r1 | accepted → 0012 |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 owner accepted S30, S34, S26 → quick 0011, 0012, 0013 (parallel, disjoint). S34 tag half done by lead: ruleset "Protect release tags" (refs/tags/player-v*: creation/update/deletion/non-ff; admin bypass)
 2026-11-28 @pepperhorn/drumlet-player@0.1.0 published by owner (npm latest=0.1.0, MIT, 73 files, 1.6 MB unpacked); jsDelivr serves dist/kits/acoustic1 and style.css. Next: owner enables npm trusted publishing for pepperhorn/drumlet release-player.yml
 2026-11-28 0010 merged (#48; auto-merge). First npm publish of @pepperhorn/drumlet-player 0.1.0 handed to owner (npm login first, then publish)
 2026-11-28 0010 dispatched→in-review — PR #48 head 9cc6ba7 (dry-runs match 73-file baseline; forced verify failure aborts); review r1 claudeAgent claude-opus-5-5
