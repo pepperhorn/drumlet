@@ -54,5 +54,13 @@ None.
 ---
 ## Receiver ack
 
+I’ll add the two-player local demo and a fresh Vite host that installs the
+packed library. Chromium will check both themes against the amended unlayered
+host styles and Tailwind, host style leakage, playback handoff, lazy requests,
+the kit base override, one shared context with idle suspension, and root
+styling. I’ll prove the check fails against a deliberately broken scratch build.
+The amendments take precedence, including leaving the iframe route to t11.
+No questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
