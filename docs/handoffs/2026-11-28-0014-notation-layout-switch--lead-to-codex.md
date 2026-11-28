@@ -27,5 +27,7 @@ Chromium: executablePath ~/.cache/ms-playwright/chromium_headless_shell-1254/chr
 ---
 ## Receiver ack
 
+I’ll fix the Paged ↔ Endless switch within notation so one score owns its counts and playhead in either direction. I’ll add a round-trip regression test, verify stopped and playing in Chromium at both widths and themes, and run the embed gate. No open scope questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
