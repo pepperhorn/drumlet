@@ -314,7 +314,19 @@ export function buildEmbedUrl(state: SequencerState, baseUrl = 'https://drumlet.
 export function buildEmbedSnippet(state: SequencerState, baseUrl = 'https://drumlet.app', pluginMeta: Record<string, unknown> | null = null): string | null {
   const url = buildEmbedUrl(state, baseUrl, pluginMeta);
   if (!url) return null;
-  return `<iframe src="${url}" width="100%" height="400" frameborder="0" style="border-radius:16px;border:1px solid #E2E8F0;" allow="autoplay"></iframe>`;
+  return `<iframe title="Drumlet groove" src="${url}" width="100%" height="400" frameborder="0" style="border-radius:16px;border:1px solid #E2E8F0;" allow="autoplay"></iframe>`;
+}
+
+export function buildNpmEmbedSnippet(state: SequencerState): string | null {
+  const code = encodeState(state);
+  if (!code) return null;
+  return `// npm i @pepperhorn/drumlet-player
+import { DrumletPlayer } from '@pepperhorn/drumlet-player';
+import '@pepperhorn/drumlet-player/style.css';
+
+export function Groove() {
+  return <DrumletPlayer groove={{ share: '${code}' }} />;
+}`;
 }
 
 export function loadFromUrl(): SequencerState | null {
