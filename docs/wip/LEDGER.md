@@ -11,12 +11,12 @@ Next ID: 0017
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0016 | [quick] Endless SVG/PNG downloads: no mid-strip title | in-review | review 0016-review-r1 | codex/gpt-6.2-sol | orch/0016-endless-export-title | https://github.com/pepperhorn/drumlet/pull/54 | /home/shaun/.t3/worktrees/drumlet/t3-71edaf9e-e55e4161e132803a | — | — | — | docs/handoffs/2026-11-28-0016-endless-export-title--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0016 | [quick] Endless downloads have no mid-strip title | https://github.com/pepperhorn/drumlet/pull/54 | 2026-11-28 | auto-merged (50 code lines, approve, CI green) |
 | 0015 | [quick] No title fragment in the endless notation strip | https://github.com/pepperhorn/drumlet/pull/53 | 2026-11-28 | auto-merged (28 code lines, approve, CI green) |
 | 0014 | [quick] Paged→Endless notation no longer leaves a stale score | https://github.com/pepperhorn/drumlet/pull/52 | 2026-11-28 | auto-merged (38 code lines, approve, CI green) |
 | 0011 | [quick] Defer the notation prefetch on drumlet.app | https://github.com/pepperhorn/drumlet/pull/51 | 2026-11-28 | 1 review round (opus; startup within noise); owner OK |
@@ -89,11 +89,13 @@ Next ID: 0017
 | S35 | improvement | Add .github/dependabot.yml for github-actions so pinned SHAs get update PRs | PR #49 review r1 | S | pins don't go stale | 0012 review r1 | new |
 | S36 | efficiency | Notation export ink colour hard-coded in src/notation/notationExport.ts:50 — use a named constant tied to the light theme | PR #50 review r1 | S | no drift | 0013 review r1 | new |
 | S37 | improvement | Exported SVG/PNG render title and labels in a serif fallback font (pre-existing) — embed or specify the UI fonts | PR #50 review r1 | S | exports match the app | 0013 review r1 | new |
+| S38 | improvement | notationExport test download helper stubs global URL and link click without restoring them | PR #54 review r1 | S | test hygiene | 0016 review r1 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0016 merged (#54; auto-merge, 50 code lines). No active rows remain
 2026-11-28 0016 dispatched→in-review — PR #54 head 6c31fa2 (268 tests); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0016 delegated → codex gpt-6.2-sol (high), base e4cec34; thread thread:delegated-task:command%3Amcp%3A5f61da37-a5b0-4527-a4c6-c7c467855c74%3Adelegate-task%3A0016-impl-r1
 2026-11-28 0015 merged (#53; auto-merge, 28 code lines). Lead decision on its review suggestion: Endless downloads drop the title (match screen), remove renderer→export title hand-off → quick 0016
