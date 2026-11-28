@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import { readFile } from 'node:fs/promises';
 import { beforeAll, expect, it, vi } from 'vitest';
+import { downloadSVG } from './notationExport.js';
 import { fitStaffToWidth, pickBarsPerLine, renderDrumStaff, type MergedTrack } from './renderStaff.js';
 
 it('chooses the largest number of full bars that fits at the selected size', () => {
@@ -22,6 +23,22 @@ function stubVerovioGeometry() {
       const x = Number(span?.[1] ?? /translate\((\d+)/.exec(use)?.[1] ?? 0);
       return { x, y: 0, width: span ? Number(span[2]) - x : 10, height: 10 };
     },
+  });
+}
+
+async function downloadedSVG(svg: SVGElement): Promise<string> {
+  const createObjectURL = vi.fn<(blob: Blob) => string>(() => 'blob:test');
+  vi.stubGlobal('URL', class extends URL {
+    static createObjectURL = createObjectURL;
+    static revokeObjectURL = vi.fn();
+  });
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  downloadSVG(svg);
+  const reader = new FileReader();
+  return new Promise((resolve, reject) => {
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(createObjectURL.mock.calls[0]![0]);
   });
 }
 
@@ -109,9 +126,10 @@ it.each(['endless', 'wrapped'] as const)('uses theme ink without overriding trac
 });
 
 it.each([
-  { bars: 8, systems: 1 },
-  { bars: 225, systems: 4 },
-])('places $bars bars in $systems horizontal systems with global step positions', async ({ bars, systems }) => {
+  { layout: 'endless', bars: 8, systems: 1, titles: 0 },
+  { layout: 'endless', bars: 225, systems: 4, titles: 0 },
+  { layout: 'wrapped', bars: 4, systems: 1, titles: 1 },
+] as const)('engraves $bars $layout bars in $systems systems and exports $titles titles', async ({ layout, bars, systems, titles }) => {
   stubVerovioGeometry();
   const score = document.createElement('div');
   const totalSteps = bars * 16;
@@ -122,12 +140,12 @@ it.each([
 
   try {
     const result = await renderDrumStaff(score, {
-      layout: 'endless', mergedTracks: [track], totalSteps, noteValueKey: '1/16',
+      layout, mergedTracks: [track], totalSteps, noteValueKey: '1/16',
       beatNoteValue: '1/4', stepsPerBeat: 4, useColor: false, numStaffLines: 1,
     });
-    const svg = score.firstElementChild!;
+    const svg = score.querySelector('svg')!;
     const groups = Array.from(svg.querySelectorAll('g.system'));
-    expect(svg.querySelector('.pgHead text')).toBeNull();
+    expect(svg.querySelectorAll('.pgHead text')).toHaveLength(titles);
     expect(groups).toHaveLength(systems);
     expect(svg.querySelectorAll('g.measure')).toHaveLength(bars);
     expect(groups.every(group => group.querySelectorAll('g.measure').length <= 64)).toBe(true);
@@ -136,6 +154,7 @@ it.each([
     expect(result.stepPositions.filter(Boolean)).toHaveLength(totalSteps);
     expect(new Set(result.stepPositions.map(pos => pos.y)).size).toBe(1);
     expect(result.stepPositions.every((pos, step, all) => step === 0 || pos.x > all[step - 1]!.x)).toBe(true);
+    expect((await downloadedSVG(svg)).match(/Drumlet notation/g) ?? []).toHaveLength(titles);
   } finally {
     Reflect.deleteProperty(SVGElement.prototype, 'getBBox');
   }
