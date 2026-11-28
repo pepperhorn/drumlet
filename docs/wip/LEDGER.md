@@ -12,7 +12,7 @@ Next ID: 0014
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 0011 | [quick] Defer the notation prefetch on drumlet.app | dispatched | child 0011-impl-r1 | codex/gpt-6.2-sol | orch/0011-defer-notation-prefetch | — | — | — | — | — | docs/handoffs/2026-11-28-0011-defer-notation-prefetch--lead-to-codex.md | 2026-11-28 |
-| 0012 | [quick] Pin workflow actions to commit SHAs | in-review | review 0012-review-r1 | codex/gpt-6.2-sol | orch/0012-pin-actions | https://github.com/pepperhorn/drumlet/pull/49 | /home/shaun/.t3/worktrees/drumlet/t3-99ddf924-be19fd26e9e086ca | — | — | — | docs/handoffs/2026-11-28-0012-pin-actions--lead-to-codex.md | 2026-11-28 |
+| 0012 | [quick] Pin workflow actions to commit SHAs | ready | human: approve merge of #49 (CI files) | codex/gpt-6.2-sol | orch/0012-pin-actions | https://github.com/pepperhorn/drumlet/pull/49 | /home/shaun/.t3/worktrees/drumlet/t3-99ddf924-be19fd26e9e086ca | — | — | — | docs/handoffs/2026-11-28-0012-pin-actions--lead-to-codex.md | 2026-11-28 |
 | 0013 | [quick] Dark theme: notation title, clef and time signature | dispatched | child 0013-impl-r1 | codex/gpt-6.2-sol | orch/0013-dark-notation-glyphs | — | — | — | — | — | docs/handoffs/2026-11-28-0013-dark-notation-glyphs--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
@@ -83,11 +83,13 @@ Next ID: 0014
 | S32 | risk | Add `prepublishOnly` (build:lib + verify:lib) to packages/drumlet-player so a manual publish can't ship a missing/stale dist | PR #47 review r1 | S | safe first publish | 0001-t12 review r1 | accepted → 0010 |
 | S33 | efficiency | Share the Chromium setup step between ci.yml and release-player.yml (composite action) | PR #47 review r1 | S | less duplication | 0001-t12 review r1 | new |
 | S34 | risk | Pin actions to commit SHAs in the publish job; protect `player-v*` tags (ruleset) | PR #47 review r1 | S | supply-chain hardening | 0001-t12 review r1 | accepted → 0012 |
+| S35 | improvement | Add .github/dependabot.yml for github-actions so pinned SHAs get update PRs | PR #49 review r1 | S | pins don't go stale | 0012 review r1 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0012 review r1 (opus) approved @ 8256e28 (SHAs verified = same versions as @v7; persist-credentials already false); CI files → owner OK. S35 logged
 2026-11-28 0012 dispatched→in-review — PR #49 head 8256e28 (4 uses pinned, actionlint clean); review r1 claudeAgent claude-opus-5-5
 2026-11-28 owner reports npm trusted publishing enabled for @pepperhorn/drumlet-player (pepperhorn/drumlet, release-player.yml); not independently verified (npm trust list needs OTP) — first tag-driven release will confirm
 2026-11-28 0011/0012/0013 delegated in parallel → codex gpt-6.2-sol (high), base b4780a1; threads thread:delegated-task:command%3Amcp%3A687e6560-ecc2-4e70-99ed-ac8603b1642f%3Adelegate-task%3A001{1,2,3}-impl-r1
