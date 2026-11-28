@@ -11,7 +11,7 @@ Next ID: 0011
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0010 | [quick] prepublishOnly guard for @pepperhorn/drumlet-player | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0010-prepublish-guard | — | — | — | — | — | docs/handoffs/2026-11-28-0010-prepublish-guard--lead-to-codex.md | 2026-11-28 |
+| 0010 | [quick] prepublishOnly guard for @pepperhorn/drumlet-player | dispatched | child 0010-impl-r1 | codex/gpt-6.2-sol | orch/0010-prepublish-guard | — | — | — | — | — | docs/handoffs/2026-11-28-0010-prepublish-guard--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
 
@@ -85,6 +85,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0010 delegated → codex gpt-6.2-sol (high), base 4f55157; thread thread:delegated-task:command%3Amcp%3A2a4b1bf1-6db4-47cc-b101-c4c3a37c34a1%3Adelegate-task%3A0010-impl-r1
 2026-11-28 0001 t12 merged (#47, ee8fe16; owner OK; CI green on main) — 0001 COMPLETE. Owner accepted S32 → quick 0010 (prepublishOnly guard) before first manual publish
 2026-11-28 0001 t12 review r1 (opus) approved @ af46a1b (actionlint clean; gate + CI Chromium step verified; S31 works; README snippets run); merge needs owner OK (CI). S32–S34 logged
 2026-11-28 0001 t12 PR #47 head af46a1b (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-420fb1e2-9927d595c24fc71b; full gate passes; 73-file dry-run tarball); review r1 claudeAgent claude-opus-5-5
