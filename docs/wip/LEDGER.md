@@ -11,7 +11,7 @@ Next ID: 0014
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0011 | [quick] Defer the notation prefetch on drumlet.app | dispatched | child 0011-impl-r1 | codex/gpt-6.2-sol | orch/0011-defer-notation-prefetch | — | — | — | — | — | docs/handoffs/2026-11-28-0011-defer-notation-prefetch--lead-to-codex.md | 2026-11-28 |
+| 0011 | [quick] Defer the notation prefetch on drumlet.app | in-review | review 0011-review-r1 | codex/gpt-6.2-sol | orch/0011-defer-notation-prefetch | https://github.com/pepperhorn/drumlet/pull/51 | /home/shaun/.t3/worktrees/drumlet/t3-9832d393-f85f724165292ec5 | — | — | — | docs/handoffs/2026-11-28-0011-defer-notation-prefetch--lead-to-codex.md | 2026-11-28 |
 | 0013 | [quick] Dark theme: notation title, clef and time signature | in-review | review 0013-review-r1 | codex/gpt-6.2-sol | orch/0013-dark-notation-glyphs | https://github.com/pepperhorn/drumlet/pull/50 | /home/shaun/.t3/worktrees/drumlet/t3-e26f3adc-be586698ef7ddd83 | — | — | — | docs/handoffs/2026-11-28-0013-dark-notation-glyphs--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
@@ -89,6 +89,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0011 dispatched→in-review — PR #51 head 635e655 (264 tests; order/delay OK; startup +92 ms median but A/A noise up to 540 ms → reviewer to measure with A/A control); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0013 dispatched→in-review — PR #50 head 2d3dcee (258 tests; exports dark-on-white); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0012 merged (#49; owner OK) — S34 complete (tag ruleset + pinned actions)
 2026-11-28 0012 review r1 (opus) approved @ 8256e28 (SHAs verified = same versions as @v7; persist-credentials already false); CI files → owner OK. S35 logged
