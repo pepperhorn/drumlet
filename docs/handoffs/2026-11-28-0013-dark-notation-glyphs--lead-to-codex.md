@@ -28,6 +28,7 @@ Chromium: executablePath ~/.cache/ms-playwright/chromium_headless_shell-1254/chr
 
 ---
 ## Receiver ack
+I’ll make uncoloured wrapped and endless notation follow the theme text colour, preserve track colours, and verify readable SVG and PNG downloads. I’ll change only `src/notation/**`, `src/components/NotationView.tsx`, and their tests, then check both layouts in Chromium at 412 and 1280 px. GBrain context: `projects/drumlet`.
 
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
