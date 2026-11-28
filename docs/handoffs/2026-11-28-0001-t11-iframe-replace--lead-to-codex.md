@@ -24,7 +24,8 @@ Implement plan **Task 11** on main with the amendments below: the existing `?emb
 
 ## Scope
 - **Files you own:** `src/main.tsx`, new `src/player/EmbedPage.tsx` (+ test), `src/components/ShareModal.tsx`, `buildEmbedSnippet` (and a new npm-snippet builder) in `src/state/shareCodec.ts` (+ tests), `scripts/embed-route.check.mjs`, root `package.json` (script `check:embed-route` only).
-- **Do not touch:** `docs/wip/LEDGER.md`, `vite.config.js`, `player-demo.html`, `scripts/player-embed.check.mjs`, `scripts/pack-smoke.mjs` (t10 runs in parallel), the package build.
+- **Added by lead for fix round 3 (after t10 merged):** `vite.config.js` and `index.html` — only to restore normal-app startup parity (preload the App chunk).
+- **Do not touch:** `docs/wip/LEDGER.md`, `player-demo.html`, `scripts/player-embed.check.mjs`, `scripts/pack-smoke.mjs` (t10 runs in parallel), the package build.
 
 ## Acceptance criteria
 - [ ] Plan Task 11 steps done; existing embed links keep working (v1–v3 decode as single-page grooves via the player).
