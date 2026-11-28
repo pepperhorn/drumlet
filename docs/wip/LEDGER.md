@@ -11,7 +11,7 @@ Next ID: 0010
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | changes-requested | review 0001-t10-review-r1 (t10 #46); t11 #45 waits on t10 merge (then fix r3 with vite.config.js) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/45, https://github.com/pepperhorn/drumlet/pull/46 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | changes-requested | child 0001-t10-impl-r2 (t10 #46); t11 #45 waits on t10 merge (then fix r3 with vite.config.js) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/45, https://github.com/pepperhorn/drumlet/pull/46 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -77,6 +77,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0001 t10 review r1 (opus) approved @ 1d9c1fd (all 8 mutations caught). Lead wants before merge: production build unchanged (demo behind --mode demo), labelled gate failures, stale-dist/port/install robustness → fix r2 sent
 2026-11-28 0001 t11 review r2 (opus) @ bc74c6d: r1 fixed; startup +~550 ms on Fast 3G (one extra hop) → blocking. Lead: t11 waits for t10 (vite.config.js) to merge, then fix r3 adds App modulepreload + empty-embed → player error. S30 logged
 2026-11-28 0001 t11 fix r2 pushed @ bc74c6d (bad codes → player error; shared parser; README-exact snippet; 256 tests + 7 route checks). Startup +~8 ms accepted as follow-up S29. Review r2 claudeAgent claude-opus-5-5
 2026-11-28 0001 t11 in-review→changes-requested — opus r1 @ 8adc044: undecodable/unknown-version embed codes open the full app. Fix r2 sent: route fix + 6th route check; snippet matches README exactly; reuse shareCodec regex; no extra round-trip on normal app load (measure vs main)
