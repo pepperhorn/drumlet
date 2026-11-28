@@ -11,13 +11,13 @@ Next ID: 0015
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0014 | [quick] Paged→Endless notation leaves the old score on screen | dispatched | child 0014-impl-r1 | codex/gpt-6.2-sol | orch/0014-notation-layout-switch | — | — | — | — | — | docs/handoffs/2026-11-28-0014-notation-layout-switch--lead-to-codex.md | 2026-11-28 |
-| 0011 | [quick] Defer the notation prefetch on drumlet.app | ready | human: approve merge of #51 (166 code lines) | codex/gpt-6.2-sol | orch/0011-defer-notation-prefetch | https://github.com/pepperhorn/drumlet/pull/51 | /home/shaun/.t3/worktrees/drumlet/t3-9832d393-f85f724165292ec5 | — | — | — | docs/handoffs/2026-11-28-0011-defer-notation-prefetch--lead-to-codex.md | 2026-11-28 |
+| 0014 | [quick] Paged→Endless notation leaves the old score on screen | in-review | review 0014-review-r1 | codex/gpt-6.2-sol | orch/0014-notation-layout-switch | https://github.com/pepperhorn/drumlet/pull/52 | /home/shaun/.t3/worktrees/drumlet/t3-134ec035-a9bad30080ec31f8 | — | — | — | docs/handoffs/2026-11-28-0014-notation-layout-switch--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0011 | [quick] Defer the notation prefetch on drumlet.app | https://github.com/pepperhorn/drumlet/pull/51 | 2026-11-28 | 1 review round (opus; startup within noise); owner OK |
 | 0013 | [quick] Dark theme notation glyphs follow the theme | https://github.com/pepperhorn/drumlet/pull/50 | 2026-11-28 | auto-merged (47 code lines, approve, CI green) |
 | 0012 | [quick] Pin workflow actions to commit SHAs | https://github.com/pepperhorn/drumlet/pull/49 | 2026-11-28 | 1 review round (opus); owner OK |
 | 0010 | [quick] prepublishOnly guard | https://github.com/pepperhorn/drumlet/pull/48 | 2026-11-28 | auto-merged (3 code lines, approve, CI green) |
@@ -92,6 +92,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0011 merged (#51; owner OK). 0014 PR #52 head 841284d (259 tests, 24 Chromium snapshots); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0011 review r1 (opus) approved @ 635e655 (14 rounds + A/A control: time-to-app −6 ms median, inside noise; nothing loads later); 166 code lines → owner OK
 2026-11-28 0014 delegated → codex gpt-6.2-sol (high), base 9d88c9c; thread thread:delegated-task:command%3Amcp%3Ae3d8cfda-6b63-42ac-b7ca-0b3225c8a8f6%3Adelegate-task%3A0014-impl-r1
 2026-11-28 0013 merged (#50; auto-merge, 47 code lines). Pre-existing bug from its review (Paged→Endless notation leaves stale score) → quick 0014. S36 S37 logged
