@@ -85,6 +85,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0010 implementer run failed on Codex usage limit after drafting the prepublishOnly line (uncommitted); owner reports Codex reset → resumed same thread
 2026-11-28 0010 delegated → codex gpt-6.2-sol (high), base 4f55157; thread thread:delegated-task:command%3Amcp%3A2a4b1bf1-6db4-47cc-b101-c4c3a37c34a1%3Adelegate-task%3A0010-impl-r1
 2026-11-28 0001 t12 merged (#47, ee8fe16; owner OK; CI green on main) — 0001 COMPLETE. Owner accepted S32 → quick 0010 (prepublishOnly guard) before first manual publish
 2026-11-28 0001 t12 review r1 (opus) approved @ af46a1b (actionlint clean; gate + CI Chromium step verified; S31 works; README snippets run); merge needs owner OK (CI). S32–S34 logged
