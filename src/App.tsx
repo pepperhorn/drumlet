@@ -15,7 +15,7 @@ import Library from './components/Library.js';
 import SavePrompt from './components/SavePrompt.js';
 import ShareModal from './components/ShareModal.js';
 import NotationBoundary from './components/NotationBoundary.js';
-import { prefetchNotation, shouldPrefetchOnIdle } from './components/notationPrefetch.js';
+import { prefetchNotation, scheduleNotationPrefetch, shouldPrefetchOnIdle } from './components/notationPrefetch.js';
 import MpcPads from './components/MpcPads.js';
 import PluginModal from './components/PluginModal.js';
 import SoundPicker from './components/SoundPicker.js';
@@ -78,22 +78,7 @@ function Drumlet() {
   useEffect(() => {
     const { connection } = navigator as Navigator & { connection?: Parameters<typeof shouldPrefetchOnIdle>[0] };
     if (!shouldPrefetchOnIdle(connection)) return;
-    const warm = () => { void prefetchNotation().catch(() => {}); };
-    // Wait until after the first paint even in browsers without requestIdleCallback.
-    let cancelIdle: (() => void) | undefined;
-    const frame = requestAnimationFrame(() => {
-      if (typeof window.requestIdleCallback === 'function') {
-        const idle = window.requestIdleCallback(warm);
-        cancelIdle = () => window.cancelIdleCallback(idle);
-      } else {
-        const timeout = window.setTimeout(warm, 0);
-        cancelIdle = () => window.clearTimeout(timeout);
-      }
-    });
-    return () => {
-      cancelAnimationFrame(frame);
-      cancelIdle?.();
-    };
+    return scheduleNotationPrefetch(() => { void prefetchNotation().catch(() => {}); });
   }, []);
   const [playMode, setPlayMode] = useState(false);
   const [showFullTransport, setShowFullTransport] = useState(false);

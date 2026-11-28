@@ -49,3 +49,44 @@ export async function prefetchNotation(): Promise<void> {
 export function shouldPrefetchOnIdle(conn?: { saveData?: boolean; effectiveType?: string }): boolean {
   return !conn?.saveData && !['slow-2g', '2g', '3g'].includes(conn?.effectiveType ?? '');
 }
+
+export function scheduleNotationPrefetch(warm: () => void): () => void {
+  const delay = 5_000;
+  let timer: number | undefined;
+  let idle: number | undefined;
+
+  function stopWaiting() {
+    window.removeEventListener('pointerdown', schedule, true);
+    window.removeEventListener('keydown', schedule, true);
+    window.removeEventListener('load', onLoad);
+    window.clearTimeout(timer);
+  }
+
+  function schedule() {
+    stopWaiting();
+    if (typeof window.requestIdleCallback === 'function') {
+      idle = window.requestIdleCallback(warm);
+    } else {
+      timer = window.setTimeout(warm, 0);
+    }
+  }
+
+  function onLoad() {
+    timer = window.setTimeout(schedule, delay);
+  }
+
+  window.addEventListener('pointerdown', schedule, true);
+  window.addEventListener('keydown', schedule, true);
+  if (document.readyState === 'complete') {
+    const navigation = performance.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined;
+    const elapsed = navigation?.loadEventStart ? performance.now() - navigation.loadEventStart : 0;
+    timer = window.setTimeout(schedule, Math.max(0, delay - elapsed));
+  } else {
+    window.addEventListener('load', onLoad, { once: true });
+  }
+
+  return () => {
+    stopWaiting();
+    if (idle !== undefined) window.cancelIdleCallback(idle);
+  };
+}
