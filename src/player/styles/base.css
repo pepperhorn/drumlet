@@ -1,0 +1,69 @@
+/* SPDX-License-Identifier: MIT */
+:where(.drumlet-player),
+.drumlet-player :where(:not(svg, svg *)) {
+  all: revert;
+  box-sizing: border-box;
+  font-size: inherit;
+  border: 0 solid;
+}
+
+.drumlet-player *::before,
+.drumlet-player *::after {
+  box-sizing: border-box;
+}
+
+.drumlet-player {
+  container: dp-player / inline-size;
+  color-scheme: light;
+  font: 16px / 1.5 var(--font-body);
+  color: var(--color-text);
+}
+
+.drumlet-player[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #0E1220;
+  --color-card: #1E2A47;
+  --color-card-elevated: #243454;
+  --color-inset: #0E1220;
+  --color-text: #EDE6D3;
+  --color-text-inverse: #0E1220;
+  --color-border: #334155;
+  --color-gray-50: #283557;
+  --color-gray-100: #324166;
+  --color-gray-200: #3F517D;
+  --color-cell: #E5DCC4;
+  --color-cell-hover: #D8CFB7;
+}
+
+.drumlet-player :where(button, input) {
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  padding: 0;
+}
+
+.drumlet-player :where(p) {
+  margin: 0;
+}
+
+.step-cell-label {
+  position: relative;
+  top: calc(5 / 32 * 100%);
+}
+
+.grid-scroll::-webkit-scrollbar { height: 6px; }
+.grid-scroll::-webkit-scrollbar-track { background: transparent; }
+.grid-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+/* EndlessGrid sets these inline in rem for the app. Keep host root sizing out of the player. */
+.endless-label-spacer,
+.endless-track-label {
+  width: min(112px, 25cqw) !important;
+}
+
+.endless-grid {
+  scroll-padding-left: min(112px, 25%) !important;
+}

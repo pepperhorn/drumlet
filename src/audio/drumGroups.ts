@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Actual group names per drum machine as reported by smplr's getGroupNames().
  * These vary across machines — "hihat" doesn't exist on any of them.

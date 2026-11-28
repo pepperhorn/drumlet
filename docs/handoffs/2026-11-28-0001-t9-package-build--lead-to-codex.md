@@ -52,5 +52,7 @@ None.
 ---
 ## Receiver ack
 
+I’ll package the existing player as scoped, SSR-safe MIT ESM, with declarations, lazy notation and the acoustic1 kit. Container sizing will apply only inside the player. I’ll verify that the app stays unchanged and that the packed player renders and plays in a scratch Vite app. No demo, iframe changes or publishing. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)

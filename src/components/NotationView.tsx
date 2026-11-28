@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
 import { NOTE_VALUES } from '../state/sequencerReducer.js';
 import type { Page, NoteValueKey, SectionHeading } from '../state/sequencerReducer.js';

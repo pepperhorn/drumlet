@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { v4 as uuid } from 'uuid';
 import { effectiveStep } from '../util/stepHelpers.js';
 import type { SequencerState, Step, Track, NoteValueKey } from './sequencerReducer.js';

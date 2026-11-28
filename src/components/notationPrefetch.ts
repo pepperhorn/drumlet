@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 let notationModule: ReturnType<typeof importNotation> | undefined;
 let petaluma: { promise: Promise<string>; controller?: AbortController } | undefined;
 

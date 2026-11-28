@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import type { NoteValueKey } from '../state/sequencerReducer.js';
 
 interface BeatEvent {

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 type AudioFormat = 'ogg' | 'm4a';
 
 export interface KitSampleDef {

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * SVG and PNG download utilities for notation.
  *

@@ -1,0 +1,46 @@
+/* SPDX-License-Identifier: MIT */
+@import "tailwindcss/theme.css" layer(theme);
+@import "./base.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "../../styles/hardware.css";
+
+@source "../DrumletPlayer.tsx";
+@source "../../components/Cell.tsx";
+@source "../../components/EndlessGrid.tsx";
+@source "../../components/Knob.tsx";
+@source "../../components/NotationBoundary.tsx";
+@source "../../components/NotationLoading.tsx";
+@source "../../components/NotationView.tsx";
+
+@theme static {
+  --font-display: "Fredoka", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-legend: "Chakra Petch", "Inter", sans-serif;
+
+  --color-bg: #FAFBFC;
+  --color-card: #FFFFFF;
+  --color-card-elevated: #FFFFFF;
+  --color-inset: #FAFBFC;
+  --color-text: #1A1A2E;
+  --color-text-inverse: #FFFFFF;
+  --color-muted: #94A3B8;
+  --color-border: #E2E8F0;
+  --color-accent: #5BC0EB;
+  --color-accent-text: #FFFFFF;
+
+  --color-coral: #FF6B6B;
+  --color-amber: #FFB347;
+  --color-lime: #A8E06C;
+  --color-sky: #5BC0EB;
+  --color-lavender: #B39DDB;
+  --color-peach: #FFAB91;
+  --color-mint: #66D9A0;
+  --color-rose: #F48FB1;
+
+  --color-play: #22C55E;
+  --color-stop: #EF4444;
+
+  --color-cell: #FFFFFF;
+  --color-cell-hover: #F8FAFC;
+}

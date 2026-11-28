@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 const BEAT_LABELS: Record<string, (b: number) => string[]> = {
   '1/4':  (b) => [`${b}`],
   '1/8':  (b) => [`${b}`, '&'],

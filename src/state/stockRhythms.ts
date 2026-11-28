@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Stock Rhythms — the generated multi-bar groove manifest (src/data/stockRhythms.json).
  *
