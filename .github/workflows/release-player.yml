@@ -1,0 +1,64 @@
+name: Release Drumlet Player
+
+on:
+  push:
+    tags: ['player-v*']
+
+jobs:
+  publish:
+    name: Publish @pepperhorn/drumlet-player
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      # Trusted publishing requires npm >= 11.5.1.
+      - name: Update npm
+        run: npm install -g npm@11.20.0
+
+      - name: Tag matches package version
+        run: |
+          set -euo pipefail
+          expected="player-v$(node -p "require('./packages/drumlet-player/package.json').version")"
+          if [ "$expected" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package version $expected"
+            exit 1
+          fi
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+      - run: npm run build:lib
+      - run: npm run verify:lib
+      - run: npm run smoke:pack
+
+      - name: Install Chromium for embed checks
+        run: |
+          set -euo pipefail
+          browser_dir="$RUNNER_TEMP/drumlet-browser"
+          npm install --prefix "$browser_dir" --no-save --no-package-lock --ignore-scripts playwright-core@1.64.1
+          modules="$browser_dir/node_modules"
+          PLAYWRIGHT_BROWSERS_PATH="$browser_dir/browsers" \
+            "$modules/.bin/playwright-core" install --with-deps --only-shell chromium
+          shell=("$browser_dir"/browsers/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell)
+          test -x "${shell[0]}"
+          # The package check uses PLAYWRIGHT_CORE_PATH. The iframe check resolves via NODE_PATH.
+          printf '%s\n' "CHROMIUM_PATH=${shell[0]}" "PLAYWRIGHT_CORE_PATH=$modules/playwright-core" "NODE_PATH=$modules" >> "$GITHUB_ENV"
+
+      - run: npm run check:embed
+      - run: npm run check:embed-route
+
+      - name: Publish to npm
+        run: npm publish ./packages/drumlet-player --access public --provenance

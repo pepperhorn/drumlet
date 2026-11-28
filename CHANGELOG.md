@@ -2,6 +2,26 @@
 
 All notable changes to Drumlet are documented here.
 
+## [Unreleased]
+
+### Added
+
+- `@pepperhorn/drumlet-player` 0.1.0 packages the read-only React player under
+  MIT with acoustic1 samples, three chrome presets and optional notation.
+- Endless grid and notation views show the whole groove in one horizontal
+  strip. The app can switch between Paged and Endless.
+- CI checks the packed package and iframe embed. Matching `player-vX.Y.Z` tags
+  run the same checks before publishing to npm with provenance.
+
+### Changed
+
+- Standard iframe embeds use the React player. Plugin and challenge embeds
+  still open the app.
+
+### Fixed
+
+- Package smoke tests reject builds older than shared source and data files.
+
 ## [0.1.4.0] - 2026-10-22
 
 ### Added

@@ -53,6 +53,24 @@ src/
 
 See [`CLAUDE.md`](CLAUDE.md) for project conventions, [`DESIGN.md`](DESIGN.md) for the design system, [`ARCHITECTURE.md`](ARCHITECTURE.md) for the high-level architecture, and [`TS-MIGRATION.md`](TS-MIGRATION.md) for the TypeScript migration history.
 
+## Releasing Drumlet Player
+
+The owner publishes `@pepperhorn/drumlet-player@0.1.0` manually from the merged
+release commit. From the repository root, run `npm ci`,
+`npm run build:lib` and `npm run verify:lib`. Run `npm login` separately,
+then run `npm publish ./packages/drumlet-player --access public`.
+Do not push a release tag for this manual publish.
+
+In the package settings on npmjs.com, add a [GitHub Actions trusted publisher](https://docs.npmjs.com/trusted-publishers/)
+for owner `pepperhorn`, repository `drumlet` and workflow filename
+`release-player.yml`, with no environment. Enable publishing if npm asks
+which operations to allow.
+
+For later releases, bump the version in `packages/drumlet-player/package.json`
+and update the root lockfile. Once the bump is merged, tag that commit
+`player-vX.Y.Z` and push the tag. The release workflow checks that the tag
+matches the package version and publishes with provenance after the checks pass.
+
 ## License
 
 [GNU AGPL v3](LICENSE). If you host a modified version of drumlet as a network service, you must offer the source of your changes to users of that service.

@@ -1,11 +1,15 @@
 # @pepperhorn/drumlet-player
 
-A React drum groove player with pads, playback and notation. It uses the same
-grid, audio engine and notation renderer as the Drumlet app.
+A read-only React drum groove player with a pad grid, playback and notation. It
+uses the same grid, audio engine and notation renderer as the Drumlet app.
+
+## Install and use
 
 ```sh
 npm install @pepperhorn/drumlet-player
 ```
+
+React and React DOM 19 or later are peer dependencies.
 
 ```tsx
 import { DrumletPlayer } from '@pepperhorn/drumlet-player'
@@ -16,34 +20,86 @@ export function Lesson() {
 }
 ```
 
-React and React DOM 19 or later are peers. The ESM entry is safe to import in
-Node. Mount the interactive player on the client (for example,
-`client:only="react"` in Astro). The groove can be a stock ID, a share code, or
-a parsed `.dottl` project. Set `chrome` to `minimal` for one Play button or
-`none` for a static view. The default theme is light.
+## Props
 
-## Styles
+| Prop | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `groove` | `GrooveInput` | Required | Stock rhythm ID, share string, parsed `.dottl` project, `{ stock: string }` or `{ share: string }`. A share string is a bare code or a URL with a `#s=…` fragment. |
+| `chrome` | `'full' \| 'minimal' \| 'none'` (`PlayerChrome`) | `'full'` | Selects the controls and whether playback is enabled. |
+| `view` | `'endless' \| 'paged'` | `'endless'` | Endless shows all pages in one horizontal strip. Paged shows one page at a time. Full chrome can switch views. |
+| `display` | `'grid' \| 'notation'` | `'grid'` | Initial display with full or minimal chrome. With no chrome, the prop controls the display. |
+| `theme` | `'light' \| 'dark'` | `'light'` | Sets `data-theme` on the player root only. |
+| `bpm` | `number` | Groove tempo | A finite override is clamped to 20–300 BPM. Full chrome can adjust the tempo locally. |
+| `assetBaseUrl` | `string` | Versioned jsDelivr asset base | Base URL for kit assets. The player appends `/kits/`. |
+| `className` | `string` | Unset | Extra class on the player root. |
+| `onReady` | `() => void` | Unset | The groove has resolved and the player is mounted. Audio is still loaded on demand. |
+| `onPlay` | `() => void` | Unset | Playback has started. |
+| `onStop` | `() => void` | Unset | Reports an explicit stop, the groove ending, or another player taking over. |
+| `onError` | `(error: GrooveError \| Error) => void` | Unset | Groove resolution or playback startup failed. |
+| `onStep` | `(globalStep: number) => void` | Unset | Reports the current zero-based step across all pages during playback. |
 
-Load `style.css` after the host stylesheet. The precompiled, unlayered CSS is
-scoped to `.drumlet-player`. The player's reset and controls take precedence
-over host-wide element rules such as `button { all: unset }` and
-`* { font-size: 30px }`, without changing elements outside the player. Pass
-`className` to set the root's margin, outline, or width in unlayered host CSS.
-Pads size from the player width rather than the viewport. The player uses
-Fredoka, Inter, JetBrains Mono and Chakra Petch when the host provides them,
-and system fallbacks otherwise.
+Pass a React ref typed as `DrumletPlayerHandle` to call `play(): Promise<void>`,
+`stop(): void` or `seek(globalStep: number): void`. Call `play()` from a user
+gesture so the browser can resume audio. `play()` rejects if startup fails. The
+methods do nothing before the groove is ready or with `chrome="none"`.
 
-## Audio and notation
+## Chrome presets
 
-By default the player loads acoustic1 from the matching npm package version on
-jsDelivr. To self-host, copy package `dist/kits/` to your public asset base
-and pass that base as `assetBaseUrl`. For example, `assetBaseUrl="/drumlet"`
-looks for `/drumlet/kits/acoustic1/kit.json`. Groove-specific smplr instruments
-may use their own CDN.
+- `full` shows play/stop, tempo, loop, grid/notation and endless/paged controls.
+- `minimal` shows a single play/stop keycap. Set `view` and `display` in props.
+- `none` shows the groove without transport controls and does not load audio.
+  Set `display="notation"` to show notation without playback.
 
-The grid does not load Verovio or Petaluma. The notation view loads Verovio as
-an external dependency and fetches the packaged Petaluma archive through a
-module-relative URL. Use a bundler that preserves or rewrites this asset URL.
+Players share one `AudioContext` per page. Starting a second player stops the
+first.
+
+## Themes and host styles
+
+Load `style.css` after the host stylesheet. The unlayered CSS is scoped to
+`.drumlet-player`. The reset and controls take precedence over host-wide
+element rules like `button { all: unset }` without changing elements outside
+the player. Use `className` with unlayered host CSS to set outer layout such as
+width, margin or outline. The added class does not replace the internal
+palette or control styles. Use `theme` to switch the built-in palette.
+
+Pads size from the player width. The player uses Fredoka, Inter, JetBrains Mono
+and Chakra Petch if the host provides them, and system fallbacks otherwise.
+
+## Kits and notation
+
+The package ships the acoustic1 kit in Ogg and AAC. The player loads a
+supported format from the matching package version on jsDelivr at
+`https://cdn.jsdelivr.net/npm/@pepperhorn/drumlet-player@<version>/dist/kits/`.
+To self-host, copy the package's `dist/kits/` directory into your public
+asset base. For example, `assetBaseUrl="/drumlet"` looks for the manifest at
+`/drumlet/kits/acoustic1/kit.json`. Grooves that use smplr drum machines may
+still fetch sounds from smplr's CDN.
+
+The grid does not load Verovio or Petaluma. Notation loads Verovio on demand
+and fetches the packaged Petaluma archive through a module-relative URL. Use
+a bundler that preserves or rewrites that URL. `assetBaseUrl` does not change
+where notation assets load from.
+
+## SSR and Astro
+
+The ESM entry is safe to import in Node. The server renders a loading state.
+Groove resolution and playback run on the client.
+
+With Astro's React integration, use `client:only="react"` to skip server
+rendering, or `client:visible` to hydrate the loading state when the player
+enters the viewport.
+
+```astro
+---
+import { DrumletPlayer } from '@pepperhorn/drumlet-player'
+import '@pepperhorn/drumlet-player/style.css'
+---
+
+<DrumletPlayer client:only="react" groove="rock-basic-8ths" />
+```
+
+To use callbacks or a ref in Astro, put the player and its handlers in a React
+component and hydrate that component.
 
 ## License
 

@@ -50,5 +50,11 @@ None.
 ---
 ## Receiver ack
 
+I’ll add PR and main CI, a version-checked `player-v*` workflow for npm
+trusted publishing, and the missing stale-source check. I’ll update the player
+docs and record the owner’s first-release steps. The dispatch amendments take
+precedence over Task 12. I’ll keep version 0.1.0 and leave the source, ledger,
+npm configuration and tags unchanged. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
