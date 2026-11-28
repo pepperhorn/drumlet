@@ -6,7 +6,7 @@
 - Branch: `orch/0013-dark-notation-glyphs`
 - Worktree: `/home/shaun/.t3/worktrees/drumlet/t3-e26f3adc-be586698ef7ddd83`
 - Base: `aea44ca`. The dispatch handoff is in `b4780a1`.
-- PR: pending creation
+- PR: https://github.com/pepperhorn/drumlet/pull/50
 - Status: ready for review
 
 ## Goal and scope
