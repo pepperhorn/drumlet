@@ -49,5 +49,7 @@ None.
 ---
 ## Receiver ack
 
+I’ll mount the full-chrome, view-and-play DrumletPlayer for plain iframe shares, keep plugin and challenge shares on App, and add a React/npm snippet next to the existing iframe snippet. The handoff amendments win: omit `assetBaseUrl` and add the legacy-route check in Task 11. I’ll stay within the listed files and leave Task 10’s build, demo, and scripts alone. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
