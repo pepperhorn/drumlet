@@ -5,19 +5,20 @@
 > Waiting on: `child <taskId>` · `review <taskId>` · `ci` · `human: <why>` · `lead: <next action>`. Set it on every status change. A row needs the lead when it starts with `lead`, or when it's empty and Status is dispatched, in-review, changes-requested, ready, or merged. The lead's Stop hook won't let the lead end its turn while any row needs it.
 > Type: normal items have a spec and plan. Quick items have the title prefix `[quick]` (no spec or plan, a short handoff). PRs adopted by `orch-sweep` have the prefix `[pr]`.
 
-Next ID: 0014
+Next ID: 0015
 
 ## Active
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0014 | [quick] Paged→Endless notation leaves the old score on screen | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0014-notation-layout-switch | — | — | — | — | — | docs/handoffs/2026-11-28-0014-notation-layout-switch--lead-to-codex.md | 2026-11-28 |
 | 0011 | [quick] Defer the notation prefetch on drumlet.app | in-review | review 0011-review-r1 | codex/gpt-6.2-sol | orch/0011-defer-notation-prefetch | https://github.com/pepperhorn/drumlet/pull/51 | /home/shaun/.t3/worktrees/drumlet/t3-9832d393-f85f724165292ec5 | — | — | — | docs/handoffs/2026-11-28-0011-defer-notation-prefetch--lead-to-codex.md | 2026-11-28 |
-| 0013 | [quick] Dark theme: notation title, clef and time signature | in-review | review 0013-review-r1 | codex/gpt-6.2-sol | orch/0013-dark-notation-glyphs | https://github.com/pepperhorn/drumlet/pull/50 | /home/shaun/.t3/worktrees/drumlet/t3-e26f3adc-be586698ef7ddd83 | — | — | — | docs/handoffs/2026-11-28-0013-dark-notation-glyphs--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0013 | [quick] Dark theme notation glyphs follow the theme | https://github.com/pepperhorn/drumlet/pull/50 | 2026-11-28 | auto-merged (47 code lines, approve, CI green) |
 | 0012 | [quick] Pin workflow actions to commit SHAs | https://github.com/pepperhorn/drumlet/pull/49 | 2026-11-28 | 1 review round (opus); owner OK |
 | 0010 | [quick] prepublishOnly guard | https://github.com/pepperhorn/drumlet/pull/48 | 2026-11-28 | auto-merged (3 code lines, approve, CI green) |
 | 0001-t12 | Release workflow, CI and docs | https://github.com/pepperhorn/drumlet/pull/47 | 2026-11-28 (ee8fe16) | 1 review round (opus); owner OK; first CI on main green |
@@ -84,11 +85,14 @@ Next ID: 0014
 | S33 | efficiency | Share the Chromium setup step between ci.yml and release-player.yml (composite action) | PR #47 review r1 | S | less duplication | 0001-t12 review r1 | new |
 | S34 | risk | Pin actions to commit SHAs in the publish job; protect `player-v*` tags (ruleset) | PR #47 review r1 | S | supply-chain hardening | 0001-t12 review r1 | accepted → 0012 |
 | S35 | improvement | Add .github/dependabot.yml for github-actions so pinned SHAs get update PRs | PR #49 review r1 | S | pins don't go stale | 0012 review r1 | new |
+| S36 | efficiency | Notation export ink colour hard-coded in src/notation/notationExport.ts:50 — use a named constant tied to the light theme | PR #50 review r1 | S | no drift | 0013 review r1 | new |
+| S37 | improvement | Exported SVG/PNG render title and labels in a serif fallback font (pre-existing) — embed or specify the UI fonts | PR #50 review r1 | S | exports match the app | 0013 review r1 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0013 merged (#50; auto-merge, 47 code lines). Pre-existing bug from its review (Paged→Endless notation leaves stale score) → quick 0014. S36 S37 logged
 2026-11-28 0011 dispatched→in-review — PR #51 head 635e655 (264 tests; order/delay OK; startup +92 ms median but A/A noise up to 540 ms → reviewer to measure with A/A control); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0013 dispatched→in-review — PR #50 head 2d3dcee (258 tests; exports dark-on-white); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0012 merged (#49; owner OK) — S34 complete (tag ruleset + pinned actions)
