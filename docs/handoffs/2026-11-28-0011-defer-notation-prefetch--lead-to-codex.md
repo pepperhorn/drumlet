@@ -29,6 +29,7 @@ Chromium: executablePath ~/.cache/ms-playwright/chromium_headless_shell-1254/chr
 
 ---
 ## Receiver ack
+I will wait for app interactivity and then the first gesture or the load-plus-five-second deadline before scheduling the background prefetch. I will keep the toggle warmup immediate and verify the owned files with unit tests, embed checks, and alternating Fast 3G runs. No open questions.
 
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
