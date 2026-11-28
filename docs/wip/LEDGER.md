@@ -11,9 +11,9 @@ Next ID: 0014
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0011 | [quick] Defer the notation prefetch on drumlet.app | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0011-defer-notation-prefetch | — | — | — | — | — | docs/handoffs/2026-11-28-0011-defer-notation-prefetch--lead-to-codex.md | 2026-11-28 |
-| 0012 | [quick] Pin workflow actions to commit SHAs | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0012-pin-actions | — | — | — | — | — | docs/handoffs/2026-11-28-0012-pin-actions--lead-to-codex.md | 2026-11-28 |
-| 0013 | [quick] Dark theme: notation title, clef and time signature | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0013-dark-notation-glyphs | — | — | — | — | — | docs/handoffs/2026-11-28-0013-dark-notation-glyphs--lead-to-codex.md | 2026-11-28 |
+| 0011 | [quick] Defer the notation prefetch on drumlet.app | dispatched | child 0011-impl-r1 | codex/gpt-6.2-sol | orch/0011-defer-notation-prefetch | — | — | — | — | — | docs/handoffs/2026-11-28-0011-defer-notation-prefetch--lead-to-codex.md | 2026-11-28 |
+| 0012 | [quick] Pin workflow actions to commit SHAs | dispatched | child 0012-impl-r1 | codex/gpt-6.2-sol | orch/0012-pin-actions | — | — | — | — | — | docs/handoffs/2026-11-28-0012-pin-actions--lead-to-codex.md | 2026-11-28 |
+| 0013 | [quick] Dark theme: notation title, clef and time signature | dispatched | child 0013-impl-r1 | codex/gpt-6.2-sol | orch/0013-dark-notation-glyphs | — | — | — | — | — | docs/handoffs/2026-11-28-0013-dark-notation-glyphs--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
 
@@ -88,6 +88,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0011/0012/0013 delegated in parallel → codex gpt-6.2-sol (high), base b4780a1; threads thread:delegated-task:command%3Amcp%3A687e6560-ecc2-4e70-99ed-ac8603b1642f%3Adelegate-task%3A001{1,2,3}-impl-r1
 2026-11-28 owner accepted S30, S34, S26 → quick 0011, 0012, 0013 (parallel, disjoint). S34 tag half done by lead: ruleset "Protect release tags" (refs/tags/player-v*: creation/update/deletion/non-ff; admin bypass)
 2026-11-28 @pepperhorn/drumlet-player@0.1.0 published by owner (npm latest=0.1.0, MIT, 73 files, 1.6 MB unpacked); jsDelivr serves dist/kits/acoustic1 and style.css. Next: owner enables npm trusted publishing for pepperhorn/drumlet release-player.yml
 2026-11-28 0010 merged (#48; auto-merge). First npm publish of @pepperhorn/drumlet-player 0.1.0 handed to owner (npm login first, then publish)
