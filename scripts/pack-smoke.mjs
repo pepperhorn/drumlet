@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -99,16 +99,41 @@ createRoot(document.getElementById('players')).render(presets.map((chrome, index
 )));
 `;
 
-function npm(args, cwd, capture = false) {
-  return execFileSync('npm', args, { cwd, encoding: 'utf8', stdio: ['ignore', capture ? 'pipe' : 'inherit', 'inherit'] });
+async function assertFreshLibrary() {
+  const entry = join(packageDir, 'dist/index.js');
+  const built = await stat(entry).catch(error => {
+    if (error.code !== 'ENOENT') throw error;
+    throw new Error('Missing packages/drumlet-player/dist/index.js. Run npm run build:lib first.');
+  });
+  for (const dir of ['player', 'audio', 'components']) {
+    const source = join(repo, 'src', dir);
+    const files = await readdir(source, { withFileTypes: true, recursive: true });
+    for (const file of files) {
+      if (!file.isFile() || !/\.(tsx?|css)$/.test(file.name) || /\.test\.tsx?$|^demo\.tsx$/.test(file.name)) continue;
+      const path = join(file.parentPath, file.name);
+      if ((await stat(path)).mtimeMs > built.mtimeMs) {
+        throw new Error(`Packed library is stale: ${path.slice(repo.length + 1)} is newer than dist/index.js. Run npm run build:lib first.`);
+      }
+    }
+  }
 }
 
-export async function withPackedHost(check, { browser = false } = {}) {
+function npm(args, cwd, { capture = false, timeout } = {}) {
+  try {
+    return execFileSync('npm', args, { cwd, timeout, encoding: 'utf8', stdio: ['ignore', capture ? 'pipe' : 'inherit', 'inherit'] });
+  } catch (error) {
+    if (error.code !== 'ETIMEDOUT') throw error;
+    throw new Error(`Temporary host npm ${args[0]} timed out after ${timeout / 1000}s`, { cause: error });
+  }
+}
+
+export async function withPackedHost(check, { installPlaywright = false } = {}) {
+  await assertFreshLibrary();
   const dir = await mkdtemp(join(tmpdir(), 'drumlet-pack-'));
   try {
     const lock = JSON.parse(await readFile(join(repo, 'package-lock.json'), 'utf8'));
     const version = name => lock.packages[`node_modules/${name}`].version;
-    const [pack] = JSON.parse(npm(['pack', packageDir, '--json', '--ignore-scripts'], dir, true));
+    const [pack] = JSON.parse(npm(['pack', packageDir, '--json', '--ignore-scripts'], dir, { capture: true }));
     const host = {
       private: true,
       type: 'module',
@@ -119,7 +144,7 @@ export async function withPackedHost(check, { browser = false } = {}) {
         '@vitejs/plugin-react': version('@vitejs/plugin-react'),
         tailwindcss: version('tailwindcss'),
         '@tailwindcss/vite': version('@tailwindcss/vite'),
-        ...(browser && { 'playwright-core': '1.64.1' }),
+        ...(installPlaywright && { 'playwright-core': '1.64.1' }),
       },
     };
     await Promise.all([
@@ -137,7 +162,7 @@ export default {
 };
 `),
     ]);
-    npm(['install', '--no-audit', '--no-fund', '--ignore-scripts', '--prefer-offline'], dir);
+    npm(['install', '--no-audit', '--no-fund', '--ignore-scripts', '--prefer-offline'], dir, { timeout: 120_000 });
     await cp(join(dir, 'node_modules', playerPackage, 'dist', 'kits'), join(dir, 'public', assetBase, 'kits'), { recursive: true });
     npm(['run', 'build'], dir);
     await check(dir, [

@@ -2,16 +2,18 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { preview } from 'vite';
 import { assetBase, hostStyles, withPackedHost } from './pack-smoke.mjs';
 
 const executablePath = process.env.CHROMIUM_PATH || join(homedir(),
   '.cache/ms-playwright/chromium_headless_shell-1254/chrome-headless-shell-linux64/chrome-headless-shell');
+const playwrightPath = process.env.PLAYWRIGHT_CORE_PATH && resolve(process.env.PLAYWRIGHT_CORE_PATH);
 const player = (page, index) => page.locator(`[data-player-index="${index}"] .drumlet-player`);
 const playButton = root => root.getByRole('button', { name: 'Play', exact: true });
 const stopButton = root => root.getByRole('button', { name: 'Stop', exact: true });
 const kitRequest = url => new URL(url).pathname.includes('/kits/');
+const label = (message, operation) => operation.catch(cause => { throw new Error(message, { cause }); });
 const snapshot = page => page.locator('[data-probe]').evaluateAll(nodes => nodes.map(node => {
   const css = getComputedStyle(node);
   // Private Tailwind @property initial values are registered document-wide.
@@ -39,8 +41,9 @@ async function withPage(browser, origin, params, check) {
     page.on('request', request => requests.push(request.url()));
     page.on('pageerror', error => errors.push(error.message));
     const path = params.host === 'tailwind' ? '/tailwind.html' : '/';
-    await page.goto(`${origin}${path}?${new URLSearchParams(params)}`);
-    await player(page, 0).locator('.step-cell').first().waitFor({ state: 'attached' });
+    const scenario = params.host ? `${params.host} / ${params.theme}` : params.mode ?? 'two-player playback';
+    await label(`${scenario}: packed host did not load`, page.goto(`${origin}${path}?${new URLSearchParams(params)}`));
+    await label(`${scenario}: player did not render its grid`, player(page, 0).locator('.step-cell').first().waitFor({ state: 'attached' }));
     const output = await check(page, requests);
     assert.deepEqual(errors, [], 'uncaught browser errors');
     const playbackErrors = await page.evaluate(() => window.playbackEvents.filter(([, event]) => event === 'error'));
@@ -96,7 +99,10 @@ async function checkStyles(browser, origin, report) {
             return [css.fontWeight, css.paddingLeft, hostIndex >= 0 && playerIndex > hostIndex];
           }), ['700', '16px', true], 'compiled Tailwind host stylesheet precedes the player stylesheet');
         }
-        return Promise.all([dimensions(player(page, 0)), dimensions(player(page, 1))]);
+        return Promise.all([0, 1].map(index => label(
+          `${host} / ${theme}: could not measure player ${index + 1} pad and Play control`,
+          dimensions(player(page, index)),
+        )));
       });
       if (host === 'clean') {
         const otherTheme = theme === 'dark' ? 'light' : 'dark';
@@ -112,15 +118,21 @@ async function checkStyles(browser, origin, report) {
   report.push({ check: 'CSS isolation', result: '12 host probes unchanged, host className applied' });
 }
 
-function waitForPlayback(page, index, event) {
-  return page.waitForFunction(([index, event]) => window.playbackEvents.some(([id, type]) => id === index && type === event), [index, event]);
+async function waitForPlayback(page, index, event) {
+  const who = `player ${index + 1}`;
+  const signal = await label(`${who} never emitted ${event}`, page.waitForFunction(([index, event]) =>
+    window.playbackEvents.find(([id, type]) => id === index && (type === event || type === 'error')), [index, event]));
+  const [, type, message] = await signal.jsonValue();
+  await signal.dispose();
+  if (type === 'error') throw new Error(`${who} emitted error while waiting for ${event}: ${message}`);
 }
 
 async function clickPlay(page, index) {
-  await playButton(player(page, index)).click();
+  const who = `player ${index + 1}`;
+  await label(`${who}: Play control could not be clicked`, playButton(player(page, index)).click());
   await waitForPlayback(page, index, 'play');
   await waitForPlayback(page, index, 'step');
-  await stopButton(player(page, index)).waitFor();
+  await label(`${who}: Stop control did not appear after playback started`, stopButton(player(page, index)).waitFor());
 }
 
 async function checkRequestsAndPlayback(browser, origin, notationFiles, report) {
@@ -130,35 +142,41 @@ async function checkRequestsAndPlayback(browser, origin, notationFiles, report) 
   };
 
   await withPage(browser, origin, { mode: 'none' }, async (page, requests) => {
-    await page.waitForLoadState('networkidle');
-    assert.equal(await player(page, 0).locator('.drumlet-player-play-btn').count(), 0);
-    assert.equal(await page.evaluate(() => window.audioContexts.length), 0);
+    await label('chrome="none": requests did not settle', page.waitForLoadState('networkidle'));
+    assert.equal(await player(page, 0).locator('.drumlet-player-play-btn').count(), 0, 'chrome="none" has no Play control');
+    assert.equal(await page.evaluate(() => window.audioContexts.length), 0, 'chrome="none" creates no AudioContext');
     assert.deepEqual(requests.filter(url => kitRequest(url) || notationRequest(url)), [], 'chrome="none" requests');
   });
   report.push({ check: 'chrome="none"', result: '0 kit/notation-engine requests, 0 AudioContexts' });
 
   await withPage(browser, origin, { mode: 'grid' }, async (page, requests) => {
-    await page.waitForLoadState('networkidle');
+    await label('grid: requests did not settle before notation switch', page.waitForLoadState('networkidle'));
     assert.deepEqual(requests.filter(notationRequest), [], 'grid requests before notation switch');
-    await player(page, 0).getByRole('button', { name: 'Notation', exact: true }).click();
-    await player(page, 0).locator('.verovio-container svg').first().waitFor();
+    await label('grid: Notation control could not be clicked', player(page, 0).getByRole('button', { name: 'Notation', exact: true }).click());
+    await label('notation: Verovio did not render a score SVG', player(page, 0).locator('.verovio-container svg').first().waitFor());
     assert.ok(requests.some(url => notationFiles.has(new URL(url).pathname)), 'switching to notation requests its JS chunk');
     assert.ok(requests.some(url => /petaluma[^/]*\.zip$/i.test(new URL(url).pathname)), 'notation loads the packed Petaluma font');
   });
   report.push({ check: 'Grid / notation', result: '0 engine requests in grid, switch fetches chunk and renders SVG' });
 
   await withPage(browser, origin, {}, async (page, requests) => {
+    const base = `${origin}${assetBase}/kits/acoustic1/`;
     const kitResponses = [];
     page.on('response', response => {
       if (kitRequest(response.url())) kitResponses.push([response.url(), response.ok()]);
     });
-    await clickPlay(page, 0);
-    await clickPlay(page, 1);
+    try {
+      await clickPlay(page, 0);
+      await clickPlay(page, 1);
+    } catch (cause) {
+      const wrongKit = requests.find(url => kitRequest(url) && !url.startsWith(base));
+      if (wrongKit) throw new Error(`assetBaseUrl: requested ${wrongKit} outside ${base}`, { cause });
+      throw cause;
+    }
     await waitForPlayback(page, 0, 'stop');
-    await playButton(player(page, 0)).waitFor();
+    await label('player 1: Play control did not return when player 2 started', playButton(player(page, 0)).waitFor());
     const transitions = await page.evaluate(() => window.playbackEvents.filter(([, event]) => event !== 'step'));
     assert.deepEqual(transitions, [[0, 'play'], [0, 'stop'], [1, 'play']], 'B claims playback from A');
-    const base = `${origin}${assetBase}/kits/acoustic1/`;
     const kits = requests.filter(kitRequest);
     assert.ok(kits.length > 1 && kits.every(url => url.startsWith(base)), 'kit requests use assetBaseUrl');
     assert.ok(kitResponses.some(([url, ok]) => ok && url === base + 'kit.json'), 'packed kit manifest returns OK');
@@ -169,34 +187,36 @@ async function checkRequestsAndPlayback(browser, origin, notationFiles, report) 
   report.push({ check: 'assetBaseUrl', result: `manifest and samples use ${assetBase}/kits/` });
 
   await withPage(browser, origin, { mode: 'shared' }, async page => {
-    assert.equal(await page.locator('.drumlet-player').count(), 8);
+    assert.equal(await page.locator('.drumlet-player').count(), 8, 'shared audio fixture mounts 8 players');
     for (let index = 0; index < 8; index++) {
       await clickPlay(page, index);
       if (index > 0) await waitForPlayback(page, index - 1, 'stop');
-      assert.deepEqual(await page.evaluate(() => window.audioContexts.map(ctx => ctx.state)), ['running']);
+      assert.deepEqual(await page.evaluate(() => window.audioContexts.map(ctx => ctx.state)), ['running'],
+        `8 players share one AudioContext (running after player ${index + 1} starts)`);
     }
-    await stopButton(player(page, 7)).click();
+    await label('player 8: Stop control could not be clicked', stopButton(player(page, 7)).click());
     await waitForPlayback(page, 7, 'stop');
-    await page.waitForFunction(() => window.audioContexts[0]?.state === 'suspended');
-    assert.deepEqual(await page.evaluate(() => window.audioContexts.map(ctx => ctx.state)), ['suspended']);
+    await label('shared AudioContext did not suspend when idle', page.waitForFunction(() => window.audioContexts[0]?.state === 'suspended'));
+    assert.deepEqual(await page.evaluate(() => window.audioContexts.map(ctx => ctx.state)), ['suspended'],
+      'one AudioContext remains suspended after all 8 players stop');
   });
   report.push({ check: 'Shared audio', result: '8 players, 1 AudioContext, suspended at idle' });
 }
 
 await withPackedHost(async (dir, report) => {
   const require = createRequire(join(dir, 'package.json'));
-  const { chromium } = require('playwright-core');
+  const { chromium } = require(playwrightPath || 'playwright-core');
   const manifest = JSON.parse(await readFile(join(dir, 'dist/.vite/manifest.json'), 'utf8'));
   const notationFiles = new Set(Object.entries(manifest)
     .filter(([id, entry]) => /notationview|verovio/i.test(id + entry.file) && entry.file.endsWith('.js'))
     .map(([, entry]) => '/' + entry.file));
   assert.ok(notationFiles.size > 0, 'Vite manifest identifies at least one notation JS chunk');
 
-  const server = await preview({ configFile: false, root: dir, preview: { host: '0.0.0.0', port: 5210, strictPort: true } });
+  const server = await preview({ configFile: false, root: dir, preview: { host: '127.0.0.1', port: 0 } });
   try {
     const browser = await chromium.launch({ executablePath });
     try {
-      const origin = 'http://127.0.0.1:5210';
+      const origin = new URL(server.resolvedUrls.local[0]).origin;
       await checkStyles(browser, origin, report);
       await checkRequestsAndPlayback(browser, origin, notationFiles, report);
       console.table(report);
@@ -206,4 +226,4 @@ await withPackedHost(async (dir, report) => {
   } finally {
     await server.close();
   }
-}, { browser: true });
+}, { installPlaywright: !playwrightPath });
