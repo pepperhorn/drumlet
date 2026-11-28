@@ -387,7 +387,7 @@ function NotationView({
 
   const score = (
     <div ref={scoreRef} className="notation-score-wrap" style={{ position: 'relative', display: 'block', minHeight: 160, paddingTop: 8, paddingBottom: 12 }}>
-      <div ref={containerRef} className="verovio-container" />
+      <div ref={containerRef} className="verovio-container text-text" />
       {hasScore && !layout && (current?.error
         ? <NotationLoading phase="error" message={current.error} onRetry={retry} />
         : <NotationPending key={attempt} phase="render" startedAt={attempt === 0 && !rendered ? startedAt : undefined} onRetry={retry} />)}

@@ -14,7 +14,6 @@ import { loadPetaluma } from '../components/notationPrefetch.js';
 import { beatToEvents } from './beatToEvents.js';
 import type { Track, Step, NoteValueKey } from '../state/sequencerReducer.js';
 
-const TEXT_COLOR = '#1A1A2E';
 const FIRST_SYSTEM_LEFT_MARGIN = 125;
 const PAGE_TOP_MARGIN = 30;
 const STEP_WIDTH = 28;
@@ -393,7 +392,7 @@ function applyFirstSystemDrumKey(svg: SVGSVGElement, mergedTracks: MergedTrack[]
       text.setAttribute('font-family', 'var(--font-display)');
       text.setAttribute('font-size', String(fontSize));
       text.setAttribute('font-weight', '700');
-      text.setAttribute('fill', useColor ? entry.color : TEXT_COLOR);
+      if (useColor) text.setAttribute('fill', entry.color);
       text.textContent = entry.label;
       group.appendChild(text);
     });
@@ -465,7 +464,6 @@ function applySectionHeadings(svg: SVGSVGElement, sectionHeadings: SectionHeadin
     text.setAttribute('font-family', 'var(--font-display)');
     text.setAttribute('font-size', '92');
     text.setAttribute('font-weight', '700');
-    text.setAttribute('fill', TEXT_COLOR);
     text.setAttribute('text-anchor', 'middle');
     text.textContent = heading.label;
     group.appendChild(text);
@@ -582,13 +580,16 @@ function engrave(
   if (!(svg instanceof SVGSVGElement)) throw new Error('Verovio did not produce an SVG');
 
   svg.style.display = 'block';
-  svg.style.color = TEXT_COLOR;
+  svg.setAttribute('fill', 'currentColor');
+  const scaledScore = svg.querySelector('svg.definition-scale');
+  // Verovio's inner SVG pins the colour to black, including currentColor strokes.
+  scaledScore?.removeAttribute('color');
   const svgWidth = numberFromSvgLength(svg.getAttribute('width'), pageWidth);
   const svgHeight = numberFromSvgLength(svg.getAttribute('height'), pageHeight);
   const headings = options.layout === 'endless' ? [] : options.sectionHeadings ?? [];
   const rawPositions = patchSvgForApp(svg, options.mergedTracks, startStep, endStep, stepsPerBar, options.useColor ?? true, headings);
   // Verovio puts the staff inside a nested viewBox. App overlays use CSS pixels.
-  const viewBox = svg.querySelector('svg.definition-scale')?.getAttribute('viewBox')?.split(/\s+/);
+  const viewBox = scaledScore?.getAttribute('viewBox')?.split(/\s+/);
   const unit = svgWidth / Number(viewBox?.[2] ?? pageWidth * 10);
   const stepPositions = rawPositions.map(({ x, y, line }) => ({
     x: (x + FIRST_SYSTEM_LEFT_MARGIN * 10) * unit,
@@ -648,7 +649,7 @@ function addEndlessHeadings(
     label.setAttribute('font-family', 'var(--font-legend, sans-serif)');
     label.setAttribute('font-size', '14');
     label.setAttribute('font-weight', '600');
-    label.setAttribute('fill', `var(--color-text, ${TEXT_COLOR})`);
+    label.setAttribute('fill', 'currentColor');
     label.textContent = heading.label;
     box.append(title, label);
     strip.append(box);

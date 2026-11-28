@@ -73,6 +73,36 @@ it('engraves onsets, keeps split tuplets, and interpolates skipped grid steps', 
   }
 }, 15_000);
 
+it.each(['wrapped', 'endless'] as const)('uses theme ink without overriding track colours in %s notation', async (layout) => {
+  stubVerovioGeometry();
+  const score = document.createElement('div');
+  const track = {
+    id: 'kick', name: 'Kick', group: 'kick', color: '#FF6B6B',
+    steps: [3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  } as MergedTrack;
+  const fixedInk = '[color], [fill="black"], [stroke="black"], [fill="#000"], [stroke="#000"], [fill="#000000"], [stroke="#000000"]';
+  try {
+    for (const useColor of [true, false]) {
+      await renderDrumStaff(score, {
+        layout, mergedTracks: [track], totalSteps: 16, noteValueKey: '1/16',
+        beatNoteValue: '1/4', stepsPerBeat: 4, useColor, numStaffLines: 1,
+      });
+      const scaledScore = score.querySelector('svg.definition-scale')!;
+      expect(scaledScore.parentElement?.getAttribute('fill')).toBe('currentColor');
+      expect(scaledScore.parentElement?.style.color).toBe('');
+      for (const selector of ['.pgHead tspan[font-size]', '.clef use', '.meterSig use']) {
+        const glyphs = scaledScore.querySelectorAll(selector);
+        expect(glyphs).not.toHaveLength(0);
+        for (const glyph of glyphs) expect(glyph.closest(fixedInk)).toBeNull();
+      }
+      const head = scaledScore.querySelector('.notehead use');
+      expect(head?.getAttribute('fill')).toBe(useColor ? 'rgba(255,107,107,1.00)' : null);
+    }
+  } finally {
+    Reflect.deleteProperty(SVGElement.prototype, 'getBBox');
+  }
+});
+
 it.each([
   { bars: 8, systems: 1 },
   { bars: 225, systems: 4 },
