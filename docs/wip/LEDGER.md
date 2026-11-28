@@ -11,7 +11,7 @@ Next ID: 0017
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0016 | [quick] Endless SVG/PNG downloads: no mid-strip title | dispatched | child 0016-impl-r1 | codex/gpt-6.2-sol | orch/0016-endless-export-title | — | — | — | — | — | docs/handoffs/2026-11-28-0016-endless-export-title--lead-to-codex.md | 2026-11-28 |
+| 0016 | [quick] Endless SVG/PNG downloads: no mid-strip title | in-review | review 0016-review-r1 | codex/gpt-6.2-sol | orch/0016-endless-export-title | https://github.com/pepperhorn/drumlet/pull/54 | /home/shaun/.t3/worktrees/drumlet/t3-71edaf9e-e55e4161e132803a | — | — | — | docs/handoffs/2026-11-28-0016-endless-export-title--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
 
@@ -94,6 +94,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0016 dispatched→in-review — PR #54 head 6c31fa2 (268 tests); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0016 delegated → codex gpt-6.2-sol (high), base e4cec34; thread thread:delegated-task:command%3Amcp%3A5f61da37-a5b0-4527-a4c6-c7c467855c74%3Adelegate-task%3A0016-impl-r1
 2026-11-28 0015 merged (#53; auto-merge, 28 code lines). Lead decision on its review suggestion: Endless downloads drop the title (match screen), remove renderer→export title hand-off → quick 0016
 2026-11-28 0015 dispatched→in-review — PR #53 head 71beea6 (267 tests, packed checks pass); review r1 claudeAgent claude-opus-5-5
