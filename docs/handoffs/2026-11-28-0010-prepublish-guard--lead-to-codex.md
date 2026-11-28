@@ -29,5 +29,7 @@ Never run `npm publish` without `--dry-run`.
 ---
 ## Receiver ack
 
+I’ll add a package-local publish hook that runs the root library build and verifier before packing. I’ll check the 73-file manifest, force a verification failure in a scratch copy, and review both workflows. All publish commands will use `--dry-run`. No open questions.
+
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)
