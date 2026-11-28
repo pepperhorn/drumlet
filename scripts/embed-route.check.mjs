@@ -55,10 +55,15 @@ async function checkRoutes(browser) {
   await context.addInitScript(() => {
     const start = AudioBufferSourceNode.prototype.start;
     window.sampleStarts = 0;
+    window.playheadSteps = new Set();
     AudioBufferSourceNode.prototype.start = function (...args) {
       start.apply(this, args);
       if (this.buffer && this.context.state === 'running') window.sampleStarts++;
     };
+    new MutationObserver(() => {
+      const step = document.querySelector('.playhead-active')?.closest('[data-global-step]');
+      if (step) window.playheadSteps.add(step.dataset.globalStep);
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ['class'] });
   });
 
   const page = await context.newPage();
@@ -79,7 +84,8 @@ async function checkRoutes(browser) {
   // Reload the host each time so a hash-only iframe URL change cannot reuse the old document.
   async function openEmbed(code, params = '') {
     await page.goto(hostUrl);
-    const src = `${origin}/?embed=1${params}#s=${code}`;
+    const hash = code === undefined ? '' : `#s=${code}`;
+    const src = `${origin}/?embed=1${params}${hash}`;
     await iframe.evaluate((element, src) => { element.src = src; }, src);
   }
 
@@ -87,6 +93,7 @@ async function checkRoutes(browser) {
   const play = player.getByRole('button', { name: 'Play', exact: true });
   await play.waitFor();
   assert.equal(await app.count(), 0);
+  assert.deepEqual(appChunkRequests, [], 'Plain embed must not request the App chunk');
   assert.equal(await player.locator('.endless-page-heading').count(), 1);
   const sampleResponse = page.waitForResponse((response) =>
     /\/samples\/acoustic1\/acoustic-Kick\.(?:ogg|m4a)$/.test(response.url()),
@@ -94,8 +101,7 @@ async function checkRoutes(browser) {
   const [sample] = await Promise.all([sampleResponse, play.click()]);
   assert.equal(sample.status(), 200);
   const playerFrame = page.frame({ url: /\?embed=1/ });
-  await playerFrame.waitForFunction(() => window.sampleStarts >= 2);
-  await player.locator('.endless-step[data-global-step="4"] .playhead-active').waitFor();
+  await playerFrame.waitForFunction(() => window.sampleStarts >= 2 && window.playheadSteps.size >= 2);
   await player.getByRole('button', { name: 'Stop', exact: true }).click();
   await play.waitFor();
   console.log('PASS v3 mounts the player, loads the local kick and advances playback');
@@ -139,7 +145,7 @@ async function checkRoutes(browser) {
   assert.ok(appChunkRequests.length > 0, 'The request matcher must detect the challenge App chunk');
   console.log('PASS challenge metadata opens the full app’s challenge setup');
 
-  for (const code of ['garbage___', encode({ v: 9 })]) {
+  for (const code of ['garbage___', encode({ v: 9 }), undefined, '']) {
     appChunkRequests.length = 0;
     pageErrors.length = 0;
     await openEmbed(code);
@@ -150,12 +156,14 @@ async function checkRoutes(browser) {
     assert.deepEqual(appChunkRequests, [], `App chunk requested for invalid code ${code}`);
     assert.deepEqual(pageErrors, [], `Uncaught error for invalid code ${code}`);
   }
-  console.log('PASS garbage and unknown-version codes show the player error without requesting App');
+  console.log('PASS garbage, unknown-version and empty embeds show the player error without requesting App');
 
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
   await page.setViewportSize({ width, height: 500 });
   await page.goto(`${origin}/#s=${encode(v4)}`);
   await page.getByRole('button', { name: /Tap to Start/ }).click();
+  assert.ok(await page.locator('head link[data-drumlet-app-preload][rel="modulepreload"][href*="/App-"]').count(),
+    'The full app route must preload its App chunk');
   await page.getByRole('button', { name: 'More controls' }).click();
   await page.getByRole('button', { name: 'Share', exact: true }).click();
   for (const [label, expected] of [
