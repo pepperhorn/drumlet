@@ -11,7 +11,7 @@ Next ID: 0010
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t10-review-r2 (t10 #46); t11 #45 waits on t10 merge (then fix r3 with vite.config.js) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/45, https://github.com/pepperhorn/drumlet/pull/46 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | ready | human: approve merge of #46 (t10, 415 code lines); then t11 fix r3 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/45, https://github.com/pepperhorn/drumlet/pull/46 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -72,11 +72,13 @@ Next ID: 0010
 | S28 | efficiency | `!important` px widths in src/player/styles/base.css duplicate constants in EndlessGrid.tsx — derive one from the other | PR #44 review r2 | S | no drift | 0001-t9 review r2 | new |
 | S29 | efficiency | App is now a lazy chunk (t11) → one extra request hop on normal loads (~8 ms FCP on simulated 40 ms RTT); add a modulepreload for the App chunk in the Vite build once t10 (vite.config.js) merges | PR #45 fix r2 return handoff | S | restore startup parity | 0001-t11 | accepted → folded into 0001-t11 fix r3 (after t10) |
 | S30 | efficiency | Defer the 7.9 MB notation prefetch on `/` until after the app is interactive (or until a user gesture) — on slow links it competes with the App chunk; Chromium "Fast 3G" emulation doesn't set navigator.connection, so the 3g skip rule doesn't catch it | PR #45 review r2 | S | faster mobile startup | 0001-t11 review r2 | new |
+| S31 | risk | pack-smoke stale-dist check scans only src/player|audio|components (.ts/.tsx/.css); the player also bundles src/state, notation, plugins, util and .json — scan all of src/ minus tests/App/main/demo | PR #46 review r2; scripts/pack-smoke.mjs:108 | S | release gate can't pass on a stale build | 0001-t10 review r2 | accepted → fold into 0001-t12 |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0001 t10 review r2 (opus) approved @ 27a1881 (prod dist byte-identical; labelled failures; concurrent runs OK); low finding S31 folded into t12; merge needs owner OK
 2026-11-28 0001 t10 fix r2 pushed @ 27a1881 (demo dev-only; 42 prod files byte-identical to main; labelled gate failures); review r2 claudeAgent claude-opus-5-5
 2026-11-28 0001 t10 review r1 (opus) approved @ 1d9c1fd (all 8 mutations caught). Lead wants before merge: production build unchanged (demo behind --mode demo), labelled gate failures, stale-dist/port/install robustness → fix r2 sent
 2026-11-28 0001 t11 review r2 (opus) @ bc74c6d: r1 fixed; startup +~550 ms on Fast 3G (one extra hop) → blocking. Lead: t11 waits for t10 (vite.config.js) to merge, then fix r3 adds App modulepreload + empty-embed → player error. S30 logged
