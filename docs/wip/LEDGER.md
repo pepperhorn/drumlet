@@ -5,18 +5,19 @@
 > Waiting on: `child <taskId>` · `review <taskId>` · `ci` · `human: <why>` · `lead: <next action>`. Set it on every status change. A row needs the lead when it starts with `lead`, or when it's empty and Status is dispatched, in-review, changes-requested, ready, or merged. The lead's Stop hook won't let the lead end its turn while any row needs it.
 > Type: normal items have a spec and plan. Quick items have the title prefix `[quick]` (no spec or plan, a short handoff). PRs adopted by `orch-sweep` have the prefix `[pr]`.
 
-Next ID: 0016
+Next ID: 0017
 
 ## Active
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0015 | [quick] Endless notation shows a clipped "Dru…" title fragment | in-review | review 0015-review-r1 | codex/gpt-6.2-sol | orch/0015-endless-title-fragment | https://github.com/pepperhorn/drumlet/pull/53 | /home/shaun/.t3/worktrees/drumlet/t3-f6b943d1-40eb5741bfb4a37e | — | — | — | docs/handoffs/2026-11-28-0015-endless-title-fragment--lead-to-codex.md | 2026-11-28 |
+| 0016 | [quick] Endless SVG/PNG downloads: no mid-strip title | dispatched | lead: delegate | codex/gpt-6.2-sol | orch/0016-endless-export-title | — | — | — | — | — | docs/handoffs/2026-11-28-0016-endless-export-title--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0015 | [quick] No title fragment in the endless notation strip | https://github.com/pepperhorn/drumlet/pull/53 | 2026-11-28 | auto-merged (28 code lines, approve, CI green) |
 | 0014 | [quick] Paged→Endless notation no longer leaves a stale score | https://github.com/pepperhorn/drumlet/pull/52 | 2026-11-28 | auto-merged (38 code lines, approve, CI green) |
 | 0011 | [quick] Defer the notation prefetch on drumlet.app | https://github.com/pepperhorn/drumlet/pull/51 | 2026-11-28 | 1 review round (opus; startup within noise); owner OK |
 | 0013 | [quick] Dark theme notation glyphs follow the theme | https://github.com/pepperhorn/drumlet/pull/50 | 2026-11-28 | auto-merged (47 code lines, approve, CI green) |
@@ -93,6 +94,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0015 merged (#53; auto-merge, 28 code lines). Lead decision on its review suggestion: Endless downloads drop the title (match screen), remove renderer→export title hand-off → quick 0016
 2026-11-28 0015 dispatched→in-review — PR #53 head 71beea6 (267 tests, packed checks pass); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0015 delegated → codex gpt-6.2-sol (high), base f496c0d; thread thread:delegated-task:command%3Amcp%3A5c89244e-eee6-45e4-938a-c591ea37cb03%3Adelegate-task%3A0015-impl-r1
 2026-11-28 0014 merged (#52; auto-merge, 38 code lines; main ✓ 267 tests). Pre-existing bug from its review (endless "Dru…" title fragment) → quick 0015
