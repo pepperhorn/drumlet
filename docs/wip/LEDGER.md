@@ -11,7 +11,7 @@ Next ID: 0010
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t12-review-r1 (t12 #47) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/47 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | ready | human: approve merge of #47 (t12: CI + release workflows) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/47 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -75,11 +75,15 @@ Next ID: 0010
 | S29 | efficiency | App is now a lazy chunk (t11) → one extra request hop on normal loads (~8 ms FCP on simulated 40 ms RTT); add a modulepreload for the App chunk in the Vite build once t10 (vite.config.js) merges | PR #45 fix r2 return handoff | S | restore startup parity | 0001-t11 | accepted → folded into 0001-t11 fix r3 (after t10) |
 | S30 | efficiency | Defer the 7.9 MB notation prefetch on `/` until after the app is interactive (or until a user gesture) — on slow links it competes with the App chunk; Chromium "Fast 3G" emulation doesn't set navigator.connection, so the 3g skip rule doesn't catch it | PR #45 review r2 | S | faster mobile startup | 0001-t11 review r2 | new |
 | S31 | risk | pack-smoke stale-dist check scans only src/player|audio|components (.ts/.tsx/.css); the player also bundles src/state, notation, plugins, util and .json — scan all of src/ minus tests/App/main/demo | PR #46 review r2; scripts/pack-smoke.mjs:108 | S | release gate can't pass on a stale build | 0001-t10 review r2 | accepted → fold into 0001-t12 |
+| S32 | risk | Add `prepublishOnly` (build:lib + verify:lib) to packages/drumlet-player so a manual publish can't ship a missing/stale dist | PR #47 review r1 | S | safe first publish | 0001-t12 review r1 | new — before first publish |
+| S33 | efficiency | Share the Chromium setup step between ci.yml and release-player.yml (composite action) | PR #47 review r1 | S | less duplication | 0001-t12 review r1 | new |
+| S34 | risk | Pin actions to commit SHAs in the publish job; protect `player-v*` tags (ruleset) | PR #47 review r1 | S | supply-chain hardening | 0001-t12 review r1 | new |
 
 Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0001 t12 review r1 (opus) approved @ af46a1b (actionlint clean; gate + CI Chromium step verified; S31 works; README snippets run); merge needs owner OK (CI). S32–S34 logged
 2026-11-28 0001 t12 PR #47 head af46a1b (codex gpt-6.2-sol; worktree /home/shaun/.t3/worktrees/drumlet/t3-420fb1e2-9927d595c24fc71b; full gate passes; 73-file dry-run tarball); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0001 t12 delegated → codex gpt-6.2-sol (high), base 1c69350; thread thread:delegated-task:command%3Amcp%3A3c805740-8753-423f-9fcb-16e06213eda6%3Adelegate-task%3A0001-t12-impl-r1
 2026-11-28 0001 t11 merged (#45, c0a37de; owner OK; main verify ✓ 256 tests + lib checks). t12 handoff written (release + CI workflows with full gate, S31, docs)
