@@ -13,6 +13,9 @@
     "./package.json": "./package.json"
   },
   "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "prepublishOnly": "npm --prefix ../.. run build:lib && npm --prefix ../.. run verify:lib"
+  },
   "sideEffects": ["*.css"],
   "peerDependencies": {
     "react": ">=19",
