@@ -11,12 +11,13 @@ Next ID: 0010
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | ready | human: approve merge of #45 (t11) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/45 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | dispatched | lead: delegate t12 | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | — | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0001-t11 | Iframe embed rebuilt on DrumletPlayer | https://github.com/pepperhorn/drumlet/pull/45 | 2026-11-28 (c0a37de) | 3 review rounds (opus); startup parity restored; owner OK |
 | 0001-t10 | Demo page, embed checks, pack smoke | https://github.com/pepperhorn/drumlet/pull/46 | 2026-11-28 (f1dfd50) | 2 review rounds (opus; 8 mutations caught); owner OK |
 | 0001-t9 | @pepperhorn/drumlet-player package build (MIT) | https://github.com/pepperhorn/drumlet/pull/44 | 2026-11-28 (f2cfd53) | 3 review rounds (opus): unlayered scoped CSS, :where root reset; owner OK |
 | 0001-t8b | One shared AudioContext per page | https://github.com/pepperhorn/drumlet/pull/43 | 2026-11-28 (6408ec8) | 1 review round (opus); owner OK |
@@ -79,6 +80,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0001 t11 merged (#45, c0a37de; owner OK; main verify ✓ 256 tests + lib checks). t12 handoff written (release + CI workflows with full gate, S31, docs)
 2026-11-28 0001 t11 review r3 (opus) approved @ 1ee4f31 (Fast-3G `/` −50 ms vs main; embed 2.5 s vs 6.6 s; empty/garbage embeds → player error); merge needs owner OK
 2026-11-28 0001 t11 fix r3 pushed @ 1ee4f31 (rebased; conditional App preload: Fast-3G time-to-App 6.42 s vs main 6.49 s; empty embeds → player error; 256 tests, route + packed checks pass); review r3 claudeAgent claude-opus-5-5
 2026-11-28 0001 t10 merged (#46, f1dfd50; owner OK; main verify ✓ 250 tests + lib checks). t11 fix r3 sent: Owns +vite.config.js/index.html for App-chunk preload (startup parity on Fast 3G) + empty embed → player error
