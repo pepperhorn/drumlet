@@ -85,6 +85,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 @pepperhorn/drumlet-player@0.1.0 published by owner (npm latest=0.1.0, MIT, 73 files, 1.6 MB unpacked); jsDelivr serves dist/kits/acoustic1 and style.css. Next: owner enables npm trusted publishing for pepperhorn/drumlet release-player.yml
 2026-11-28 0010 merged (#48; auto-merge). First npm publish of @pepperhorn/drumlet-player 0.1.0 handed to owner (npm login first, then publish)
 2026-11-28 0010 dispatched→in-review — PR #48 head 9cc6ba7 (dry-runs match 73-file baseline; forced verify failure aborts); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0010 implementer run failed on Codex usage limit after drafting the prepublishOnly line (uncommitted); owner reports Codex reset → resumed same thread
