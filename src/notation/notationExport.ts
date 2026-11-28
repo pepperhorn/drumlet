@@ -47,6 +47,8 @@ function ensureFontStyle(svg: SVGElement): void {
 
 function serializeWithFonts(svgElement: SVGElement): string {
   const clone = svgElement.cloneNode(true) as SVGElement;
+  clone.style.color = '#1A1A2E';
+  clone.style.backgroundColor = '#FFFFFF';
   ensureFontStyle(clone);
   if (!clone.getAttribute('xmlns')) {
     clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
