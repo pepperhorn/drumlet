@@ -11,12 +11,12 @@ Next ID: 0011
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0010 | [quick] prepublishOnly guard for @pepperhorn/drumlet-player | in-review | review 0010-review-r1 | codex/gpt-6.2-sol | orch/0010-prepublish-guard | https://github.com/pepperhorn/drumlet/pull/48 | /home/shaun/.t3/worktrees/drumlet/t3-fbf097dc-2383bca0469d0c11 | — | — | — | docs/handoffs/2026-11-28-0010-prepublish-guard--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
 
 | K | Title | PR | Merged | Notes |
 |---|---|---|---|---|
+| 0010 | [quick] prepublishOnly guard | https://github.com/pepperhorn/drumlet/pull/48 | 2026-11-28 | auto-merged (3 code lines, approve, CI green) |
 | 0001-t12 | Release workflow, CI and docs | https://github.com/pepperhorn/drumlet/pull/47 | 2026-11-28 (ee8fe16) | 1 review round (opus); owner OK; first CI on main green |
 | 0001 | Drumlet Player (embeddable component) + endless view — ALL 12 TASKS (+t8b) MERGED | #28–#47 | 2026-11-28 | first npm publish pending (owner, after 0010) |
 | 0001-t11 | Iframe embed rebuilt on DrumletPlayer | https://github.com/pepperhorn/drumlet/pull/45 | 2026-11-28 (c0a37de) | 3 review rounds (opus); startup parity restored; owner OK |
@@ -85,6 +85,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0010 merged (#48; auto-merge). First npm publish of @pepperhorn/drumlet-player 0.1.0 handed to owner (npm login first, then publish)
 2026-11-28 0010 dispatched→in-review — PR #48 head 9cc6ba7 (dry-runs match 73-file baseline; forced verify failure aborts); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0010 implementer run failed on Codex usage limit after drafting the prepublishOnly line (uncommitted); owner reports Codex reset → resumed same thread
 2026-11-28 0010 delegated → codex gpt-6.2-sol (high), base 4f55157; thread thread:delegated-task:command%3Amcp%3A2a4b1bf1-6db4-47cc-b101-c4c3a37c34a1%3Adelegate-task%3A0010-impl-r1
