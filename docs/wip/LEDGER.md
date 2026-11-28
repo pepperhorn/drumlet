@@ -11,7 +11,7 @@ Next ID: 0010
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0001 | Drumlet Player (embeddable component) + endless view | changes-requested | child 0001-t11-impl-r3 (t11 #45) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/45 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
+| 0001 | Drumlet Player (embeddable component) + endless view | in-review | review 0001-t11-review-r3 (t11 #45) | codex/gpt-6.2-sol (t1) | orch/0001-t2-share-v4, orch/0001-t4-play-through | https://github.com/pepperhorn/drumlet/pull/45 | /home/shaun/.t3/worktrees/drumlet/t3-2afd6bc2-3454cab65970f66a | t1 thread: thread:delegated-task:command%3Amcp%3A7e96baca-8201-49c3-af48-c6e3aea92013%3Adelegate-task%3A0001-t1-impl-r1 | docs/specs/0001-drumlet-player.md | docs/plans/0001-drumlet-player.md | docs/handoffs/2026-11-27-0001-t1-kit-loader--codex-to-lead.md @ 5e09ee8 | 2026-11-27 |
 
 ## Done / closed
 
@@ -79,6 +79,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0001 t11 fix r3 pushed @ 1ee4f31 (rebased; conditional App preload: Fast-3G time-to-App 6.42 s vs main 6.49 s; empty embeds → player error; 256 tests, route + packed checks pass); review r3 claudeAgent claude-opus-5-5
 2026-11-28 0001 t10 merged (#46, f1dfd50; owner OK; main verify ✓ 250 tests + lib checks). t11 fix r3 sent: Owns +vite.config.js/index.html for App-chunk preload (startup parity on Fast 3G) + empty embed → player error
 2026-11-28 0001 t10 review r2 (opus) approved @ 27a1881 (prod dist byte-identical; labelled failures; concurrent runs OK); low finding S31 folded into t12; merge needs owner OK
 2026-11-28 0001 t10 fix r2 pushed @ 27a1881 (demo dev-only; 42 prod files byte-identical to main; labelled gate failures); review r2 claudeAgent claude-opus-5-5
