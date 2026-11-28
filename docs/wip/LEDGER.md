@@ -11,7 +11,7 @@ Next ID: 0011
 
 | K | Title | Status | Waiting on | Owner (provider/model) | Branch | PR | Worktree | T3 task/thread | Spec | Plan | Latest handoff | Updated |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0010 | [quick] prepublishOnly guard for @pepperhorn/drumlet-player | dispatched | child 0010-impl-r1 | codex/gpt-6.2-sol | orch/0010-prepublish-guard | — | — | — | — | — | docs/handoffs/2026-11-28-0010-prepublish-guard--lead-to-codex.md | 2026-11-28 |
+| 0010 | [quick] prepublishOnly guard for @pepperhorn/drumlet-player | in-review | review 0010-review-r1 | codex/gpt-6.2-sol | orch/0010-prepublish-guard | https://github.com/pepperhorn/drumlet/pull/48 | /home/shaun/.t3/worktrees/drumlet/t3-fbf097dc-2383bca0469d0c11 | — | — | — | docs/handoffs/2026-11-28-0010-prepublish-guard--lead-to-codex.md | 2026-11-28 |
 
 ## Done / closed
 
@@ -85,6 +85,7 @@ Last health scan: never
 
 ## Log
 <!-- One line per status change, newest first: YYYY-MM-DD NNNN old→new — note -->
+2026-11-28 0010 dispatched→in-review — PR #48 head 9cc6ba7 (dry-runs match 73-file baseline; forced verify failure aborts); review r1 claudeAgent claude-opus-5-5
 2026-11-28 0010 implementer run failed on Codex usage limit after drafting the prepublishOnly line (uncommitted); owner reports Codex reset → resumed same thread
 2026-11-28 0010 delegated → codex gpt-6.2-sol (high), base 4f55157; thread thread:delegated-task:command%3Amcp%3A2a4b1bf1-6db4-47cc-b101-c4c3a37c34a1%3Adelegate-task%3A0010-impl-r1
 2026-11-28 0001 t12 merged (#47, ee8fe16; owner OK; CI green on main) — 0001 COMPLETE. Owner accepted S32 → quick 0010 (prepublishOnly guard) before first manual publish
