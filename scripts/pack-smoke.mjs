@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { cp, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 
 const repo = resolve(import.meta.dirname, '..');
 const packageDir = join(repo, 'packages/drumlet-player');
@@ -105,15 +105,16 @@ async function assertFreshLibrary() {
     if (error.code !== 'ENOENT') throw error;
     throw new Error('Missing packages/drumlet-player/dist/index.js. Run npm run build:lib first.');
   });
-  for (const dir of ['player', 'audio', 'components']) {
-    const source = join(repo, 'src', dir);
-    const files = await readdir(source, { withFileTypes: true, recursive: true });
-    for (const file of files) {
-      if (!file.isFile() || !/\.(tsx?|css)$/.test(file.name) || /\.test\.tsx?$|^demo\.tsx$/.test(file.name)) continue;
-      const path = join(file.parentPath, file.name);
-      if ((await stat(path)).mtimeMs > built.mtimeMs) {
-        throw new Error(`Packed library is stale: ${path.slice(repo.length + 1)} is newer than dist/index.js. Run npm run build:lib first.`);
-      }
+  const source = join(repo, 'src');
+  const appEntries = new Set(['App.tsx', 'main.tsx', join('player', 'demo.tsx')]);
+  const files = await readdir(source, { withFileTypes: true, recursive: true });
+  for (const file of files) {
+    if (!file.isFile() || /\.(test|spec)\./.test(file.name)) continue;
+    if (relative(source, file.parentPath).split(sep).some(dir => /^(tests?|__tests__)$/.test(dir))) continue;
+    const path = join(file.parentPath, file.name);
+    if (appEntries.has(relative(source, path))) continue;
+    if ((await stat(path)).mtimeMs > built.mtimeMs) {
+      throw new Error(`Packed library is stale: ${relative(repo, path)} is newer than dist/index.js. Run npm run build:lib first.`);
     }
   }
 }
