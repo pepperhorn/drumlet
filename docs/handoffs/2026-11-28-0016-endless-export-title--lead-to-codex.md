@@ -27,6 +27,7 @@ Chromium: executablePath ~/.cache/ms-playwright/chromium_headless_shell-1254/chr
 
 ---
 ## Receiver ack
+I’ll remove the export-only title restoration so Endless downloads match the strip on screen, including across render chunks. Paged exports and on-screen notation and playback must stay unchanged. I’ll stay within notation and its tests unless the export call site needs a change. No open questions.
 
 ---
 ## Return (implementer → lead; fill in when done, or in a separate …-to-lead.md)

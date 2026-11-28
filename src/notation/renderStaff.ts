@@ -12,7 +12,6 @@ import { getNotation, toMeiPitch } from './drumMap.js';
 import { getVelocityOpacity } from '../audio/velocityConfig.js';
 import { loadPetaluma } from '../components/notationPrefetch.js';
 import { beatToEvents } from './beatToEvents.js';
-import { hidePageHeaders } from './notationExport.js';
 import type { Track, Step, NoteValueKey } from '../state/sequencerReducer.js';
 
 const FIRST_SYSTEM_LEFT_MARGIN = 125;
@@ -716,6 +715,6 @@ export async function renderDrumStaff(container: HTMLElement, options: RenderDru
 
   const { result, unit } = chunks[0]!;
   addEndlessHeadings(strip, headings, stepPositions, barStarts, svgWidth, ((options.numStaffLines ?? 5) - 1) * 180 * unit);
-  hidePageHeaders(strip);
+  strip.querySelectorAll('.pgHead').forEach(header => header.replaceChildren());
   return { ...result, stepPositions, svgWidth, svgHeight: Math.ceil(svgHeight), topPadding };
 }
