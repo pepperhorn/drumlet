@@ -1,8 +1,8 @@
 import { memo, useState, useCallback } from 'react';
-import { buildShareUrl, buildEmbedUrl, buildEmbedSnippet } from '../state/shareCodec.js';
+import { buildShareUrl, buildEmbedUrl, buildEmbedSnippet, buildNpmEmbedSnippet } from '../state/shareCodec.js';
 import type { SequencerState } from '../state/sequencerReducer.js';
 
-type CopiedKey = 'share' | 'embed' | 'iframe' | null;
+type CopiedKey = 'share' | 'embed' | 'iframe' | 'npm';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -11,11 +11,12 @@ interface ShareModalProps {
 }
 
 function ShareModal({ isOpen, onClose, state }: ShareModalProps) {
-  const [copied, setCopied] = useState<CopiedKey>(null);
+  const [copied, setCopied] = useState<CopiedKey | null>(null);
 
   const shareUrl = isOpen ? (buildShareUrl(state) ?? '') : '';
   const embedUrl = isOpen ? (buildEmbedUrl(state) ?? '') : '';
   const iframeSnippet = isOpen ? (buildEmbedSnippet(state) ?? '') : '';
+  const npmSnippet = isOpen ? (buildNpmEmbedSnippet(state) ?? '') : '';
 
   const handleCopy = useCallback(async (text: string, type: CopiedKey) => {
     try {
@@ -39,7 +40,7 @@ function ShareModal({ isOpen, onClose, state }: ShareModalProps) {
   return (
     <>
       <div className="share-backdrop fixed inset-0 bg-black/20 z-40" onClick={onClose} />
-      <div className="share-modal fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-card rounded-2xl shadow-2xl border border-border w-[480px] max-w-[90vw] p-6">
+      <div className="share-modal fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-card rounded-2xl shadow-2xl border border-border w-[480px] max-w-[90vw] max-h-[90dvh] overflow-y-auto p-6">
         <div className="share-header flex items-center justify-between mb-5">
           <h3 className="share-title text-lg lg:text-xl font-display font-bold text-text">Share</h3>
           <button
@@ -102,29 +103,38 @@ function ShareModal({ isOpen, onClose, state }: ShareModalProps) {
           </p>
         </div>
 
-        <div className="share-section mb-2">
-          <label className="share-label text-[10px] lg:text-xs text-muted font-semibold uppercase tracking-wide block mb-1.5">
-            Embed HTML
-          </label>
-          <div className="share-input-row flex gap-2">
-            <textarea
-              readOnly
-              value={iframeSnippet}
-              rows={3}
-              className="share-iframe-input flex-1 px-3 py-2 rounded-xl bg-bg border border-border text-[10px] lg:text-xs font-mono text-text resize-none outline-none focus:border-sky"
-              onClick={(e) => (e.target as HTMLTextAreaElement).select()}
-            />
-            <button
-              className={`share-copy-btn px-3 py-2 rounded-xl text-xs lg:text-sm font-semibold cursor-pointer transition-all shrink-0 self-start
-                ${copied === 'iframe' ? 'bg-play text-white' : 'bg-sky/10 text-sky hover:bg-sky/20'}`}
-              onClick={() => handleCopy(iframeSnippet, 'iframe')}
-            >
-              {copied === 'iframe' ? 'Copied!' : 'Copy'}
-            </button>
-          </div>
-          <p className="share-hint text-[10px] lg:text-xs text-muted mt-1">
-            Drop this into any HTML page for an interactive drum pattern player
-          </p>
+        <div className="share-embeds">
+          <h4 className="share-embeds-title mb-2 font-display font-semibold text-text">Embed</h4>
+          {([
+            ['npm', 'React / npm', npmSnippet, 4],
+            ['iframe', 'Iframe HTML', iframeSnippet, 3],
+          ] as const).map(([key, label, snippet, rows]) => (
+            <div className="share-embed-snippet mb-2" key={key}>
+              <label htmlFor={`share-${key}-snippet`} className="share-embed-label mb-1 block text-sm font-semibold text-text">
+                {label}
+              </label>
+              <div className="share-input-row flex gap-2">
+                <textarea
+                  id={`share-${key}-snippet`}
+                  readOnly
+                  value={snippet}
+                  rows={rows}
+                  wrap="off"
+                  className="share-embed-code min-w-0 flex-1 resize-none rounded-xl border border-border bg-bg px-3 py-2 font-mono text-sm text-text outline-none focus:border-sky"
+                  onClick={(e) => e.currentTarget.select()}
+                />
+                <button
+                  type="button"
+                  className={`share-copy-btn min-h-9 shrink-0 self-start rounded-xl px-3 py-2 text-sm font-semibold cursor-pointer transition-all
+                    ${copied === key ? 'bg-play text-white' : 'bg-sky/10 text-sky hover:bg-sky/20'}`}
+                  aria-label={`Copy ${label} embed snippet`}
+                  onClick={() => handleCopy(snippet, key)}
+                >
+                  {copied === key ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </>

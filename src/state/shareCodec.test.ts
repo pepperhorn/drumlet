@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createNewPatternState } from './sequencerReducer.js';
 import type { Step, Track } from './sequencerReducer.js';
 import { findStockRhythm, stockRhythmToState } from './stockRhythms.js';
-import { buildShareUrl, decodePayload, encodeState } from './shareCodec.js';
+import { buildEmbedSnippet, buildNpmEmbedSnippet, buildShareUrl, decodePayload, encodeState, readShareCode } from './shareCodec.js';
 
 // Produced by encodeState at f8c05d6, including a split step and a Latin-1 name.
 const V3_CODE = 'eyJ2IjozLCJiIjo5OCwic3ciOjAsInN0IjoiOHRoIiwiaHUiOjAsInNwIjo0LCJudiI6IjEvNCIsImJiIjo0LCJzdiI6IjEvMTYiLCJwbSI6eyJpZCI6ImNoYWxsZW5nZS1maXh0dXJlIn0sInQiOlt7Im4iOiJDYWbpIEtpY2siLCJzIjoiNzAoMSwzKTAiLCJ2bSI6Nywidm8iOjgwLCJydiI6MjAsInN0IjoiayIsImtpIjoiYWNvdXN0aWMxIiwia3MiOiJraWNrIn1dfQ';
@@ -165,5 +165,49 @@ describe('share codec', () => {
   it('returns null for a garbage string', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(decodePayload('not a share code!')).toBeNull();
+  });
+
+  it('reads a share code alone or after another hash parameter without decoding it', () => {
+    expect(readShareCode('#s=garbage___')).toBe('garbage___');
+    expect(readShareCode('#other=1&s=a-B_9&next=1')).toBe('a-B_9');
+    expect(readShareCode('#other=1')).toBeUndefined();
+  });
+});
+
+describe('embed snippets', () => {
+  it('keeps the legacy iframe route, challenge metadata and autoplay permission', () => {
+    const state = createNewPatternState();
+    const pluginMeta = { modeId: 'rhythm-challenge' };
+    const snippet = buildEmbedSnippet(state, 'https://example.com', pluginMeta);
+    const template = document.createElement('template');
+    template.innerHTML = snippet!;
+    const iframe = template.content.querySelector('iframe');
+    const url = new URL(iframe!.src);
+    expect(`${url.origin}${url.pathname}${url.search}`).toBe('https://example.com/?embed=1');
+    expect(decodePayload(url.hash.slice(3))?.pluginMeta).toEqual(pluginMeta);
+    expect(iframe?.getAttribute('title')).toBe('Drumlet groove');
+    expect(iframe?.getAttribute('width')).toBe('100%');
+    expect(iframe?.getAttribute('height')).toBe('400');
+    expect(iframe?.getAttribute('allow')).toBe('autoplay');
+  });
+
+  it('includes install, imports and a React component with the full share code', () => {
+    const state = createNewPatternState();
+    state.pages.push({ ...state.pages[0]!, name: 'Finale' });
+    const code = encodeState(state)!;
+    expect(buildNpmEmbedSnippet(state)).toBe(`// npm install @pepperhorn/drumlet-player
+import { DrumletPlayer } from '@pepperhorn/drumlet-player'
+import '@pepperhorn/drumlet-player/style.css'
+
+export function Lesson() {
+  return <DrumletPlayer groove={{ share: '${code}' }} />
+}`);
+    expect(decodePayload(code)?.state.pages.map(({ name }) => name)).toEqual(['Page 1', 'Finale']);
+  });
+
+  it('does not generate snippets without pages', () => {
+    const state = { ...createNewPatternState(), pages: [] };
+    expect(buildEmbedSnippet(state)).toBeNull();
+    expect(buildNpmEmbedSnippet(state)).toBeNull();
   });
 });

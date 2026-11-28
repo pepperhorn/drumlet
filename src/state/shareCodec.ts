@@ -314,7 +314,19 @@ export function buildEmbedUrl(state: SequencerState, baseUrl = 'https://drumlet.
 export function buildEmbedSnippet(state: SequencerState, baseUrl = 'https://drumlet.app', pluginMeta: Record<string, unknown> | null = null): string | null {
   const url = buildEmbedUrl(state, baseUrl, pluginMeta);
   if (!url) return null;
-  return `<iframe src="${url}" width="100%" height="400" frameborder="0" style="border-radius:16px;border:1px solid #E2E8F0;" allow="autoplay"></iframe>`;
+  return `<iframe title="Drumlet groove" src="${url}" width="100%" height="400" frameborder="0" style="border-radius:16px;border:1px solid #E2E8F0;" allow="autoplay"></iframe>`;
+}
+
+export function buildNpmEmbedSnippet(state: SequencerState): string | null {
+  const code = encodeState(state);
+  if (!code) return null;
+  return `// npm install @pepperhorn/drumlet-player
+import { DrumletPlayer } from '@pepperhorn/drumlet-player'
+import '@pepperhorn/drumlet-player/style.css'
+
+export function Lesson() {
+  return <DrumletPlayer groove={{ share: '${code}' }} />
+}`;
 }
 
 export function loadFromUrl(): SequencerState | null {
@@ -322,13 +334,13 @@ export function loadFromUrl(): SequencerState | null {
   return payload?.state ?? null;
 }
 
+export function readShareCode(hash: string): string | undefined {
+  return hash.match(/[#&]s=([A-Za-z0-9_-]+)/)?.[1];
+}
+
 export function loadSharedPayload(): DecodedPayload | null {
-  const hash = window.location.hash;
-  const match = hash.match(/[#&]s=([A-Za-z0-9_-]+)/);
-  if (match && match[1]) {
-    return decodePayload(match[1]);
-  }
-  return null;
+  const code = readShareCode(window.location.hash);
+  return code ? decodePayload(code) : null;
 }
 
 export function isEmbedMode(): boolean {
